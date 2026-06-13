@@ -7,6 +7,7 @@ from pathlib import Path
 
 def create_payment_mini_codegraph_project(root: Path) -> dict[str, Path]:
     project_path = root / "payment-mini"
+    _write_payment_mini_sources(project_path)
     db_path = project_path / ".codegraph" / "codegraph.db"
     db_path.parent.mkdir(parents=True)
     _write_codegraph_db(db_path)
@@ -25,6 +26,43 @@ def create_payment_mini_codegraph_project(root: Path) -> dict[str, Path]:
         encoding="utf-8",
     )
     return {"project_path": project_path, "db_path": db_path, "experience_seed": seed_path}
+
+
+def _write_payment_mini_sources(project_path: Path) -> None:
+    files = {
+        "contract/src/main/java/example/payment/settlement/SettlementService.java": """
+package example.payment.settlement;
+
+public interface SettlementService {
+    SettlementResult requestSettlement(SettlementRequest request);
+}
+""".strip()
+        + "\n",
+        "service/src/main/java/example/payment/settlement/SettlementServiceImpl.java": """
+package example.payment.settlement;
+
+public class SettlementServiceImpl implements SettlementService {
+    public SettlementResult requestSettlement(SettlementRequest request) {
+        return new SettlementResult();
+    }
+}
+""".strip()
+        + "\n",
+        "service/src/test/java/example/payment/settlement/SettlementFlowTest.java": """
+package example.payment.settlement;
+
+public class SettlementFlowTest {
+    public void requestSettlement() {
+        new SettlementServiceImpl().requestSettlement(new SettlementRequest());
+    }
+}
+""".strip()
+        + "\n",
+    }
+    for relative_path, contents in files.items():
+        path = project_path / relative_path
+        path.parent.mkdir(parents=True, exist_ok=True)
+        path.write_text(contents, encoding="utf-8")
 
 
 def _write_codegraph_db(db_path: Path) -> None:

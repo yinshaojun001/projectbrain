@@ -10,6 +10,7 @@ from projectbrain_adapters.context_pack import ContextPackBuilder
 from projectbrain_adapters.experience import load_experience_seed
 from projectbrain_adapters.impact_analysis import ImpactAnalysisBuilder
 from projectbrain_schema.validation import validate_context_pack, validate_facts_export, validate_impact_analysis
+from projectbrain_runtime.git_diff import GitDiffSelection, changed_files_for_selection
 from projectbrain_runtime.models import ImportOptions, ProjectRecord, now_iso
 from projectbrain_runtime.repository import ProjectBrainRepository
 
@@ -108,3 +109,28 @@ class ProjectBrainRuntime:
         validate_impact_analysis(analysis)
         artifact_path = self.repository.save_run_artifact(project_id, "impact-analysis-latest.json", analysis)
         return {"artifact_path": artifact_path, "impact_analysis": analysis}
+
+    def analyze_git_diff_impact(
+        self,
+        *,
+        project_id: str,
+        task: str,
+        selection: GitDiffSelection,
+        changed_symbols: list[str] | None = None,
+        max_items_per_section: int = 12,
+    ) -> dict[str, Any]:
+        project = self.repository.get_project(project_id)
+        changed_files = changed_files_for_selection(project.source_path, selection)
+        data = self.analyze_impact(
+            project_id=project_id,
+            task=task,
+            changed_files=changed_files,
+            changed_symbols=changed_symbols or [],
+            max_items_per_section=max_items_per_section,
+        )
+        data["git_diff"] = {
+            "selection": selection.label(),
+            "repo_path": project.source_path,
+            "changed_files": changed_files,
+        }
+        return data

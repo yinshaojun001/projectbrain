@@ -19,6 +19,7 @@ The public repository should include:
 - `packages/`
 - `tests/`
 - `examples/payment-mini/`
+- `.planning/` public planning docs
 - `docs/projectbrain/` design and runtime docs
 - `README.md`
 - `pyproject.toml`
@@ -39,7 +40,9 @@ ProjectBrain is currently a local prototype:
 - CodeGraph export adapter
 - Context Pack builder
 - Impact Analysis builder
+- Git diff impact analysis
 - JSON-file runtime
+- local-only stdio MCP server
 - optional FastAPI skeleton
 
 It is not yet a hosted service, full RAG system, or autonomous code modifier.

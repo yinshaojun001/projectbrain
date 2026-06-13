@@ -87,6 +87,20 @@ Generate Impact Analysis:
   --changed-file src/checkout/CheckoutService.java
 ```
 
+Review the current staged Git diff:
+
+```bash
+.venv/bin/projectbrain impact-diff my_project "Review staged checkout changes" --staged
+```
+
+Review a branch or ref range:
+
+```bash
+.venv/bin/projectbrain impact-diff my_project "Review branch impact" --from main --to HEAD
+```
+
+`impact-diff` uses local Git to read changed file names, then maps those paths to imported ProjectBrain facts. It does not read or return source file bodies.
+
 Runtime artifacts are stored under `.projectbrain/`, which is ignored by Git.
 
 ## Privacy Boundary

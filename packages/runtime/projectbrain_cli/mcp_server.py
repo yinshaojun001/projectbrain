@@ -12,6 +12,7 @@ import sys
 from dataclasses import dataclass
 from typing import Any, TextIO
 
+from projectbrain_runtime.git_diff import GitDiffSelection
 from projectbrain_runtime.models import ImportOptions
 from projectbrain_runtime.repository import JsonProjectBrainRepository
 from projectbrain_runtime.service import ProjectBrainRuntime
@@ -105,6 +106,21 @@ class ProjectBrainMcpServer:
                 )
                 return self._tool_result(request_id, data)
 
+            if name == "projectbrain_review_git_diff":
+                data = self.runtime.analyze_git_diff_impact(
+                    project_id=_required(arguments, "project_id"),
+                    task=_required(arguments, "task"),
+                    selection=GitDiffSelection(
+                        staged=bool(arguments.get("staged", False)),
+                        from_ref=arguments.get("from_ref"),
+                        to_ref=arguments.get("to_ref"),
+                        last_commit=bool(arguments.get("last_commit", False)),
+                    ),
+                    changed_symbols=arguments.get("changed_symbols", []),
+                    max_items_per_section=int(arguments.get("max_items_per_section", 12)),
+                )
+                return self._tool_result(request_id, data)
+
             return self._error(request_id, -32602, f"Unknown tool: {name}")
         except Exception as exc:  # pragma: no cover - exercised through integration failures.
             return self._tool_result(request_id, {"error": str(exc)}, is_error=True)
@@ -160,6 +176,27 @@ class ProjectBrainMcpServer:
                         "project_id": {"type": "string"},
                         "task": {"type": "string"},
                         "changed_files": {"type": "array", "items": {"type": "string"}},
+                        "changed_symbols": {"type": "array", "items": {"type": "string"}},
+                        "max_items_per_section": {"type": "integer", "default": 12},
+                    },
+                },
+            },
+            {
+                "name": "projectbrain_review_git_diff",
+                "description": (
+                    "Analyze impact for local Git changes in an imported project. "
+                    "Reads changed file names from local git only; does not read or upload source bodies."
+                ),
+                "inputSchema": {
+                    "type": "object",
+                    "required": ["project_id", "task"],
+                    "properties": {
+                        "project_id": {"type": "string"},
+                        "task": {"type": "string"},
+                        "staged": {"type": "boolean", "default": False},
+                        "from_ref": {"type": "string"},
+                        "to_ref": {"type": "string"},
+                        "last_commit": {"type": "boolean", "default": False},
                         "changed_symbols": {"type": "array", "items": {"type": "string"}},
                         "max_items_per_section": {"type": "integer", "default": 12},
                     },

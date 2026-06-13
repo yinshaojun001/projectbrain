@@ -30,6 +30,7 @@ class ProjectBrainMcpServerTest(unittest.TestCase):
             self.assertIn("projectbrain_import_project", tool_names)
             self.assertIn("projectbrain_context_pack", tool_names)
             self.assertIn("projectbrain_impact_analysis", tool_names)
+            self.assertIn("projectbrain_review_git_diff", tool_names)
 
     def test_tool_calls_use_local_store(self):
         with tempfile.TemporaryDirectory() as tmp:

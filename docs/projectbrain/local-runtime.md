@@ -4,7 +4,7 @@
 | --- | --- |
 | Component | Local Runtime |
 | Status | Prototype |
-| Last updated | 2026-06-12 |
+| Last updated | 2026-06-13 |
 
 ## 1. Goal
 
@@ -15,9 +15,10 @@ import-project
   -> store project metadata, inventory, facts, experience claims
   -> context-pack
   -> impact-analysis
+  -> git-diff impact review
 ```
 
-It is still intentionally zero-dependency and uses JSON files instead of a database. This keeps the V0.1 pilot easy to run before FastAPI, MCP, PostgreSQL, and review queues are added.
+It is still intentionally zero-dependency and uses JSON files instead of a database. This keeps the local prototype easy to run while FastAPI remains optional and database-backed storage is still planned.
 
 ## 2. CLI
 
@@ -35,6 +36,7 @@ import       Import CodeGraph facts into local runtime storage.
 list         List imported projects.
 context      Build a context pack from imported facts.
 impact       Build impact analysis from imported facts.
+impact-diff  Build impact analysis from local Git changed file names.
 facts        Work directly with CodeGraph facts or exported facts.
 mcp          Run the local-only stdio MCP server.
 ```
@@ -152,15 +154,38 @@ Output is written to:
 .projectbrain/projects/my_project/runs/impact-analysis-latest.json
 ```
 
-## 8. Current Limits
+## 8. Review Local Git Diff Impact
+
+Review staged changes:
+
+```bash
+projectbrain impact-diff my_project "Review staged checkout changes" --staged
+```
+
+Review a branch or ref range:
+
+```bash
+projectbrain impact-diff my_project "Review branch impact" --from main --to HEAD
+```
+
+Review the last commit:
+
+```bash
+projectbrain impact-diff my_project "Review last commit" --last-commit
+```
+
+`impact-diff` calls local Git for changed file names, then runs the existing impact analysis over those paths. It does not read or return source file bodies.
+
+## 9. Current Limits
 
 - Storage is JSON files, not PostgreSQL.
 - Import scope is fixed at import time; broaden `--path-prefix` and re-import to analyze more code.
-- Impact analysis uses changed files/symbols as input; it does not parse Git diffs yet.
+- Impact analysis can use explicit changed files/symbols or local Git changed file names.
+- Git diff impact currently matches changed files; symbol-level hunk parsing is planned.
 - Experience claims are loaded from Markdown seed tables; review workflow is manual.
-- The runtime is local-first; FastAPI exists as an optional skeleton and MCP is not implemented yet.
+- The runtime is local-first; FastAPI is optional and MCP exists as a local-only stdio server.
 
-## 9. Repository Boundary
+## 10. Repository Boundary
 
 The minimal schema package now exists under:
 
@@ -195,7 +220,7 @@ Current repository types:
 
 This keeps the current local runtime usable while preparing the same service layer for FastAPI, MCP, and database-backed storage.
 
-## 10. FastAPI Skeleton
+## 11. FastAPI Skeleton
 
 A thin FastAPI service now exists under:
 
@@ -234,9 +259,9 @@ PYTHONPATH=apps/api:packages/adapters:packages/runtime:packages/schema \
 
 The route handlers are split into `handlers.py`, so tests can validate API behavior without FastAPI installed. When the `api` extra is installed, FastAPI `TestClient` exercises the real HTTP routes.
 
-## 11. Next Step
+## 12. Next Step
 
-The next engineering step is to add request/response schema models for the API boundary and generate an OpenAPI snapshot:
+The next engineering steps are to improve agent-friendly output modes, add request/response schema models for the API boundary, and generate an OpenAPI snapshot:
 
 ```text
 ImportProjectRequest

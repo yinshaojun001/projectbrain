@@ -13,6 +13,7 @@ from projectbrain_adapters.context_pack import ContextPackBuilder
 from projectbrain_adapters.experience import load_experience_seed
 from projectbrain_adapters.impact_analysis import ImpactAnalysisBuilder
 from projectbrain_cli.mcp_server import serve_stdio
+from projectbrain_runtime.git_diff import GitDiffSelection
 from projectbrain_runtime.models import ImportOptions
 from projectbrain_runtime.repository import JsonProjectBrainRepository
 from projectbrain_runtime.service import ProjectBrainRuntime
@@ -56,6 +57,17 @@ def build_parser() -> argparse.ArgumentParser:
     impact.add_argument("--changed-file", action="append", default=[])
     impact.add_argument("--changed-symbol", action="append", default=[])
     impact.add_argument("--max-items-per-section", type=int, default=12)
+
+    impact_diff = subcommands.add_parser("impact-diff", help="Build impact analysis from local Git diff")
+    impact_diff.add_argument("project_id")
+    impact_diff.add_argument("task")
+    diff_group = impact_diff.add_mutually_exclusive_group()
+    diff_group.add_argument("--staged", action="store_true", help="Analyze staged changes")
+    diff_group.add_argument("--last-commit", action="store_true", help="Analyze HEAD~1..HEAD")
+    impact_diff.add_argument("--from", dest="from_ref", help="Git base ref")
+    impact_diff.add_argument("--to", dest="to_ref", help="Git target ref")
+    impact_diff.add_argument("--changed-symbol", action="append", default=[])
+    impact_diff.add_argument("--max-items-per-section", type=int, default=12)
 
     facts = subcommands.add_parser("facts", help="Work directly with CodeGraph facts or exported facts")
     facts_subcommands = facts.add_subparsers(dest="facts_command", required=True)
@@ -144,6 +156,22 @@ def main(argv: list[str] | None = None) -> int:
             project_id=args.project_id,
             task=args.task,
             changed_files=args.changed_file,
+            changed_symbols=args.changed_symbol,
+            max_items_per_section=args.max_items_per_section,
+        )
+        print_json(data)
+        return 0
+
+    if args.command == "impact-diff":
+        data = runtime.analyze_git_diff_impact(
+            project_id=args.project_id,
+            task=args.task,
+            selection=GitDiffSelection(
+                staged=args.staged,
+                from_ref=args.from_ref,
+                to_ref=args.to_ref,
+                last_commit=args.last_commit,
+            ),
             changed_symbols=args.changed_symbol,
             max_items_per_section=args.max_items_per_section,
         )

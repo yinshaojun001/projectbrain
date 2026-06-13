@@ -6,6 +6,7 @@ It turns code-structure facts and human project experience into task-scoped arti
 
 - **Context Pack**: the files, symbols, flows, risks, and human notes relevant to a task.
 - **Impact Analysis**: the files, symbols, callers, dependencies, tests, and review risks likely affected by a change.
+- **Git Diff Impact**: a local review of staged, branch, or last-commit changes based on changed file names from Git.
 
 ProjectBrain is not a code search UI, a generic RAG chatbot, or an automatic code modifier. The first public version is a small local prototype that is useful for experimenting with project memory and impact analysis workflows.
 
@@ -19,6 +20,7 @@ Current capabilities:
 - ProjectBrain JSON schema models and validation.
 - Context Pack builder.
 - Impact Analysis builder.
+- Git diff Impact Analysis from local Git changed files.
 - JSON-file local runtime.
 - Local-only stdio MCP server.
 - Optional FastAPI API skeleton.
@@ -88,6 +90,10 @@ Then generate artifacts from the stored facts:
 
 .venv/bin/projectbrain impact my_project "Change checkout validation" \
   --changed-file src/checkout/CheckoutService.java
+
+.venv/bin/projectbrain impact-diff my_project "Review staged checkout changes" --staged
+
+.venv/bin/projectbrain impact-diff my_project "Review branch impact" --from main --to HEAD
 ```
 
 Runtime artifacts are written under `.projectbrain/`, which is ignored by Git.
@@ -121,6 +127,8 @@ ProjectBrain can run as a local stdio MCP server for AI coding agents:
 ```
 
 It is a local child process. It does not open network sockets or upload source code. See [Local MCP Usage](docs/mcp-usage.md).
+
+MCP tools include project import, project listing, Context Packs, Impact Analysis, and Git diff review through `projectbrain_review_git_diff`.
 
 Privacy note: ProjectBrain controls the tool side, not the AI client side. MCP results may contain file paths, symbol names, and inferred risk notes. Whether those results are sent to a model provider depends on your AI client and model settings. For strict private-code environments, use a local model or an approved enterprise endpoint.
 
@@ -174,9 +182,8 @@ See [Open Source Checklist](docs/open-source-checklist.md).
 
 - Add typed API request/response models.
 - Add OpenAPI snapshot tests.
-- Add import support for Git diffs.
+- Add richer Git diff symbol matching.
 - Add project experience review workflow.
-- Add MCP tools for AI coding agents.
 - Add database-backed repository implementation.
 - Add more language adapters and richer source-fact extraction.
 

@@ -51,6 +51,34 @@ Use an absolute `--store-root` in editor or agent configs so the MCP process alw
 | `projectbrain_list_projects` | List projects already imported into the local store. |
 | `projectbrain_context_pack` | Build a task-scoped Context Pack for an imported project. |
 | `projectbrain_impact_analysis` | Analyze likely impact for changed files or symbols. |
+| `projectbrain_review_git_diff` | Analyze likely impact for local staged, branch/range, or last-commit Git changes. |
+
+## Git Diff Review Tool
+
+Use `projectbrain_review_git_diff` when an agent needs to review current changes before commit or PR.
+
+Example arguments for staged changes:
+
+```json
+{
+  "project_id": "private_project",
+  "task": "Review the current staged change before commit",
+  "staged": true
+}
+```
+
+Example arguments for a branch or ref range:
+
+```json
+{
+  "project_id": "private_project",
+  "task": "Review branch impact",
+  "from_ref": "main",
+  "to_ref": "HEAD"
+}
+```
+
+The tool reads changed file names from local Git and maps them to imported ProjectBrain facts. It does not read source file bodies, return source snippets, upload source code, or open network sockets.
 
 ## Privacy Boundary
 

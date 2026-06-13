@@ -10,4 +10,5 @@ __pycache__/
 docs/payment/
 docs/projectbrain/pilots/zhangfang/
 docs/projectbrain/local-zhangfang-pilot.md
+docs/next-conversation.md
 examples/zhangfang/
