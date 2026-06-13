@@ -36,6 +36,7 @@ Install with Homebrew:
 
 ```bash
 brew tap yinshaojun001/projectbrain https://github.com/yinshaojun001/projectbrain
+brew trust yinshaojun001/projectbrain
 brew install projectbrain
 projectbrain doctor
 ```
@@ -44,6 +45,7 @@ For local formula testing from a checkout:
 
 ```bash
 brew tap yinshaojun001/projectbrain /path/to/projectbrain
+brew trust yinshaojun001/projectbrain
 brew install --build-from-source projectbrain
 projectbrain doctor
 ```
