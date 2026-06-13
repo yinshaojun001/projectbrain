@@ -24,17 +24,21 @@ It is still intentionally zero-dependency and uses JSON files instead of a datab
 Entry point:
 
 ```text
-apps/tools/projectbrain_runtime_cli.py
+projectbrain
 ```
 
 Commands:
 
 ```text
-import-project    Import CodeGraph facts into local runtime storage.
-list-projects     List imported projects.
-context-pack      Build a context pack from imported facts.
-impact-analysis   Build impact analysis from imported facts.
+doctor       Check local CLI health.
+import       Import CodeGraph facts into local runtime storage.
+list         List imported projects.
+context      Build a context pack from imported facts.
+impact       Build impact analysis from imported facts.
+facts        Work directly with CodeGraph facts or exported facts.
 ```
+
+Legacy script entry points under `apps/tools/` are still present for source-tree development, but the installable CLI is preferred.
 
 ## 3. Storage Layout
 
@@ -80,10 +84,7 @@ examples/payment-mini/projectbrain-codegraph-export.json
 Generate a Context Pack from that export:
 
 ```bash
-python3 apps/tools/codegraph_adapter_cli.py \
-  --project-path . \
-  --project-id payment_mini \
-  context-pack \
+projectbrain facts context \
   --export-json examples/payment-mini/projectbrain-codegraph-export.json \
   --experience-seed examples/payment-mini/experience-seed.md \
   --task "Explain the settlement entrypoint"
@@ -92,10 +93,7 @@ python3 apps/tools/codegraph_adapter_cli.py \
 Generate an Impact Analysis:
 
 ```bash
-python3 apps/tools/codegraph_adapter_cli.py \
-  --project-path . \
-  --project-id payment_mini \
-  impact-analysis \
+projectbrain facts impact \
   --export-json examples/payment-mini/projectbrain-codegraph-export.json \
   --experience-seed examples/payment-mini/experience-seed.md \
   --task "Change the settlement contract" \
@@ -113,10 +111,8 @@ For real local projects, ProjectBrain expects CodeGraph facts at:
 Import a bounded scope into the local JSON runtime:
 
 ```bash
-python3 apps/tools/projectbrain_runtime_cli.py \
-  import-project \
-  --project-id my_project \
-  --project-path /path/to/my/project \
+projectbrain import /path/to/my/project \
+  --id my_project \
   --name "My Project" \
   --path-prefix src/ \
   --kind class \
@@ -133,10 +129,7 @@ Do not publish private source code, private CodeGraph databases, or private expo
 After import, this no longer needs `--project-path`, `--path-prefix`, or `--experience-seed`; it uses stored facts.
 
 ```bash
-python3 apps/tools/projectbrain_runtime_cli.py \
-  context-pack \
-  --project-id my_project \
-  --task "Explain the checkout flow and risk points"
+projectbrain context my_project "Explain the checkout flow and risk points"
 ```
 
 Output is written to:
@@ -148,10 +141,7 @@ Output is written to:
 ## 7. Generate Impact Analysis
 
 ```bash
-python3 apps/tools/projectbrain_runtime_cli.py \
-  impact-analysis \
-  --project-id my_project \
-  --task "Change checkout validation" \
+projectbrain impact my_project "Change checkout validation" \
   --changed-file src/checkout/CheckoutService.java
 ```
 

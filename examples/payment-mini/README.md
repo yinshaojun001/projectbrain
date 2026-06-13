@@ -7,10 +7,7 @@ It is only a public demo fixture. It is not copied from a real production projec
 Use it to try the CLI without a CodeGraph database:
 
 ```bash
-python3 apps/tools/codegraph_adapter_cli.py \
-  --project-path . \
-  --project-id payment_mini \
-  context-pack \
+projectbrain facts context \
   --export-json examples/payment-mini/projectbrain-codegraph-export.json \
   --experience-seed examples/payment-mini/experience-seed.md \
   --task "Explain the settlement entrypoint"

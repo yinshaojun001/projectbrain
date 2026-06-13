@@ -1,6 +1,7 @@
 from __future__ import annotations
 
 import sqlite3
+from contextlib import closing
 from pathlib import Path
 
 
@@ -27,7 +28,7 @@ def create_payment_mini_codegraph_project(root: Path) -> dict[str, Path]:
 
 
 def _write_codegraph_db(db_path: Path) -> None:
-    with sqlite3.connect(str(db_path)) as conn:
+    with closing(sqlite3.connect(str(db_path))) as conn:
         conn.executescript(
             """
             create table files (
@@ -182,3 +183,4 @@ def _write_codegraph_db(db_path: Path) -> None:
                 ),
             ],
         )
+        conn.commit()

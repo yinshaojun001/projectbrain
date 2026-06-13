@@ -25,6 +25,14 @@ Current capabilities:
 
 ## Quickstart
 
+Install locally:
+
+```bash
+python3 -m venv .venv
+.venv/bin/python -m pip install -e .
+.venv/bin/projectbrain doctor
+```
+
 Run the tests:
 
 ```bash
@@ -34,10 +42,7 @@ python3 -m unittest discover -s tests
 Generate a Context Pack from the synthetic public demo:
 
 ```bash
-python3 apps/tools/codegraph_adapter_cli.py \
-  --project-path . \
-  --project-id payment_mini \
-  context-pack \
+.venv/bin/projectbrain facts context \
   --export-json examples/payment-mini/projectbrain-codegraph-export.json \
   --experience-seed examples/payment-mini/experience-seed.md \
   --task "Explain the settlement entrypoint"
@@ -46,15 +51,14 @@ python3 apps/tools/codegraph_adapter_cli.py \
 Generate an Impact Analysis:
 
 ```bash
-python3 apps/tools/codegraph_adapter_cli.py \
-  --project-path . \
-  --project-id payment_mini \
-  impact-analysis \
+.venv/bin/projectbrain facts impact \
   --export-json examples/payment-mini/projectbrain-codegraph-export.json \
   --experience-seed examples/payment-mini/experience-seed.md \
   --task "Change the settlement contract" \
   --changed-file contract/src/main/java/example/payment/settlement/SettlementService.java
 ```
+
+See [Quickstart](docs/quickstart.md) for a fuller walkthrough.
 
 ## Use With Your Own Repository
 
@@ -67,10 +71,8 @@ ProjectBrain currently expects CodeGraph facts at:
 Import a local project into the JSON runtime:
 
 ```bash
-python3 apps/tools/projectbrain_runtime_cli.py \
-  import-project \
-  --project-id my_project \
-  --project-path /path/to/my/project \
+.venv/bin/projectbrain import /path/to/my/project \
+  --id my_project \
   --name "My Project" \
   --path-prefix src/ \
   --kind class \
@@ -81,15 +83,9 @@ python3 apps/tools/projectbrain_runtime_cli.py \
 Then generate artifacts from the stored facts:
 
 ```bash
-python3 apps/tools/projectbrain_runtime_cli.py \
-  context-pack \
-  --project-id my_project \
-  --task "Explain the checkout flow"
+.venv/bin/projectbrain context my_project "Explain the checkout flow"
 
-python3 apps/tools/projectbrain_runtime_cli.py \
-  impact-analysis \
-  --project-id my_project \
-  --task "Change checkout validation" \
+.venv/bin/projectbrain impact my_project "Change checkout validation" \
   --changed-file src/checkout/CheckoutService.java
 ```
 

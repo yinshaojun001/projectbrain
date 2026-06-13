@@ -8,6 +8,7 @@ from __future__ import annotations
 
 import json
 import sqlite3
+from contextlib import closing
 from dataclasses import dataclass
 from pathlib import Path
 from typing import Any
@@ -62,7 +63,7 @@ class CodeGraphAdapter:
         return conn
 
     def inventory(self) -> dict[str, Any]:
-        with self.connect() as conn:
+        with closing(self.connect()) as conn:
             return {
                 "project_id": self.project_id,
                 "db_path": str(self.db_path),
@@ -81,7 +82,7 @@ class CodeGraphAdapter:
         node_limit: int = 200,
         edge_limit: int = 300,
     ) -> dict[str, Any]:
-        with self.connect() as conn:
+        with closing(self.connect()) as conn:
             nodes = self._select_nodes(conn, path_prefixes=path_prefixes, kinds=kinds, limit=node_limit)
             node_ids = [node["id"] for node in nodes]
             edges = self._select_edges(conn, node_ids=node_ids, limit=edge_limit)

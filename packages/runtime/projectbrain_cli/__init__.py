@@ -1,0 +1,2 @@
+"""ProjectBrain command line interface."""
+
