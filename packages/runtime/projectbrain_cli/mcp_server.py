@@ -104,6 +104,35 @@ class ProjectBrainMcpServer:
                 )
                 return self._tool_result(request_id, data)
 
+            if name == "projectbrain_list_experience_claims":
+                data = self.runtime.list_experience_claims(
+                    project_id=_required(arguments, "project_id"),
+                    include_archived=bool(arguments.get("include_archived", False)),
+                )
+                return self._tool_result(request_id, data)
+
+            if name == "projectbrain_review_experience_claim":
+                data = self.runtime.review_experience_claim(
+                    project_id=_required(arguments, "project_id"),
+                    claim_id=_required(arguments, "claim_id"),
+                    statement=arguments.get("statement"),
+                    applies_to=arguments.get("applies_to") if "applies_to" in arguments else None,
+                    risk_level=arguments.get("risk_level"),
+                    review_state=arguments.get("review_state"),
+                    claim_type=arguments.get("claim_type"),
+                    confidence=float(arguments["confidence"]) if "confidence" in arguments else None,
+                    source=arguments.get("source") if "source" in arguments else None,
+                )
+                return self._tool_result(request_id, data)
+
+            if name == "projectbrain_archive_experience_claim":
+                data = self.runtime.archive_experience_claim(
+                    project_id=_required(arguments, "project_id"),
+                    claim_id=_required(arguments, "claim_id"),
+                    reason=arguments.get("reason"),
+                )
+                return self._tool_result(request_id, data)
+
             if name == "projectbrain_context_pack":
                 data = self.runtime.build_context_pack(
                     project_id=_required(arguments, "project_id"),
@@ -188,6 +217,50 @@ class ProjectBrainMcpServer:
                         "confidence": {"type": "number", "default": 0.8},
                         "source": {"type": "array", "items": {"type": "string"}},
                         "claim_id": {"type": "string"},
+                    },
+                },
+            },
+            {
+                "name": "projectbrain_list_experience_claims",
+                "description": "List local experience claims for an imported project. Archived claims are hidden by default.",
+                "inputSchema": {
+                    "type": "object",
+                    "required": ["project_id"],
+                    "properties": {
+                        "project_id": {"type": "string"},
+                        "include_archived": {"type": "boolean", "default": False},
+                    },
+                },
+            },
+            {
+                "name": "projectbrain_review_experience_claim",
+                "description": "Update local review metadata for an experience claim.",
+                "inputSchema": {
+                    "type": "object",
+                    "required": ["project_id", "claim_id"],
+                    "properties": {
+                        "project_id": {"type": "string"},
+                        "claim_id": {"type": "string"},
+                        "statement": {"type": "string"},
+                        "applies_to": {"type": "array", "items": {"type": "string"}},
+                        "risk_level": {"type": "string", "enum": list(RISK_LEVELS)},
+                        "review_state": {"type": "string", "enum": list(REVIEW_STATES)},
+                        "claim_type": {"type": "string", "enum": list(CLAIM_TYPES)},
+                        "confidence": {"type": "number"},
+                        "source": {"type": "array", "items": {"type": "string"}},
+                    },
+                },
+            },
+            {
+                "name": "projectbrain_archive_experience_claim",
+                "description": "Archive a local experience claim while keeping it in ProjectBrain storage.",
+                "inputSchema": {
+                    "type": "object",
+                    "required": ["project_id", "claim_id"],
+                    "properties": {
+                        "project_id": {"type": "string"},
+                        "claim_id": {"type": "string"},
+                        "reason": {"type": "string"},
                     },
                 },
             },

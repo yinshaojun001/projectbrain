@@ -60,6 +60,23 @@ def build_parser() -> argparse.ArgumentParser:
     claim_add.add_argument("--confidence", type=float, default=0.8)
     claim_add.add_argument("--source", action="append", default=[])
     claim_add.add_argument("--id", dest="claim_id")
+    claim_list = claim_subcommands.add_parser("list", help="List local experience claims")
+    claim_list.add_argument("project_id")
+    claim_list.add_argument("--include-archived", action="store_true")
+    claim_review = claim_subcommands.add_parser("review", help="Update experience claim review metadata")
+    claim_review.add_argument("project_id")
+    claim_review.add_argument("claim_id")
+    claim_review.add_argument("--statement")
+    claim_review.add_argument("--applies-to", action="append")
+    claim_review.add_argument("--risk", dest="risk_level", choices=RISK_LEVELS)
+    claim_review.add_argument("--review-state", choices=REVIEW_STATES)
+    claim_review.add_argument("--claim-type", choices=CLAIM_TYPES)
+    claim_review.add_argument("--confidence", type=float)
+    claim_review.add_argument("--source", action="append")
+    claim_archive = claim_subcommands.add_parser("archive", help="Archive a local experience claim")
+    claim_archive.add_argument("project_id")
+    claim_archive.add_argument("claim_id")
+    claim_archive.add_argument("--reason")
 
     context = subcommands.add_parser("context", help="Build context pack from imported facts")
     context.add_argument("project_id")
@@ -172,6 +189,35 @@ def main(argv: list[str] | None = None) -> int:
                 confidence=args.confidence,
                 source=args.source,
                 claim_id=args.claim_id,
+            )
+            print_json(data)
+            return 0
+        if args.claim_command == "list":
+            data = runtime.list_experience_claims(
+                project_id=args.project_id,
+                include_archived=args.include_archived,
+            )
+            print_json(data)
+            return 0
+        if args.claim_command == "review":
+            data = runtime.review_experience_claim(
+                project_id=args.project_id,
+                claim_id=args.claim_id,
+                statement=args.statement,
+                applies_to=args.applies_to,
+                risk_level=args.risk_level,
+                review_state=args.review_state,
+                claim_type=args.claim_type,
+                confidence=args.confidence,
+                source=args.source,
+            )
+            print_json(data)
+            return 0
+        if args.claim_command == "archive":
+            data = runtime.archive_experience_claim(
+                project_id=args.project_id,
+                claim_id=args.claim_id,
+                reason=args.reason,
             )
             print_json(data)
             return 0

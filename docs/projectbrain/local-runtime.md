@@ -150,6 +150,21 @@ The claim is stored under:
 
 Later Context Pack and Impact Analysis runs use the updated claims automatically. Do not put secrets, customer data, private URLs, or source code bodies into claim statements.
 
+List, review, and archive local claims:
+
+```bash
+projectbrain claim list my_project
+
+projectbrain claim review my_project exp_checkout_validation \
+  --review-state needs_review \
+  --risk medium
+
+projectbrain claim archive my_project exp_checkout_validation \
+  --reason "Superseded by newer checkout guidance."
+```
+
+Archived claims stay in `experience_claims.json` and can be listed with `--include-archived`, but Context Pack, Impact Analysis, and Git diff review ignore archived claims.
+
 ## 7. Generate Context Pack
 
 After import, this no longer needs `--project-path`, `--path-prefix`, or `--experience-seed`; it uses stored facts.
@@ -222,7 +237,7 @@ projectbrain impact-diff my_project "Review staged checkout changes" --staged --
 - Impact analysis can use explicit changed files/symbols or local Git changed file names.
 - Git diff impact currently matches changed files; symbol-level hunk parsing is planned.
 - Agent output is compact structured JSON; richer field selection and policy-driven caps are planned.
-- Experience claims can be loaded from Markdown seed tables or added locally; editing, deletion, review queues, and stale-claim workflows are still planned.
+- Experience claims can be loaded from Markdown seed tables, added locally, reviewed, and archived; stale-claim detection is still planned.
 - The runtime is local-first; FastAPI is optional and MCP exists as a local-only stdio server.
 
 ## 11. Repository Boundary

@@ -68,6 +68,69 @@ class ClaimAuthoringTest(unittest.TestCase):
                     confidence=1.2,
                 )
 
+    def test_runtime_claim_review_archive_and_active_filtering(self):
+        with tempfile.TemporaryDirectory() as tmp:
+            fixture = create_payment_mini_codegraph_project(Path(tmp))
+            runtime = ProjectBrainRuntime(JsonProjectBrainRepository(str(Path(tmp) / "store")))
+            _import_payment_mini_runtime(runtime, fixture, "payment_mini_claim_lifecycle")
+
+            runtime.add_experience_claim(
+                project_id="payment_mini_claim_lifecycle",
+                statement="Settlement contract changes require compatibility review.",
+                applies_to=["SettlementService"],
+                claim_id="exp_runtime_lifecycle",
+            )
+            reviewed = runtime.review_experience_claim(
+                project_id="payment_mini_claim_lifecycle",
+                claim_id="exp_runtime_lifecycle",
+                risk_level="high",
+                review_state="approved",
+                claim_type="HUMAN_CONFIRMED",
+                confidence=0.95,
+            )
+            critical_impact = runtime.analyze_impact(
+                project_id="payment_mini_claim_lifecycle",
+                task="Change settlement contract",
+                changed_files=["contract/src/main/java/example/payment/settlement/SettlementService.java"],
+                changed_symbols=[],
+            )["impact_analysis"]
+
+            archived = runtime.archive_experience_claim(
+                project_id="payment_mini_claim_lifecycle",
+                claim_id="exp_runtime_lifecycle",
+                reason="Replaced by newer interface guidance.",
+            )
+            active_list = runtime.list_experience_claims(project_id="payment_mini_claim_lifecycle")
+            full_list = runtime.list_experience_claims(
+                project_id="payment_mini_claim_lifecycle",
+                include_archived=True,
+            )
+            filtered_context = runtime.build_context_pack(
+                project_id="payment_mini_claim_lifecycle",
+                task="Explain settlement contract",
+            )["context_pack"]
+            filtered_impact = runtime.analyze_impact(
+                project_id="payment_mini_claim_lifecycle",
+                task="Change settlement contract",
+                changed_files=["contract/src/main/java/example/payment/settlement/SettlementService.java"],
+                changed_symbols=[],
+            )["impact_analysis"]
+
+            self.assertEqual(reviewed["claim"]["review_state"], "approved")
+            self.assertEqual(reviewed["claim"]["claim_type"], "HUMAN_CONFIRMED")
+            self.assertEqual(reviewed["claim"]["confidence"], 0.95)
+            self.assertEqual(critical_impact["review_recommendation"]["risk_level"], "critical")
+            self.assertEqual(archived["claim"]["lifecycle_state"], "archived")
+            self.assertIn("archived_at", archived["claim"])
+            self.assertNotIn("exp_runtime_lifecycle", [claim["id"] for claim in active_list["claims"]])
+            self.assertIn("exp_runtime_lifecycle", [claim["id"] for claim in full_list["claims"]])
+            claim_sections = [
+                section for section in filtered_context["sections"] if section["type"] == "experience_claims"
+            ]
+            context_claim_ids = [item["id"] for section in claim_sections for item in section["items"]]
+            self.assertNotIn("exp_runtime_lifecycle", context_claim_ids)
+            self.assertNotEqual(filtered_impact["review_recommendation"]["risk_level"], "critical")
+
     def test_cli_claim_add_persists_claim_for_impact(self):
         with tempfile.TemporaryDirectory() as tmp:
             fixture = create_payment_mini_codegraph_project(Path(tmp))
@@ -114,6 +177,83 @@ class ClaimAuthoringTest(unittest.TestCase):
                 impact["impact_analysis"]["review_recommendation"]["risk_level"],
                 "critical",
             )
+
+    def test_cli_claim_lifecycle_commands(self):
+        with tempfile.TemporaryDirectory() as tmp:
+            fixture = create_payment_mini_codegraph_project(Path(tmp))
+            store_root = str(Path(tmp) / "store")
+            _import_payment_mini_cli(store_root, fixture, "payment_mini_claim_cli_lifecycle")
+            _run_cli(
+                [
+                    "--store-root",
+                    store_root,
+                    "claim",
+                    "add",
+                    "payment_mini_claim_cli_lifecycle",
+                    "--id",
+                    "exp_cli_lifecycle",
+                    "--statement",
+                    "Settlement lifecycle claims need review.",
+                    "--applies-to",
+                    "SettlementService",
+                ]
+            )
+
+            reviewed = _run_cli(
+                [
+                    "--store-root",
+                    store_root,
+                    "claim",
+                    "review",
+                    "payment_mini_claim_cli_lifecycle",
+                    "exp_cli_lifecycle",
+                    "--risk",
+                    "critical",
+                    "--review-state",
+                    "approved",
+                    "--claim-type",
+                    "HUMAN_CONFIRMED",
+                    "--confidence",
+                    "0.9",
+                ]
+            )
+            archived = _run_cli(
+                [
+                    "--store-root",
+                    store_root,
+                    "claim",
+                    "archive",
+                    "payment_mini_claim_cli_lifecycle",
+                    "exp_cli_lifecycle",
+                    "--reason",
+                    "No longer applies.",
+                ]
+            )
+            active_list = _run_cli(
+                [
+                    "--store-root",
+                    store_root,
+                    "claim",
+                    "list",
+                    "payment_mini_claim_cli_lifecycle",
+                ]
+            )
+            full_list = _run_cli(
+                [
+                    "--store-root",
+                    store_root,
+                    "claim",
+                    "list",
+                    "payment_mini_claim_cli_lifecycle",
+                    "--include-archived",
+                ]
+            )
+
+            self.assertEqual(reviewed["claim"]["risk_level"], "critical")
+            self.assertEqual(reviewed["claim"]["review_state"], "approved")
+            self.assertEqual(archived["claim"]["lifecycle_state"], "archived")
+            self.assertNotIn("exp_cli_lifecycle", [claim["id"] for claim in active_list["claims"]])
+            self.assertIn("exp_cli_lifecycle", [claim["id"] for claim in full_list["claims"]])
 
     def test_mcp_add_experience_claim_tool(self):
         with tempfile.TemporaryDirectory() as tmp:
@@ -162,6 +302,69 @@ class ClaimAuthoringTest(unittest.TestCase):
             self.assertEqual(output["experience_claims"], 2)
             risk_messages = context["agent_output"]["risk_warnings"]
             self.assertTrue(any("HUMAN_CONFIRMED" in item["message"] for item in risk_messages))
+
+    def test_mcp_claim_lifecycle_tools(self):
+        with tempfile.TemporaryDirectory() as tmp:
+            fixture = create_payment_mini_codegraph_project(Path(tmp))
+            server = ProjectBrainMcpServer(store_root=str(Path(tmp) / "store"))
+            _call_tool(
+                server,
+                "projectbrain_import_project",
+                {
+                    "project_id": "payment_mini_claim_mcp_lifecycle",
+                    "project_path": str(fixture["project_path"]),
+                    "experience_seed": str(fixture["experience_seed"]),
+                },
+            )
+            _call_tool(
+                server,
+                "projectbrain_add_experience_claim",
+                {
+                    "project_id": "payment_mini_claim_mcp_lifecycle",
+                    "claim_id": "exp_mcp_lifecycle",
+                    "statement": "Settlement MCP lifecycle claim.",
+                    "applies_to": ["SettlementService"],
+                },
+            )
+
+            reviewed = _call_tool(
+                server,
+                "projectbrain_review_experience_claim",
+                {
+                    "project_id": "payment_mini_claim_mcp_lifecycle",
+                    "claim_id": "exp_mcp_lifecycle",
+                    "risk_level": "high",
+                    "review_state": "approved",
+                    "claim_type": "HUMAN_CONFIRMED",
+                },
+            )
+            archived = _call_tool(
+                server,
+                "projectbrain_archive_experience_claim",
+                {
+                    "project_id": "payment_mini_claim_mcp_lifecycle",
+                    "claim_id": "exp_mcp_lifecycle",
+                    "reason": "Superseded.",
+                },
+            )
+            active_list = _call_tool(
+                server,
+                "projectbrain_list_experience_claims",
+                {"project_id": "payment_mini_claim_mcp_lifecycle"},
+            )
+            full_list = _call_tool(
+                server,
+                "projectbrain_list_experience_claims",
+                {
+                    "project_id": "payment_mini_claim_mcp_lifecycle",
+                    "include_archived": True,
+                },
+            )
+
+            self.assertEqual(reviewed["claim"]["review_state"], "approved")
+            self.assertEqual(archived["claim"]["lifecycle_state"], "archived")
+            self.assertNotIn("exp_mcp_lifecycle", [claim["id"] for claim in active_list["claims"]])
+            self.assertIn("exp_mcp_lifecycle", [claim["id"] for claim in full_list["claims"]])
 
 
 def _import_payment_mini_runtime(runtime: ProjectBrainRuntime, fixture: dict[str, Path], project_id: str) -> None:

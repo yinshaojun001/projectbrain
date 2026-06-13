@@ -131,6 +131,23 @@ Add a local experience claim:
 
 New claims are stored in `.projectbrain/projects/<project_id>/experience_claims.json` and are used by later Context Pack and Impact Analysis runs. Keep claim statements concise and do not include secrets, customer data, private URLs, or source code bodies.
 
+List, review, and archive claims:
+
+```bash
+.venv/bin/projectbrain claim list my_project
+
+.venv/bin/projectbrain claim review my_project exp_checkout_validation \
+  --review-state needs_review \
+  --risk medium
+
+.venv/bin/projectbrain claim archive my_project exp_checkout_validation \
+  --reason "Superseded by newer checkout guidance."
+
+.venv/bin/projectbrain claim list my_project --include-archived
+```
+
+Archived claims remain in local storage for audit history, but Context Pack and Impact Analysis ignore them.
+
 Runtime artifacts are stored under `.projectbrain/`, which is ignored by Git.
 
 ## Privacy Boundary

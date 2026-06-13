@@ -186,15 +186,27 @@ projectbrain claim add my_project \
   --applies-to settlement,refund \
   --risk high \
   --statement "Settlement amount is stored in cents."
+
+projectbrain claim list my_project
+
+projectbrain claim review my_project exp_settlement_amount \
+  --review-state approved \
+  --risk high
+
+projectbrain claim archive my_project exp_settlement_amount \
+  --reason "Superseded by newer settlement guidance."
 ```
 
-MCP tool:
+MCP tools:
 
 ```text
 projectbrain_add_experience_claim
+projectbrain_list_experience_claims
+projectbrain_review_experience_claim
+projectbrain_archive_experience_claim
 ```
 
-Current Phase 4 status: active implementation. Added claims are stored locally and used by later Context Pack and Impact Analysis runs.
+Current Phase 4 status: active implementation. Added and reviewed claims are stored locally and used by later Context Pack and Impact Analysis runs. Archived claims remain stored for audit history but are ignored by Context Pack, Impact Analysis, and Git diff review.
 
 ### R5: Synthetic Mini Repo
 

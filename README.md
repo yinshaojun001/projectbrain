@@ -118,6 +118,19 @@ Add local project experience so future context and impact results include human 
   --statement "Checkout validation changes require compatibility review."
 ```
 
+Review and archive local claims without deleting their history:
+
+```bash
+.venv/bin/projectbrain claim list my_project
+
+.venv/bin/projectbrain claim review my_project exp_checkout_validation \
+  --review-state needs_review \
+  --risk medium
+
+.venv/bin/projectbrain claim archive my_project exp_checkout_validation \
+  --reason "Superseded by newer checkout guidance."
+```
+
 Runtime artifacts are written under `.projectbrain/`, which is ignored by Git.
 
 ## Optional FastAPI Server

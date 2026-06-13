@@ -50,6 +50,9 @@ Use an absolute `--store-root` in editor or agent configs so the MCP process alw
 | `projectbrain_import_project` | Import CodeGraph facts from a local repository into local ProjectBrain storage. |
 | `projectbrain_list_projects` | List projects already imported into the local store. |
 | `projectbrain_add_experience_claim` | Add a local human experience claim to an imported project. |
+| `projectbrain_list_experience_claims` | List local experience claims, hiding archived claims by default. |
+| `projectbrain_review_experience_claim` | Update local claim review metadata. |
+| `projectbrain_archive_experience_claim` | Archive a claim while preserving it in local storage. |
 | `projectbrain_context_pack` | Build a task-scoped Context Pack for an imported project. |
 | `projectbrain_impact_analysis` | Analyze likely impact for changed files or symbols. |
 | `projectbrain_review_git_diff` | Analyze likely impact for local staged, branch/range, or last-commit Git changes. |
@@ -84,6 +87,29 @@ Example arguments:
 ```
 
 The tool writes to local `.projectbrain/projects/<project_id>/experience_claims.json`. Keep statements concise and avoid secrets, credentials, customer data, private URLs, or source code bodies.
+
+Review a claim:
+
+```json
+{
+  "project_id": "private_project",
+  "claim_id": "exp_checkout_validation",
+  "review_state": "needs_review",
+  "risk_level": "medium"
+}
+```
+
+Archive a claim:
+
+```json
+{
+  "project_id": "private_project",
+  "claim_id": "exp_checkout_validation",
+  "reason": "Superseded by newer checkout guidance."
+}
+```
+
+Archived claims remain in `.projectbrain/projects/<project_id>/experience_claims.json` and can be listed with `include_archived: true`. Context Pack, Impact Analysis, and Git diff review ignore archived claims.
 
 ## Git Diff Review Tool
 

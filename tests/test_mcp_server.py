@@ -29,6 +29,9 @@ class ProjectBrainMcpServerTest(unittest.TestCase):
             tool_names = {tool["name"] for tool in tools["result"]["tools"]}
             self.assertIn("projectbrain_import_project", tool_names)
             self.assertIn("projectbrain_add_experience_claim", tool_names)
+            self.assertIn("projectbrain_list_experience_claims", tool_names)
+            self.assertIn("projectbrain_review_experience_claim", tool_names)
+            self.assertIn("projectbrain_archive_experience_claim", tool_names)
             self.assertIn("projectbrain_context_pack", tool_names)
             self.assertIn("projectbrain_impact_analysis", tool_names)
             self.assertIn("projectbrain_review_git_diff", tool_names)

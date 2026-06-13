@@ -10,7 +10,7 @@ from projectbrain_adapters.context_pack import ContextPackBuilder
 from projectbrain_adapters.experience import load_experience_seed
 from projectbrain_adapters.impact_analysis import ImpactAnalysisBuilder
 from projectbrain_schema.validation import validate_context_pack, validate_facts_export, validate_impact_analysis
-from projectbrain_runtime.claims import build_experience_claim
+from projectbrain_runtime.claims import active_claims, archive_experience_claim, build_experience_claim, update_experience_claim
 from projectbrain_runtime.git_diff import GitDiffSelection, changed_files_for_selection
 from projectbrain_runtime.models import ImportOptions, ProjectRecord, now_iso
 from projectbrain_runtime.repository import ProjectBrainRepository
@@ -77,7 +77,7 @@ class ProjectBrainRuntime:
         max_items_per_section: int = 12,
     ) -> dict[str, Any]:
         facts = self.repository.get_facts(project_id)
-        claims = self.repository.get_experience_claims(project_id)
+        claims = active_claims(self.repository.get_experience_claims(project_id))
         pack = ContextPackBuilder(
             task=task,
             export=facts,
@@ -98,7 +98,7 @@ class ProjectBrainRuntime:
         max_items_per_section: int = 12,
     ) -> dict[str, Any]:
         facts = self.repository.get_facts(project_id)
-        claims = self.repository.get_experience_claims(project_id)
+        claims = active_claims(self.repository.get_experience_claims(project_id))
         analysis = ImpactAnalysisBuilder(
             task=task,
             export=facts,
@@ -168,4 +168,75 @@ class ProjectBrainRuntime:
             "project_id": project_id,
             "claim": claim,
             "experience_claims": len(updated_claims),
+        }
+
+    def list_experience_claims(
+        self,
+        *,
+        project_id: str,
+        include_archived: bool = False,
+    ) -> dict[str, Any]:
+        self.repository.get_project(project_id)
+        claims = self.repository.get_experience_claims(project_id)
+        selected_claims = claims if include_archived else active_claims(claims)
+        return {
+            "project_id": project_id,
+            "claims": selected_claims,
+            "experience_claims": len(selected_claims),
+            "total_experience_claims": len(claims),
+        }
+
+    def review_experience_claim(
+        self,
+        *,
+        project_id: str,
+        claim_id: str,
+        review_state: str | None = None,
+        risk_level: str | None = None,
+        claim_type: str | None = None,
+        confidence: float | None = None,
+        statement: str | None = None,
+        applies_to: list[str] | str | None = None,
+        source: str | list[str] | None = None,
+    ) -> dict[str, Any]:
+        self.repository.get_project(project_id)
+        claims = self.repository.get_experience_claims(project_id)
+        updated_claims, claim = update_experience_claim(
+            claims,
+            claim_id=claim_id,
+            review_state=review_state,
+            risk_level=risk_level,
+            claim_type=claim_type,
+            confidence=confidence,
+            statement=statement,
+            applies_to=applies_to,
+            source=source,
+        )
+        self.repository.save_experience_claims(project_id, updated_claims)
+        return {
+            "project_id": project_id,
+            "claim": claim,
+            "experience_claims": len(updated_claims),
+        }
+
+    def archive_experience_claim(
+        self,
+        *,
+        project_id: str,
+        claim_id: str,
+        reason: str | None = None,
+    ) -> dict[str, Any]:
+        self.repository.get_project(project_id)
+        claims = self.repository.get_experience_claims(project_id)
+        updated_claims, claim = archive_experience_claim(
+            claims,
+            claim_id=claim_id,
+            reason=reason,
+        )
+        self.repository.save_experience_claims(project_id, updated_claims)
+        return {
+            "project_id": project_id,
+            "claim": claim,
+            "experience_claims": len(updated_claims),
+            "active_experience_claims": len(active_claims(updated_claims)),
         }
