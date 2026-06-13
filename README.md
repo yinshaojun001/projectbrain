@@ -32,7 +32,23 @@ Current capabilities:
 
 ## Quickstart
 
-Install locally:
+Install with Homebrew:
+
+```bash
+brew tap yinshaojun001/projectbrain https://github.com/yinshaojun001/projectbrain
+brew install projectbrain
+projectbrain doctor
+```
+
+For local formula testing from a checkout:
+
+```bash
+brew tap yinshaojun001/projectbrain /path/to/projectbrain
+brew install --build-from-source projectbrain
+projectbrain doctor
+```
+
+Or install from source:
 
 ```bash
 python3 -m venv .venv
@@ -85,6 +101,19 @@ Import a local project into the JSON runtime:
   --kind class \
   --kind interface \
   --kind method
+```
+
+If installed with Homebrew, run the same commands from any directory without the `.venv/bin/` prefix:
+
+```bash
+projectbrain --store-root ~/.projectbrain-work import /path/to/my/project \
+  --id my_project \
+  --path-prefix src/ \
+  --kind class \
+  --kind interface \
+  --kind method
+
+projectbrain --store-root ~/.projectbrain-work context my_project "Explain the checkout flow" --format agent
 ```
 
 Then generate artifacts from the stored facts:

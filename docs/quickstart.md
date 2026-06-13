@@ -6,6 +6,24 @@ Chinese version: [中文快速上手](zh/quickstart.md).
 
 ## 1. Install Locally
 
+Install with Homebrew:
+
+```bash
+brew tap yinshaojun001/projectbrain https://github.com/yinshaojun001/projectbrain
+brew install projectbrain
+projectbrain doctor
+```
+
+For local formula testing from this checkout:
+
+```bash
+brew tap yinshaojun001/projectbrain /path/to/projectbrain
+brew install --build-from-source projectbrain
+projectbrain doctor
+```
+
+Or install an editable development checkout:
+
 ```bash
 python3 -m venv .venv
 .venv/bin/python -m pip install -e .
@@ -74,6 +92,19 @@ Import a bounded project scope:
   --kind class \
   --kind interface \
   --kind method
+```
+
+If installed with Homebrew, run `projectbrain` directly from any directory:
+
+```bash
+projectbrain --store-root ~/.projectbrain-work import /path/to/your/project \
+  --id my_project \
+  --path-prefix src/ \
+  --kind class \
+  --kind interface \
+  --kind method
+
+projectbrain --store-root ~/.projectbrain-work context my_project "Explain the checkout flow" --format agent
 ```
 
 Generate a Context Pack:
