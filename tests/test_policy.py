@@ -7,7 +7,12 @@ from pathlib import Path
 ROOT = Path(__file__).resolve().parents[1]
 sys.path.insert(0, str(ROOT / "packages" / "runtime"))
 
-from projectbrain_runtime.policy import ProjectBrainPolicy, apply_output_policy, load_policy_for_project  # noqa: E402
+from projectbrain_runtime.policy import (  # noqa: E402
+    ProjectBrainPolicy,
+    apply_output_policy,
+    inspect_policy_for_project,
+    load_policy_for_project,
+)
 
 
 class ProjectBrainPolicyTest(unittest.TestCase):
@@ -91,6 +96,23 @@ class ProjectBrainPolicyTest(unittest.TestCase):
             self.assertEqual(policy.deny_paths, ["private/**"])
             self.assertEqual(policy.max_items_per_section, 3)
             self.assertFalse(policy.include_source_snippets)
+
+    def test_inspect_policy_reports_source_and_summary(self):
+        with tempfile.TemporaryDirectory() as tmp:
+            root = Path(tmp)
+            policy_path = root / ".projectbrain-policy.json"
+            policy_path.write_text(
+                '{"deny_paths":["private/**"],"max_recommended_tests":0,"include_source_snippets":false}',
+                encoding="utf-8",
+            )
+
+            output = inspect_policy_for_project(root)
+
+            self.assertTrue(output["policy_found"])
+            self.assertEqual(output["source_path"], str(policy_path))
+            self.assertEqual(output["summary"]["deny_path_count"], 1)
+            self.assertTrue(output["summary"]["has_output_caps"])
+            self.assertFalse(output["summary"]["source_snippets_enabled"])
 
 
 if __name__ == "__main__":

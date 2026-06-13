@@ -49,6 +49,7 @@ Use an absolute `--store-root` in editor or agent configs so the MCP process alw
 | --- | --- |
 | `projectbrain_import_project` | Import CodeGraph facts from a local repository into local ProjectBrain storage. |
 | `projectbrain_list_projects` | List projects already imported into the local store. |
+| `projectbrain_inspect_policy` | Inspect the local output policy loaded for an imported project. |
 | `projectbrain_add_experience_claim` | Add a local human experience claim to an imported project. |
 | `projectbrain_list_experience_claims` | List local experience claims, hiding archived claims by default. |
 | `projectbrain_review_experience_claim` | Update local claim review metadata. |
@@ -202,6 +203,16 @@ Imported projects can define a local `.projectbrain-policy.json`, `.projectbrain
 ```
 
 The policy applies to Context Pack, Impact Analysis, and Git diff review outputs returned through CLI, API, and MCP. Denied paths are removed from structured artifacts, output caps reduce list sizes, and source-like fields such as `body`, `snippet`, and `source_code` are stripped unless explicitly enabled.
+
+Inspect the policy through MCP:
+
+```json
+{
+  "project_id": "private_project"
+}
+```
+
+Call this with `projectbrain_inspect_policy` to see whether a policy file was found, which path was loaded, deny path count, output cap presence, and whether source snippets are enabled.
 
 Still, outputs can reveal architecture and business context. For sensitive projects:
 

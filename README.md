@@ -183,6 +183,12 @@ For additional local output controls, add `.projectbrain-policy.json` or `.proje
 
 Context Pack, Impact Analysis, Git diff review, API, and MCP read outputs apply the policy. Source snippets remain disabled by default.
 
+Inspect the policy that an imported project is using:
+
+```bash
+.venv/bin/projectbrain policy inspect my_project
+```
+
 ## Repository Layout
 
 ```text

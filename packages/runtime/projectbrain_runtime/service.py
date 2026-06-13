@@ -13,7 +13,7 @@ from projectbrain_schema.validation import validate_context_pack, validate_facts
 from projectbrain_runtime.claims import active_claims, archive_experience_claim, build_experience_claim, update_experience_claim
 from projectbrain_runtime.git_diff import GitDiffSelection, changed_files_for_selection
 from projectbrain_runtime.models import ImportOptions, ProjectRecord, now_iso
-from projectbrain_runtime.policy import ProjectBrainPolicy, apply_output_policy, load_policy_for_project
+from projectbrain_runtime.policy import ProjectBrainPolicy, apply_output_policy, inspect_policy_for_project, load_policy_for_project
 from projectbrain_runtime.repository import ProjectBrainRepository
 
 
@@ -142,6 +142,14 @@ class ProjectBrainRuntime:
             "changed_files": changed_files,
         }
         return data
+
+    def inspect_policy(self, *, project_id: str) -> dict[str, Any]:
+        project = self.repository.get_project(project_id)
+        return {
+            "project_id": project_id,
+            "project_source_path": project.source_path,
+            **inspect_policy_for_project(project.source_path),
+        }
 
     def add_experience_claim(
         self,

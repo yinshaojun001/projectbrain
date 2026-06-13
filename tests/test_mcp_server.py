@@ -28,6 +28,7 @@ class ProjectBrainMcpServerTest(unittest.TestCase):
             tools = server.handle_message({"jsonrpc": "2.0", "id": 2, "method": "tools/list"})
             tool_names = {tool["name"] for tool in tools["result"]["tools"]}
             self.assertIn("projectbrain_import_project", tool_names)
+            self.assertIn("projectbrain_inspect_policy", tool_names)
             self.assertIn("projectbrain_add_experience_claim", tool_names)
             self.assertIn("projectbrain_list_experience_claims", tool_names)
             self.assertIn("projectbrain_review_experience_claim", tool_names)
@@ -81,6 +82,13 @@ class ProjectBrainMcpServerTest(unittest.TestCase):
                 impact_result["impact_analysis"]["review_recommendation"]["action"],
                 "manual_review_required",
             )
+
+            policy_result = _call_tool(
+                server,
+                "projectbrain_inspect_policy",
+                {"project_id": "payment_mini_mcp_test"},
+            )
+            self.assertFalse(policy_result["policy_found"])
 
     def test_stdio_server_uses_newline_delimited_json_rpc(self):
         with tempfile.TemporaryDirectory() as tmp:

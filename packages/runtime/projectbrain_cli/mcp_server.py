@@ -90,6 +90,10 @@ class ProjectBrainMcpServer:
                 data = {"projects": [project.to_dict() for project in self.repository.list_projects()]}
                 return self._tool_result(request_id, data)
 
+            if name == "projectbrain_inspect_policy":
+                data = self.runtime.inspect_policy(project_id=_required(arguments, "project_id"))
+                return self._tool_result(request_id, data)
+
             if name == "projectbrain_add_experience_claim":
                 data = self.runtime.add_experience_claim(
                     project_id=_required(arguments, "project_id"),
@@ -197,6 +201,17 @@ class ProjectBrainMcpServer:
                 "name": "projectbrain_list_projects",
                 "description": "List projects imported into the local ProjectBrain store.",
                 "inputSchema": {"type": "object", "properties": {}},
+            },
+            {
+                "name": "projectbrain_inspect_policy",
+                "description": "Inspect the local output policy loaded for an imported project.",
+                "inputSchema": {
+                    "type": "object",
+                    "required": ["project_id"],
+                    "properties": {
+                        "project_id": {"type": "string"},
+                    },
+                },
             },
             {
                 "name": "projectbrain_add_experience_claim",

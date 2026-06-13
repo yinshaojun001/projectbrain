@@ -239,7 +239,17 @@ Supported controls:
 }
 ```
 
-Current Phase 5 status: active implementation. Context Pack, Impact Analysis, and Git diff review apply project-local policy before saving or returning artifacts.
+Inspection:
+
+```bash
+projectbrain policy inspect my_project
+```
+
+```text
+projectbrain_inspect_policy
+```
+
+Current Phase 5 status: active implementation. Context Pack, Impact Analysis, and Git diff review apply project-local policy before saving or returning artifacts. CLI and MCP can inspect the loaded policy for an imported project.
 
 ## 8. Success Metrics
 

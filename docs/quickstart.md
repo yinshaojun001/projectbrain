@@ -170,6 +170,12 @@ For private repositories, put a local `.projectbrain-policy.json` in the importe
 
 Context Pack, Impact Analysis, and Git diff review apply this policy before saving or returning artifacts. Source snippets are disabled by default.
 
+Inspect the loaded policy for an imported project:
+
+```bash
+.venv/bin/projectbrain policy inspect my_project
+```
+
 The checked-in `examples/payment-mini/` data is synthetic.
 
 ## Local MCP Server

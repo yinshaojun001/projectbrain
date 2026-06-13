@@ -95,6 +95,12 @@ Add `.projectbrain-policy.json`, `.projectbrain-policy.yml`, or `.projectbrain-p
 
 The policy is loaded from the project source path recorded at import time. It applies to generated Context Pack, Impact Analysis, and Git diff review artifacts before they are saved under `.projectbrain/projects/<project_id>/runs/` or returned through CLI, API, or MCP.
 
+Inspect the policy currently loaded for an imported project:
+
+```bash
+projectbrain policy inspect my_project
+```
+
 Supported fields:
 
 | Field | Behavior |

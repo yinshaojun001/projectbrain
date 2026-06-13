@@ -36,6 +36,11 @@ def build_parser() -> argparse.ArgumentParser:
     mcp_subcommands = mcp.add_subparsers(dest="mcp_command", required=True)
     mcp_subcommands.add_parser("serve", help="Run local-only stdio MCP server")
 
+    policy = subcommands.add_parser("policy", help="Inspect local ProjectBrain privacy policy")
+    policy_subcommands = policy.add_subparsers(dest="policy_command", required=True)
+    policy_inspect = policy_subcommands.add_parser("inspect", help="Inspect the policy for an imported project")
+    policy_inspect.add_argument("project_id")
+
     import_project = subcommands.add_parser("import", help="Import CodeGraph facts into local runtime")
     import_project.add_argument("project_path", help="Path to repository containing .codegraph/codegraph.db")
     import_project.add_argument("--id", dest="project_id", required=True, help="ProjectBrain project id")
@@ -176,6 +181,12 @@ def main(argv: list[str] | None = None) -> int:
     if args.command == "list":
         print_json({"projects": [project.to_dict() for project in repository.list_projects()]})
         return 0
+
+    if args.command == "policy":
+        if args.policy_command == "inspect":
+            print_json(runtime.inspect_policy(project_id=args.project_id))
+            return 0
+        raise ValueError(f"Unsupported policy command: {args.policy_command}")
 
     if args.command == "claim":
         if args.claim_command == "add":

@@ -44,15 +44,63 @@ class ProjectBrainPolicy:
         )
 
 
+@dataclass(frozen=True)
+class LoadedProjectBrainPolicy:
+    """A policy plus the local file it was loaded from."""
+
+    policy: ProjectBrainPolicy
+    source_path: str | None = None
+
+    def to_dict(self) -> dict[str, Any]:
+        return {
+            "policy_found": self.source_path is not None,
+            "source_path": self.source_path,
+            "policy": {
+                "deny_paths": self.policy.deny_paths,
+                "output_limits": {
+                    "max_items_per_section": self.policy.max_items_per_section,
+                    "max_recommended_files": self.policy.max_recommended_files,
+                    "max_recommended_tests": self.policy.max_recommended_tests,
+                },
+                "include_source_snippets": self.policy.include_source_snippets,
+            },
+            "summary": {
+                "deny_path_count": len(self.policy.deny_paths),
+                "has_output_caps": any(
+                    limit is not None
+                    for limit in (
+                        self.policy.max_items_per_section,
+                        self.policy.max_recommended_files,
+                        self.policy.max_recommended_tests,
+                    )
+                ),
+                "source_snippets_enabled": self.policy.include_source_snippets,
+            },
+        }
+
+
 def load_policy_for_project(project_path: str | Path) -> ProjectBrainPolicy:
     """Load a project-local policy file if present."""
+
+    return load_policy_with_source(project_path).policy
+
+
+def load_policy_with_source(project_path: str | Path) -> LoadedProjectBrainPolicy:
+    """Load a project-local policy file and report where it came from."""
 
     root = Path(project_path)
     for filename in POLICY_FILENAMES:
         path = root / filename
         if path.exists():
-            return ProjectBrainPolicy.from_dict(_read_policy_file(path))
-    return ProjectBrainPolicy()
+            return LoadedProjectBrainPolicy(
+                policy=ProjectBrainPolicy.from_dict(_read_policy_file(path)),
+                source_path=str(path),
+            )
+    return LoadedProjectBrainPolicy(policy=ProjectBrainPolicy())
+
+
+def inspect_policy_for_project(project_path: str | Path) -> dict[str, Any]:
+    return load_policy_with_source(project_path).to_dict()
 
 
 def apply_output_policy(data: dict[str, Any], policy: ProjectBrainPolicy) -> dict[str, Any]:

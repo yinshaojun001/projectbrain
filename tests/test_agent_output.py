@@ -247,6 +247,38 @@ class AgentOutputTest(unittest.TestCase):
             self.assertFalse(_contains_path(context, "service/src/test/"))
             self.assertFalse(_contains_path(impact, "service/src/test/"))
 
+    def test_cli_policy_inspect_reports_loaded_policy(self):
+        with tempfile.TemporaryDirectory() as tmp:
+            fixture = create_payment_mini_codegraph_project(Path(tmp))
+            policy_path = fixture["project_path"] / ".projectbrain-policy.json"
+            policy_path.write_text(
+                json.dumps(
+                    {
+                        "deny_paths": ["service/src/test/**"],
+                        "max_recommended_tests": 0,
+                    }
+                ),
+                encoding="utf-8",
+            )
+            store_root = str(Path(tmp) / "store")
+            _import_payment_mini(store_root, fixture, "payment_mini_policy_inspect")
+
+            output = _run_cli(
+                [
+                    "--store-root",
+                    store_root,
+                    "policy",
+                    "inspect",
+                    "payment_mini_policy_inspect",
+                ]
+            )
+
+            self.assertEqual(output["project_id"], "payment_mini_policy_inspect")
+            self.assertTrue(output["policy_found"])
+            self.assertEqual(output["source_path"], str(policy_path))
+            self.assertEqual(output["summary"]["deny_path_count"], 1)
+            self.assertTrue(output["summary"]["has_output_caps"])
+
 
 def _import_payment_mini(store_root: str, fixture: dict[str, Path], project_id: str) -> None:
     _run_cli(
