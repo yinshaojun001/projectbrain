@@ -31,6 +31,8 @@ class ProjectBrainMcpServerTest(unittest.TestCase):
             self.assertIn("projectbrain_context_pack", tool_names)
             self.assertIn("projectbrain_impact_analysis", tool_names)
             self.assertIn("projectbrain_review_git_diff", tool_names)
+            context_tool = next(tool for tool in tools["result"]["tools"] if tool["name"] == "projectbrain_context_pack")
+            self.assertIn("output_format", context_tool["inputSchema"]["properties"])
 
     def test_tool_calls_use_local_store(self):
         with tempfile.TemporaryDirectory() as tmp:

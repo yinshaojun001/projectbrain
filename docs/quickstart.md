@@ -101,6 +101,22 @@ Review a branch or ref range:
 
 `impact-diff` uses local Git to read changed file names, then maps those paths to imported ProjectBrain facts. It does not read or return source file bodies.
 
+Use compact agent output when the result is meant to drive the next AI coding step:
+
+```bash
+.venv/bin/projectbrain context my_project "Explain the checkout flow" --format agent
+
+.venv/bin/projectbrain impact my_project "Change checkout validation" \
+  --changed-file src/checkout/CheckoutService.java \
+  --format agent
+
+.venv/bin/projectbrain impact-diff my_project "Review staged checkout changes" \
+  --staged \
+  --format agent
+```
+
+The default format remains full JSON. The `agent` format keeps the output structured, but reduces it to summary, must-read files, risk warnings, tests, and manual-review guidance.
+
 Runtime artifacts are stored under `.projectbrain/`, which is ignored by Git.
 
 ## Privacy Boundary

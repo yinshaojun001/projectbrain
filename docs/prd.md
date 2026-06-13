@@ -122,6 +122,7 @@ Acceptance:
 - Git diff Impact Analysis from local Git changed file names.
 - Local-only stdio MCP server.
 - MCP diff review tool: `projectbrain_review_git_diff`.
+- Compact agent output for Context Pack and Impact Analysis.
 - Synthetic public demo.
 - CI on GitHub Actions.
 
@@ -171,6 +172,8 @@ manual_review
 structured_json
 ```
 
+Current Phase 3 status: active implementation. CLI and MCP read tools should keep full JSON as the default and expose compact agent output on request.
+
 ### R4: Experience Claim Authoring
 
 Add local CLI and MCP flow to add claims.
@@ -215,9 +218,9 @@ Agent workflow release:
 
 - Git diff impact from local Git changed file names
 - MCP diff review tool
-- privacy policy scaffold
 - compact agent output
 - improved quickstart
+- privacy policy scaffold
 
 ### v0.3.0
 

@@ -53,6 +53,15 @@ Use an absolute `--store-root` in editor or agent configs so the MCP process alw
 | `projectbrain_impact_analysis` | Analyze likely impact for changed files or symbols. |
 | `projectbrain_review_git_diff` | Analyze likely impact for local staged, branch/range, or last-commit Git changes. |
 
+The three read tools accept `output_format`:
+
+| Value | Behavior |
+| --- | --- |
+| `json` | Default full ProjectBrain artifact JSON. |
+| `agent` | Compact structured output for AI coding agents. |
+
+`agent` output keeps the most actionable fields: summary, must-read files, matched entities, affected relations, risk warnings, recommended tests, manual-review guidance, and omissions.
+
 ## Git Diff Review Tool
 
 Use `projectbrain_review_git_diff` when an agent needs to review current changes before commit or PR.
@@ -63,7 +72,8 @@ Example arguments for staged changes:
 {
   "project_id": "private_project",
   "task": "Review the current staged change before commit",
-  "staged": true
+  "staged": true,
+  "output_format": "agent"
 }
 ```
 

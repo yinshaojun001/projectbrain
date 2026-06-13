@@ -13,7 +13,7 @@ Status: done.
 
 ## Phase 2: Git Diff Impact
 
-Status: active.
+Status: done.
 
 Goal: let an AI agent review current changes without manually listing files.
 
@@ -27,7 +27,7 @@ Must be true:
 
 ## Phase 3: Agent-Friendly Output
 
-Status: planned.
+Status: active.
 
 Goal: make MCP output easier for AI agents to consume.
 

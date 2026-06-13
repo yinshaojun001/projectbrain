@@ -12,6 +12,7 @@ import sys
 from dataclasses import dataclass
 from typing import Any, TextIO
 
+from projectbrain_runtime.agent_output import OUTPUT_FORMATS, format_output
 from projectbrain_runtime.git_diff import GitDiffSelection
 from projectbrain_runtime.models import ImportOptions
 from projectbrain_runtime.repository import JsonProjectBrainRepository
@@ -94,7 +95,7 @@ class ProjectBrainMcpServer:
                     task=_required(arguments, "task"),
                     max_items_per_section=int(arguments.get("max_items_per_section", 12)),
                 )
-                return self._tool_result(request_id, data)
+                return self._tool_result(request_id, _format_tool_output(data, arguments))
 
             if name == "projectbrain_impact_analysis":
                 data = self.runtime.analyze_impact(
@@ -104,7 +105,7 @@ class ProjectBrainMcpServer:
                     changed_symbols=arguments.get("changed_symbols", []),
                     max_items_per_section=int(arguments.get("max_items_per_section", 12)),
                 )
-                return self._tool_result(request_id, data)
+                return self._tool_result(request_id, _format_tool_output(data, arguments))
 
             if name == "projectbrain_review_git_diff":
                 data = self.runtime.analyze_git_diff_impact(
@@ -119,7 +120,7 @@ class ProjectBrainMcpServer:
                     changed_symbols=arguments.get("changed_symbols", []),
                     max_items_per_section=int(arguments.get("max_items_per_section", 12)),
                 )
-                return self._tool_result(request_id, data)
+                return self._tool_result(request_id, _format_tool_output(data, arguments))
 
             return self._error(request_id, -32602, f"Unknown tool: {name}")
         except Exception as exc:  # pragma: no cover - exercised through integration failures.
@@ -163,6 +164,7 @@ class ProjectBrainMcpServer:
                         "project_id": {"type": "string"},
                         "task": {"type": "string"},
                         "max_items_per_section": {"type": "integer", "default": 12},
+                        "output_format": {"type": "string", "enum": list(OUTPUT_FORMATS), "default": "json"},
                     },
                 },
             },
@@ -178,6 +180,7 @@ class ProjectBrainMcpServer:
                         "changed_files": {"type": "array", "items": {"type": "string"}},
                         "changed_symbols": {"type": "array", "items": {"type": "string"}},
                         "max_items_per_section": {"type": "integer", "default": 12},
+                        "output_format": {"type": "string", "enum": list(OUTPUT_FORMATS), "default": "json"},
                     },
                 },
             },
@@ -199,6 +202,7 @@ class ProjectBrainMcpServer:
                         "last_commit": {"type": "boolean", "default": False},
                         "changed_symbols": {"type": "array", "items": {"type": "string"}},
                         "max_items_per_section": {"type": "integer", "default": 12},
+                        "output_format": {"type": "string", "enum": list(OUTPUT_FORMATS), "default": "json"},
                     },
                 },
             },
@@ -263,3 +267,7 @@ def _required(arguments: dict[str, Any], key: str) -> Any:
     if value in (None, ""):
         raise ValueError(f"Missing required argument: {key}")
     return value
+
+
+def _format_tool_output(data: dict[str, Any], arguments: dict[str, Any]) -> dict[str, Any]:
+    return format_output(data, str(arguments.get("output_format", "json")))

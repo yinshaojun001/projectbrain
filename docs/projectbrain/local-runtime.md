@@ -154,6 +154,16 @@ Output is written to:
 .projectbrain/projects/my_project/runs/impact-analysis-latest.json
 ```
 
+Use compact agent output:
+
+```bash
+projectbrain context my_project "Explain the checkout flow and risk points" --format agent
+
+projectbrain impact my_project "Change checkout validation" \
+  --changed-file src/checkout/CheckoutService.java \
+  --format agent
+```
+
 ## 8. Review Local Git Diff Impact
 
 Review staged changes:
@@ -176,12 +186,19 @@ projectbrain impact-diff my_project "Review last commit" --last-commit
 
 `impact-diff` calls local Git for changed file names, then runs the existing impact analysis over those paths. It does not read or return source file bodies.
 
+Use `--format agent` to return a compact `agent_output` object for AI coding clients:
+
+```bash
+projectbrain impact-diff my_project "Review staged checkout changes" --staged --format agent
+```
+
 ## 9. Current Limits
 
 - Storage is JSON files, not PostgreSQL.
 - Import scope is fixed at import time; broaden `--path-prefix` and re-import to analyze more code.
 - Impact analysis can use explicit changed files/symbols or local Git changed file names.
 - Git diff impact currently matches changed files; symbol-level hunk parsing is planned.
+- Agent output is compact structured JSON; richer field selection and policy-driven caps are planned.
 - Experience claims are loaded from Markdown seed tables; review workflow is manual.
 - The runtime is local-first; FastAPI is optional and MCP exists as a local-only stdio server.
 

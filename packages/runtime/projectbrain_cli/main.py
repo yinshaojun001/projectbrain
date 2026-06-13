@@ -13,6 +13,7 @@ from projectbrain_adapters.context_pack import ContextPackBuilder
 from projectbrain_adapters.experience import load_experience_seed
 from projectbrain_adapters.impact_analysis import ImpactAnalysisBuilder
 from projectbrain_cli.mcp_server import serve_stdio
+from projectbrain_runtime.agent_output import OUTPUT_FORMATS, format_output
 from projectbrain_runtime.git_diff import GitDiffSelection
 from projectbrain_runtime.models import ImportOptions
 from projectbrain_runtime.repository import JsonProjectBrainRepository
@@ -50,6 +51,7 @@ def build_parser() -> argparse.ArgumentParser:
     context.add_argument("project_id")
     context.add_argument("task")
     context.add_argument("--max-items-per-section", type=int, default=12)
+    context.add_argument("--format", choices=OUTPUT_FORMATS, default="json", help="Output format")
 
     impact = subcommands.add_parser("impact", help="Build impact analysis from imported facts")
     impact.add_argument("project_id")
@@ -57,6 +59,7 @@ def build_parser() -> argparse.ArgumentParser:
     impact.add_argument("--changed-file", action="append", default=[])
     impact.add_argument("--changed-symbol", action="append", default=[])
     impact.add_argument("--max-items-per-section", type=int, default=12)
+    impact.add_argument("--format", choices=OUTPUT_FORMATS, default="json", help="Output format")
 
     impact_diff = subcommands.add_parser("impact-diff", help="Build impact analysis from local Git diff")
     impact_diff.add_argument("project_id")
@@ -68,6 +71,7 @@ def build_parser() -> argparse.ArgumentParser:
     impact_diff.add_argument("--to", dest="to_ref", help="Git target ref")
     impact_diff.add_argument("--changed-symbol", action="append", default=[])
     impact_diff.add_argument("--max-items-per-section", type=int, default=12)
+    impact_diff.add_argument("--format", choices=OUTPUT_FORMATS, default="json", help="Output format")
 
     facts = subcommands.add_parser("facts", help="Work directly with CodeGraph facts or exported facts")
     facts_subcommands = facts.add_subparsers(dest="facts_command", required=True)
@@ -148,7 +152,7 @@ def main(argv: list[str] | None = None) -> int:
             task=args.task,
             max_items_per_section=args.max_items_per_section,
         )
-        print_json(data)
+        print_json(format_output(data, args.format))
         return 0
 
     if args.command == "impact":
@@ -159,7 +163,7 @@ def main(argv: list[str] | None = None) -> int:
             changed_symbols=args.changed_symbol,
             max_items_per_section=args.max_items_per_section,
         )
-        print_json(data)
+        print_json(format_output(data, args.format))
         return 0
 
     if args.command == "impact-diff":
@@ -175,7 +179,7 @@ def main(argv: list[str] | None = None) -> int:
             changed_symbols=args.changed_symbol,
             max_items_per_section=args.max_items_per_section,
         )
-        print_json(data)
+        print_json(format_output(data, args.format))
         return 0
 
     raise ValueError(f"Unsupported command: {args.command}")
