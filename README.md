@@ -1,5 +1,7 @@
 # ProjectBrain
 
+[中文文档](docs/zh/quickstart.md) | [English Quickstart](docs/quickstart.md)
+
 ProjectBrain is a local project cognition layer for AI coding agents.
 
 It turns code-structure facts and human project experience into task-scoped artifacts that an AI agent can use before changing code:
