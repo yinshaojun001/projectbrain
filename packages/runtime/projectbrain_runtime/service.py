@@ -10,6 +10,7 @@ from projectbrain_adapters.context_pack import ContextPackBuilder
 from projectbrain_adapters.experience import load_experience_seed
 from projectbrain_adapters.impact_analysis import ImpactAnalysisBuilder
 from projectbrain_schema.validation import validate_context_pack, validate_facts_export, validate_impact_analysis
+from projectbrain_runtime.claims import build_experience_claim
 from projectbrain_runtime.git_diff import GitDiffSelection, changed_files_for_selection
 from projectbrain_runtime.models import ImportOptions, ProjectRecord, now_iso
 from projectbrain_runtime.repository import ProjectBrainRepository
@@ -134,3 +135,37 @@ class ProjectBrainRuntime:
             "changed_files": changed_files,
         }
         return data
+
+    def add_experience_claim(
+        self,
+        *,
+        project_id: str,
+        statement: str,
+        applies_to: list[str] | str | None = None,
+        risk_level: str = "normal",
+        review_state: str = "draft",
+        claim_type: str = "HUMAN_REVIEW_REQUIRED",
+        confidence: float = 0.8,
+        source: str | list[str] | None = None,
+        claim_id: str | None = None,
+    ) -> dict[str, Any]:
+        self.repository.get_project(project_id)
+        claims = self.repository.get_experience_claims(project_id)
+        claim = build_experience_claim(
+            existing_claims=claims,
+            statement=statement,
+            applies_to=applies_to,
+            risk_level=risk_level,
+            review_state=review_state,
+            claim_type=claim_type,
+            confidence=confidence,
+            source=source,
+            claim_id=claim_id,
+        )
+        updated_claims = [*claims, claim]
+        self.repository.save_experience_claims(project_id, updated_claims)
+        return {
+            "project_id": project_id,
+            "claim": claim,
+            "experience_claims": len(updated_claims),
+        }

@@ -22,6 +22,7 @@ Current capabilities:
 - Impact Analysis builder.
 - Git diff Impact Analysis from local Git changed files.
 - Agent-friendly compact output for Context Pack and Impact Analysis.
+- Local experience claim authoring.
 - JSON-file local runtime.
 - Local-only stdio MCP server.
 - Optional FastAPI API skeleton.
@@ -105,6 +106,18 @@ Use compact output when an AI coding agent needs the next actions without the fu
 .venv/bin/projectbrain impact-diff my_project "Review staged checkout changes" --staged --format agent
 ```
 
+Add local project experience so future context and impact results include human constraints:
+
+```bash
+.venv/bin/projectbrain claim add my_project \
+  --id exp_checkout_validation \
+  --applies-to checkout \
+  --risk high \
+  --review-state approved \
+  --claim-type HUMAN_CONFIRMED \
+  --statement "Checkout validation changes require compatibility review."
+```
+
 Runtime artifacts are written under `.projectbrain/`, which is ignored by Git.
 
 ## Optional FastAPI Server
@@ -137,7 +150,7 @@ ProjectBrain can run as a local stdio MCP server for AI coding agents:
 
 It is a local child process. It does not open network sockets or upload source code. See [Local MCP Usage](docs/mcp-usage.md).
 
-MCP tools include project import, project listing, Context Packs, Impact Analysis, and Git diff review through `projectbrain_review_git_diff`. The read tools accept `output_format: "agent"` for compact agent-oriented results.
+MCP tools include project import, project listing, experience claim authoring, Context Packs, Impact Analysis, and Git diff review through `projectbrain_review_git_diff`. The read tools accept `output_format: "agent"` for compact agent-oriented results.
 
 Privacy note: ProjectBrain controls the tool side, not the AI client side. MCP results may contain file paths, symbol names, and inferred risk notes. Whether those results are sent to a model provider depends on your AI client and model settings. For strict private-code environments, use a local model or an approved enterprise endpoint.
 
@@ -193,7 +206,7 @@ See [Open Source Checklist](docs/open-source-checklist.md).
 - Add OpenAPI snapshot tests.
 - Add richer Git diff symbol matching.
 - Add richer agent output controls.
-- Add project experience review workflow.
+- Add project experience review and stale-claim workflow.
 - Add database-backed repository implementation.
 - Add more language adapters and richer source-fact extraction.
 

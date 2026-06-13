@@ -27,19 +27,19 @@ Must be true:
 
 ## Phase 3: Agent-Friendly Output
 
-Status: active.
+Status: done.
 
 Goal: make MCP output easier for AI agents to consume.
 
 Must be true:
 
-- Context and impact tools support compact markdown.
+- Context and impact tools support compact structured agent output.
 - JSON remains available.
 - Output size controls exist.
 
 ## Phase 4: Experience Claim Authoring
 
-Status: planned.
+Status: active.
 
 Goal: make human project memory easy to add locally.
 

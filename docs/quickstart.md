@@ -117,6 +117,20 @@ Use compact agent output when the result is meant to drive the next AI coding st
 
 The default format remains full JSON. The `agent` format keeps the output structured, but reduces it to summary, must-read files, risk warnings, tests, and manual-review guidance.
 
+Add a local experience claim:
+
+```bash
+.venv/bin/projectbrain claim add my_project \
+  --id exp_checkout_validation \
+  --applies-to checkout \
+  --risk high \
+  --review-state approved \
+  --claim-type HUMAN_CONFIRMED \
+  --statement "Checkout validation changes require compatibility review."
+```
+
+New claims are stored in `.projectbrain/projects/<project_id>/experience_claims.json` and are used by later Context Pack and Impact Analysis runs. Keep claim statements concise and do not include secrets, customer data, private URLs, or source code bodies.
+
 Runtime artifacts are stored under `.projectbrain/`, which is ignored by Git.
 
 ## Privacy Boundary

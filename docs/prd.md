@@ -123,6 +123,7 @@ Acceptance:
 - Local-only stdio MCP server.
 - MCP diff review tool: `projectbrain_review_git_diff`.
 - Compact agent output for Context Pack and Impact Analysis.
+- Local experience claim authoring through CLI and MCP.
 - Synthetic public demo.
 - CI on GitHub Actions.
 
@@ -172,7 +173,7 @@ manual_review
 structured_json
 ```
 
-Current Phase 3 status: active implementation. CLI and MCP read tools should keep full JSON as the default and expose compact agent output on request.
+Current Phase 3 status: implemented. CLI and MCP read tools keep full JSON as the default and expose compact agent output on request.
 
 ### R4: Experience Claim Authoring
 
@@ -186,6 +187,14 @@ projectbrain claim add my_project \
   --risk high \
   --statement "Settlement amount is stored in cents."
 ```
+
+MCP tool:
+
+```text
+projectbrain_add_experience_claim
+```
+
+Current Phase 4 status: active implementation. Added claims are stored locally and used by later Context Pack and Impact Analysis runs.
 
 ### R5: Synthetic Mini Repo
 

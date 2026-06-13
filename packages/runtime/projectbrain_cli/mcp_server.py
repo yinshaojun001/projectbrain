@@ -13,6 +13,7 @@ from dataclasses import dataclass
 from typing import Any, TextIO
 
 from projectbrain_runtime.agent_output import OUTPUT_FORMATS, format_output
+from projectbrain_runtime.claims import CLAIM_TYPES, REVIEW_STATES, RISK_LEVELS
 from projectbrain_runtime.git_diff import GitDiffSelection
 from projectbrain_runtime.models import ImportOptions
 from projectbrain_runtime.repository import JsonProjectBrainRepository
@@ -89,6 +90,20 @@ class ProjectBrainMcpServer:
                 data = {"projects": [project.to_dict() for project in self.repository.list_projects()]}
                 return self._tool_result(request_id, data)
 
+            if name == "projectbrain_add_experience_claim":
+                data = self.runtime.add_experience_claim(
+                    project_id=_required(arguments, "project_id"),
+                    statement=_required(arguments, "statement"),
+                    applies_to=arguments.get("applies_to", []),
+                    risk_level=arguments.get("risk_level", "normal"),
+                    review_state=arguments.get("review_state", "draft"),
+                    claim_type=arguments.get("claim_type", "HUMAN_REVIEW_REQUIRED"),
+                    confidence=float(arguments.get("confidence", 0.8)),
+                    source=arguments.get("source", []),
+                    claim_id=arguments.get("claim_id"),
+                )
+                return self._tool_result(request_id, data)
+
             if name == "projectbrain_context_pack":
                 data = self.runtime.build_context_pack(
                     project_id=_required(arguments, "project_id"),
@@ -153,6 +168,28 @@ class ProjectBrainMcpServer:
                 "name": "projectbrain_list_projects",
                 "description": "List projects imported into the local ProjectBrain store.",
                 "inputSchema": {"type": "object", "properties": {}},
+            },
+            {
+                "name": "projectbrain_add_experience_claim",
+                "description": (
+                    "Add a local human experience claim to an imported project. "
+                    "Writes only to local ProjectBrain storage and does not read source bodies."
+                ),
+                "inputSchema": {
+                    "type": "object",
+                    "required": ["project_id", "statement"],
+                    "properties": {
+                        "project_id": {"type": "string"},
+                        "statement": {"type": "string"},
+                        "applies_to": {"type": "array", "items": {"type": "string"}},
+                        "risk_level": {"type": "string", "enum": list(RISK_LEVELS), "default": "normal"},
+                        "review_state": {"type": "string", "enum": list(REVIEW_STATES), "default": "draft"},
+                        "claim_type": {"type": "string", "enum": list(CLAIM_TYPES), "default": "HUMAN_REVIEW_REQUIRED"},
+                        "confidence": {"type": "number", "default": 0.8},
+                        "source": {"type": "array", "items": {"type": "string"}},
+                        "claim_id": {"type": "string"},
+                    },
+                },
             },
             {
                 "name": "projectbrain_context_pack",

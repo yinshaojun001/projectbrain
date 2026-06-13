@@ -12,29 +12,32 @@
 
 ## Current Priority
 
-Phase 3: Agent-Friendly Output.
+Phase 4: Experience Claim Authoring.
 
 ## Current Workspace Status
 
 - Phase 2 Git Diff Impact is complete and pushed.
 - Commit: `5b6cfef feat: add git diff impact analysis`.
-- CI passed for the Phase 2 push.
-- Working tree should stay limited to Phase 3 planning, implementation, tests, and public docs.
+- Phase 3 Agent-Friendly Output is complete and pushed.
+- Commit: `4e18822 feat: add agent-friendly output format`.
+- CI passed for the Phase 3 push.
+- Working tree should stay limited to Phase 4 planning, implementation, tests, and public docs.
 
 ## Next Engineering Task
 
-Implement Phase 3 Agent-Friendly Output.
+Implement Phase 4 Experience Claim Authoring.
 
 Recommended order:
 
-1. Add a compact agent output formatter for Context Pack and Impact Analysis artifacts.
-2. Add CLI `--format json|agent` for `context`, `impact`, and `impact-diff`.
-3. Add MCP `output_format` argument for `projectbrain_context_pack`, `projectbrain_impact_analysis`, and `projectbrain_review_git_diff`.
-4. Update README, quickstart, MCP usage, local runtime, and PRD.
-5. Run tests and CLI/MCP smoke checks.
-6. Run privacy scan to ensure private payment code/details are not tracked.
-7. Commit and push the public-only changes.
-8. Check GitHub Actions.
+1. Add runtime support for appending validated experience claims.
+2. Add CLI `projectbrain claim add`.
+3. Add MCP tool `projectbrain_add_experience_claim`.
+4. Ensure new claims are immediately used by Context Pack and Impact Analysis.
+5. Update README, quickstart, MCP usage, local runtime, and PRD.
+6. Run tests and CLI/MCP smoke checks.
+7. Run privacy scan to ensure private payment code/details are not tracked.
+8. Commit and push the public-only changes.
+9. Check GitHub Actions.
 
 ## Verification Commands
 

@@ -34,6 +34,7 @@ Commands:
 doctor       Check local CLI health.
 import       Import CodeGraph facts into local runtime storage.
 list         List imported projects.
+claim        Add local experience claims.
 context      Build a context pack from imported facts.
 impact       Build impact analysis from imported facts.
 impact-diff  Build impact analysis from local Git changed file names.
@@ -73,7 +74,7 @@ Files:
 | `project.json` | Project metadata and import options. |
 | `inventory.json` | CodeGraph inventory summary from `.codegraph/codegraph.db`. |
 | `facts.json` | ProjectBrain-shaped `entities`, `relations`, and `sources`. |
-| `experience_claims.json` | Claims loaded from `experience-seed.md`. |
+| `experience_claims.json` | Claims loaded from `experience-seed.md` and claims added locally with `claim add`. |
 | `runs/*.json` | Latest generated context/impact artifacts. |
 
 ## 4. Public Demo Without Private Code
@@ -127,7 +128,29 @@ projectbrain import /path/to/my/project \
 
 Do not publish private source code, private CodeGraph databases, or private exported facts.
 
-## 6. Generate Context Pack
+## 6. Add Local Experience Claims
+
+Add a local human claim:
+
+```bash
+projectbrain claim add my_project \
+  --id exp_checkout_validation \
+  --applies-to checkout \
+  --risk high \
+  --review-state approved \
+  --claim-type HUMAN_CONFIRMED \
+  --statement "Checkout validation changes require compatibility review."
+```
+
+The claim is stored under:
+
+```text
+.projectbrain/projects/my_project/experience_claims.json
+```
+
+Later Context Pack and Impact Analysis runs use the updated claims automatically. Do not put secrets, customer data, private URLs, or source code bodies into claim statements.
+
+## 7. Generate Context Pack
 
 After import, this no longer needs `--project-path`, `--path-prefix`, or `--experience-seed`; it uses stored facts.
 
@@ -141,7 +164,7 @@ Output is written to:
 .projectbrain/projects/my_project/runs/context-pack-latest.json
 ```
 
-## 7. Generate Impact Analysis
+## 8. Generate Impact Analysis
 
 ```bash
 projectbrain impact my_project "Change checkout validation" \
@@ -164,7 +187,7 @@ projectbrain impact my_project "Change checkout validation" \
   --format agent
 ```
 
-## 8. Review Local Git Diff Impact
+## 9. Review Local Git Diff Impact
 
 Review staged changes:
 
@@ -192,17 +215,17 @@ Use `--format agent` to return a compact `agent_output` object for AI coding cli
 projectbrain impact-diff my_project "Review staged checkout changes" --staged --format agent
 ```
 
-## 9. Current Limits
+## 10. Current Limits
 
 - Storage is JSON files, not PostgreSQL.
 - Import scope is fixed at import time; broaden `--path-prefix` and re-import to analyze more code.
 - Impact analysis can use explicit changed files/symbols or local Git changed file names.
 - Git diff impact currently matches changed files; symbol-level hunk parsing is planned.
 - Agent output is compact structured JSON; richer field selection and policy-driven caps are planned.
-- Experience claims are loaded from Markdown seed tables; review workflow is manual.
+- Experience claims can be loaded from Markdown seed tables or added locally; editing, deletion, review queues, and stale-claim workflows are still planned.
 - The runtime is local-first; FastAPI is optional and MCP exists as a local-only stdio server.
 
-## 10. Repository Boundary
+## 11. Repository Boundary
 
 The minimal schema package now exists under:
 
@@ -237,7 +260,7 @@ Current repository types:
 
 This keeps the current local runtime usable while preparing the same service layer for FastAPI, MCP, and database-backed storage.
 
-## 11. FastAPI Skeleton
+## 12. FastAPI Skeleton
 
 A thin FastAPI service now exists under:
 
@@ -276,7 +299,7 @@ PYTHONPATH=apps/api:packages/adapters:packages/runtime:packages/schema \
 
 The route handlers are split into `handlers.py`, so tests can validate API behavior without FastAPI installed. When the `api` extra is installed, FastAPI `TestClient` exercises the real HTTP routes.
 
-## 12. Next Step
+## 13. Next Step
 
 The next engineering steps are to improve agent-friendly output modes, add request/response schema models for the API boundary, and generate an OpenAPI snapshot:
 

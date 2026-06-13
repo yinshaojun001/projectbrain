@@ -14,6 +14,7 @@ from projectbrain_adapters.experience import load_experience_seed
 from projectbrain_adapters.impact_analysis import ImpactAnalysisBuilder
 from projectbrain_cli.mcp_server import serve_stdio
 from projectbrain_runtime.agent_output import OUTPUT_FORMATS, format_output
+from projectbrain_runtime.claims import CLAIM_TYPES, REVIEW_STATES, RISK_LEVELS
 from projectbrain_runtime.git_diff import GitDiffSelection
 from projectbrain_runtime.models import ImportOptions
 from projectbrain_runtime.repository import JsonProjectBrainRepository
@@ -46,6 +47,19 @@ def build_parser() -> argparse.ArgumentParser:
     import_project.add_argument("--edge-limit", type=int, default=300)
 
     subcommands.add_parser("list", help="List imported projects")
+
+    claim = subcommands.add_parser("claim", help="Work with local experience claims")
+    claim_subcommands = claim.add_subparsers(dest="claim_command", required=True)
+    claim_add = claim_subcommands.add_parser("add", help="Add a local experience claim")
+    claim_add.add_argument("project_id")
+    claim_add.add_argument("--statement", required=True)
+    claim_add.add_argument("--applies-to", action="append", default=[])
+    claim_add.add_argument("--risk", dest="risk_level", choices=RISK_LEVELS, default="normal")
+    claim_add.add_argument("--review-state", choices=REVIEW_STATES, default="draft")
+    claim_add.add_argument("--claim-type", choices=CLAIM_TYPES, default="HUMAN_REVIEW_REQUIRED")
+    claim_add.add_argument("--confidence", type=float, default=0.8)
+    claim_add.add_argument("--source", action="append", default=[])
+    claim_add.add_argument("--id", dest="claim_id")
 
     context = subcommands.add_parser("context", help="Build context pack from imported facts")
     context.add_argument("project_id")
@@ -145,6 +159,23 @@ def main(argv: list[str] | None = None) -> int:
     if args.command == "list":
         print_json({"projects": [project.to_dict() for project in repository.list_projects()]})
         return 0
+
+    if args.command == "claim":
+        if args.claim_command == "add":
+            data = runtime.add_experience_claim(
+                project_id=args.project_id,
+                statement=args.statement,
+                applies_to=args.applies_to,
+                risk_level=args.risk_level,
+                review_state=args.review_state,
+                claim_type=args.claim_type,
+                confidence=args.confidence,
+                source=args.source,
+                claim_id=args.claim_id,
+            )
+            print_json(data)
+            return 0
+        raise ValueError(f"Unsupported claim command: {args.claim_command}")
 
     if args.command == "context":
         data = runtime.build_context_pack(

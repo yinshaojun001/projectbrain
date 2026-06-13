@@ -28,6 +28,7 @@ class ProjectBrainMcpServerTest(unittest.TestCase):
             tools = server.handle_message({"jsonrpc": "2.0", "id": 2, "method": "tools/list"})
             tool_names = {tool["name"] for tool in tools["result"]["tools"]}
             self.assertIn("projectbrain_import_project", tool_names)
+            self.assertIn("projectbrain_add_experience_claim", tool_names)
             self.assertIn("projectbrain_context_pack", tool_names)
             self.assertIn("projectbrain_impact_analysis", tool_names)
             self.assertIn("projectbrain_review_git_diff", tool_names)

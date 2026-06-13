@@ -41,6 +41,8 @@ ProjectBrain is currently a local prototype:
 - Context Pack builder
 - Impact Analysis builder
 - Git diff impact analysis
+- Agent-friendly output
+- Local experience claim authoring
 - JSON-file runtime
 - local-only stdio MCP server
 - optional FastAPI skeleton

@@ -49,6 +49,7 @@ Use an absolute `--store-root` in editor or agent configs so the MCP process alw
 | --- | --- |
 | `projectbrain_import_project` | Import CodeGraph facts from a local repository into local ProjectBrain storage. |
 | `projectbrain_list_projects` | List projects already imported into the local store. |
+| `projectbrain_add_experience_claim` | Add a local human experience claim to an imported project. |
 | `projectbrain_context_pack` | Build a task-scoped Context Pack for an imported project. |
 | `projectbrain_impact_analysis` | Analyze likely impact for changed files or symbols. |
 | `projectbrain_review_git_diff` | Analyze likely impact for local staged, branch/range, or last-commit Git changes. |
@@ -61,6 +62,28 @@ The three read tools accept `output_format`:
 | `agent` | Compact structured output for AI coding agents. |
 
 `agent` output keeps the most actionable fields: summary, must-read files, matched entities, affected relations, risk warnings, recommended tests, manual-review guidance, and omissions.
+
+## Experience Claim Tool
+
+Use `projectbrain_add_experience_claim` to add local project memory that later Context Pack and Impact Analysis calls can match.
+
+Example arguments:
+
+```json
+{
+  "project_id": "private_project",
+  "claim_id": "exp_checkout_validation",
+  "statement": "Checkout validation changes require compatibility review.",
+  "applies_to": ["checkout"],
+  "risk_level": "high",
+  "review_state": "approved",
+  "claim_type": "HUMAN_CONFIRMED",
+  "confidence": 0.8,
+  "source": ["projectbrain://local-note/checkout-validation"]
+}
+```
+
+The tool writes to local `.projectbrain/projects/<project_id>/experience_claims.json`. Keep statements concise and avoid secrets, credentials, customer data, private URLs, or source code bodies.
 
 ## Git Diff Review Tool
 
