@@ -32,3 +32,5 @@ jobs:
             --export-json examples/payment-mini/projectbrain-codegraph-export.json \
             --experience-seed examples/payment-mini/experience-seed.md \
             --task "Explain the settlement entrypoint" >/tmp/context-pack.json
+          printf '{"jsonrpc":"2.0","id":1,"method":"tools/list"}\n' | \
+            projectbrain mcp serve >/tmp/mcp-tools.json

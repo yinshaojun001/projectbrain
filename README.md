@@ -20,6 +20,7 @@ Current capabilities:
 - Context Pack builder.
 - Impact Analysis builder.
 - JSON-file local runtime.
+- Local-only stdio MCP server.
 - Optional FastAPI API skeleton.
 - Synthetic public demo under `examples/payment-mini/`.
 
@@ -111,6 +112,16 @@ POST /api/v1/projects/{project_id}/context-pack
 POST /api/v1/projects/{project_id}/impact-analysis
 ```
 
+## Local MCP Server
+
+ProjectBrain can run as a local stdio MCP server for AI coding agents:
+
+```bash
+.venv/bin/projectbrain --store-root /absolute/path/to/.projectbrain mcp serve
+```
+
+It is a local child process. It does not open network sockets or upload source code. See [Local MCP Usage](docs/mcp-usage.md).
+
 ## Repository Layout
 
 ```text
@@ -153,6 +164,7 @@ See [Open Source Checklist](docs/open-source-checklist.md).
 | [API Contract](docs/projectbrain/api-contract.md) | REST and MCP contract draft. |
 | [CodeGraph Integration](docs/projectbrain/codegraph-integration.md) | CodeGraph as the first code-fact provider. |
 | [Local Runtime](docs/projectbrain/local-runtime.md) | CLI/runtime/API usage for the current local prototype. |
+| [MCP Usage](docs/mcp-usage.md) | Local-only stdio MCP server usage and privacy boundary. |
 | [Delivery Gap Analysis](docs/projectbrain/delivery-gap-analysis.md) | Remaining gaps between design and implementation. |
 | [Evaluation Plan](docs/projectbrain/evaluation-plan.md) | How to evaluate context quality, impact quality, and agent outcomes. |
 

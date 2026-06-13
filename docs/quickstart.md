@@ -94,3 +94,13 @@ Runtime artifacts are stored under `.projectbrain/`, which is ignored by Git.
 Do not publish private source code, private `.codegraph/codegraph.db` files, private `.projectbrain/` stores, or private exported facts.
 
 The checked-in `examples/payment-mini/` data is synthetic.
+
+## Local MCP Server
+
+ProjectBrain can also run as a local stdio MCP server:
+
+```bash
+.venv/bin/projectbrain --store-root /absolute/path/to/.projectbrain mcp serve
+```
+
+Use it from an MCP-capable AI coding client when you want the agent to request Context Packs and Impact Analysis without uploading project facts to a ProjectBrain server. See [Local MCP Usage](mcp-usage.md).

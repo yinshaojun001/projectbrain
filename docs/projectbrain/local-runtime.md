@@ -36,6 +36,7 @@ list         List imported projects.
 context      Build a context pack from imported facts.
 impact       Build impact analysis from imported facts.
 facts        Work directly with CodeGraph facts or exported facts.
+mcp          Run the local-only stdio MCP server.
 ```
 
 Legacy script entry points under `apps/tools/` are still present for source-tree development, but the installable CLI is preferred.

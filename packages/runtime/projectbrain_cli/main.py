@@ -12,6 +12,7 @@ from projectbrain_adapters.codegraph import CodeGraphAdapter
 from projectbrain_adapters.context_pack import ContextPackBuilder
 from projectbrain_adapters.experience import load_experience_seed
 from projectbrain_adapters.impact_analysis import ImpactAnalysisBuilder
+from projectbrain_cli.mcp_server import serve_stdio
 from projectbrain_runtime.models import ImportOptions
 from projectbrain_runtime.repository import JsonProjectBrainRepository
 from projectbrain_runtime.service import ProjectBrainRuntime
@@ -27,6 +28,10 @@ def build_parser() -> argparse.ArgumentParser:
     subcommands = parser.add_subparsers(dest="command", required=True)
 
     subcommands.add_parser("doctor", help="Check local ProjectBrain CLI health")
+
+    mcp = subcommands.add_parser("mcp", help="Run ProjectBrain MCP server commands")
+    mcp_subcommands = mcp.add_subparsers(dest="mcp_command", required=True)
+    mcp_subcommands.add_parser("serve", help="Run local-only stdio MCP server")
 
     import_project = subcommands.add_parser("import", help="Import CodeGraph facts into local runtime")
     import_project.add_argument("project_path", help="Path to repository containing .codegraph/codegraph.db")
@@ -96,6 +101,11 @@ def main(argv: list[str] | None = None) -> int:
 
     if args.command == "facts":
         return _handle_facts(args)
+
+    if args.command == "mcp":
+        if args.mcp_command == "serve":
+            return serve_stdio(store_root=args.store_root)
+        raise ValueError(f"Unsupported mcp command: {args.mcp_command}")
 
     repository = JsonProjectBrainRepository(args.store_root)
     runtime = ProjectBrainRuntime(repository)
