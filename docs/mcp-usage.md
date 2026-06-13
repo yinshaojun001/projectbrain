@@ -63,4 +63,88 @@ Keep these paths private and out of Git:
 - `.projectbrain/` runtime stores generated from private repositories
 - private experience seed files
 
-The tool output may contain local file paths, symbol names, and inferred risk notes. That output stays in the local MCP conversation unless your AI client sends conversation contents to its model provider. Choose your AI client and model settings accordingly.
+## Tool-Side Vs Client-Side Privacy
+
+ProjectBrain controls the tool side:
+
+- it does not upload source code
+- it does not call hosted ProjectBrain services
+- it does not open network sockets
+- it does not read repositories unless you pass their local path
+- it stores runtime data under the local `--store-root`
+
+Your AI coding client controls the conversation side:
+
+- MCP tool results are returned to the client
+- tool results may include local paths, symbol names, call relationships, inferred business concepts, and risk notes
+- the client may include those results in prompts sent to a model provider
+- the client may log prompts, responses, and tool results depending on its settings
+
+So the correct privacy model is:
+
+```text
+ProjectBrain MCP server: local-only
+AI client + model provider: depends on your chosen client and model settings
+```
+
+## Recommended Use By Environment
+
+| Environment | Recommendation |
+| --- | --- |
+| Private company code with strict policy | Use a local model or an approved enterprise AI endpoint. Disable prompt/tool-result retention if the client supports it. |
+| Company code with approved cloud AI | Confirm that your AI client, model provider, and account settings allow source-derived paths/symbols to be sent. |
+| Open-source code | Normal cloud AI clients are generally fine, but avoid committing `.projectbrain/` runtime stores. |
+| Unknown or highly sensitive code | Do not use remote models. Run ProjectBrain MCP only with a local model/client stack. |
+
+## Output Minimization
+
+ProjectBrain's current MCP tools return structured analysis, not source file contents. This keeps output smaller and reduces accidental disclosure.
+
+Still, outputs can reveal architecture and business context. For sensitive projects:
+
+- import the narrowest useful scope with `path_prefixes`
+- use lower `node_limit` and `edge_limit` values when importing
+- keep private experience seed statements concise
+- avoid putting secrets, credentials, private URLs, or customer data in experience seeds
+- review generated Context Packs before sharing them outside your trusted environment
+
+## Safe Local Workflow
+
+For a private repository, a conservative workflow is:
+
+```bash
+projectbrain --store-root /private/local/.projectbrain import /private/repo \
+  --id private_project \
+  --path-prefix src/main/java/com/acme/checkout/ \
+  --kind class \
+  --kind interface \
+  --kind method \
+  --node-limit 100 \
+  --edge-limit 150
+```
+
+Then configure the MCP client to use the same absolute store:
+
+```json
+{
+  "mcpServers": {
+    "projectbrain": {
+      "command": "/absolute/path/to/projectbrain/.venv/bin/projectbrain",
+      "args": [
+        "--store-root",
+        "/private/local/.projectbrain",
+        "mcp",
+        "serve"
+      ]
+    }
+  }
+}
+```
+
+## What Not To Do
+
+- Do not publish private `.codegraph/codegraph.db` files.
+- Do not publish private `.projectbrain/` stores.
+- Do not point a remote or untrusted MCP host at private repositories.
+- Do not add secrets or credentials to experience seed files.
+- Do not assume "local MCP server" means your AI client is also local.

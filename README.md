@@ -122,6 +122,8 @@ ProjectBrain can run as a local stdio MCP server for AI coding agents:
 
 It is a local child process. It does not open network sockets or upload source code. See [Local MCP Usage](docs/mcp-usage.md).
 
+Privacy note: ProjectBrain controls the tool side, not the AI client side. MCP results may contain file paths, symbol names, and inferred risk notes. Whether those results are sent to a model provider depends on your AI client and model settings. For strict private-code environments, use a local model or an approved enterprise endpoint.
+
 ## Repository Layout
 
 ```text
