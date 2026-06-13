@@ -13,6 +13,7 @@ from projectbrain_schema.validation import validate_context_pack, validate_facts
 from projectbrain_runtime.claims import active_claims, archive_experience_claim, build_experience_claim, update_experience_claim
 from projectbrain_runtime.git_diff import GitDiffSelection, changed_files_for_selection
 from projectbrain_runtime.models import ImportOptions, ProjectRecord, now_iso
+from projectbrain_runtime.policy import ProjectBrainPolicy, apply_output_policy, load_policy_for_project
 from projectbrain_runtime.repository import ProjectBrainRepository
 
 
@@ -76,14 +77,17 @@ class ProjectBrainRuntime:
         task: str,
         max_items_per_section: int = 12,
     ) -> dict[str, Any]:
+        project = self.repository.get_project(project_id)
+        policy = load_policy_for_project(project.source_path)
         facts = self.repository.get_facts(project_id)
         claims = active_claims(self.repository.get_experience_claims(project_id))
         pack = ContextPackBuilder(
             task=task,
             export=facts,
             experience_claims=claims,
-            max_items_per_section=max_items_per_section,
+            max_items_per_section=self._effective_section_limit(max_items_per_section, policy),
         ).build()
+        pack = apply_output_policy(pack, policy)
         validate_context_pack(pack)
         artifact_path = self.repository.save_run_artifact(project_id, "context-pack-latest.json", pack)
         return {"artifact_path": artifact_path, "context_pack": pack}
@@ -97,6 +101,8 @@ class ProjectBrainRuntime:
         changed_symbols: list[str],
         max_items_per_section: int = 12,
     ) -> dict[str, Any]:
+        project = self.repository.get_project(project_id)
+        policy = load_policy_for_project(project.source_path)
         facts = self.repository.get_facts(project_id)
         claims = active_claims(self.repository.get_experience_claims(project_id))
         analysis = ImpactAnalysisBuilder(
@@ -105,8 +111,9 @@ class ProjectBrainRuntime:
             changed_files=changed_files,
             changed_symbols=changed_symbols,
             experience_claims=claims,
-            max_items_per_section=max_items_per_section,
+            max_items_per_section=self._effective_section_limit(max_items_per_section, policy),
         ).build()
+        analysis = apply_output_policy(analysis, policy)
         validate_impact_analysis(analysis)
         artifact_path = self.repository.save_run_artifact(project_id, "impact-analysis-latest.json", analysis)
         return {"artifact_path": artifact_path, "impact_analysis": analysis}
@@ -240,3 +247,8 @@ class ProjectBrainRuntime:
             "experience_claims": len(updated_claims),
             "active_experience_claims": len(active_claims(updated_claims)),
         }
+
+    def _effective_section_limit(self, requested_limit: int, policy: ProjectBrainPolicy) -> int:
+        if policy.max_items_per_section is None:
+            return requested_limit
+        return min(requested_limit, policy.max_items_per_section)

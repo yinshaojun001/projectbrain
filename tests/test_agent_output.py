@@ -198,6 +198,55 @@ class AgentOutputTest(unittest.TestCase):
 
         self.assertEqual(output["must_read_files"], [{"file": "src/App.java", "reason": "Read it"}])
 
+    def test_runtime_policy_filters_denied_paths_and_caps_read_outputs(self):
+        with tempfile.TemporaryDirectory() as tmp:
+            fixture = create_payment_mini_codegraph_project(Path(tmp))
+            (fixture["project_path"] / ".projectbrain-policy.json").write_text(
+                json.dumps(
+                    {
+                        "deny_paths": ["service/src/test/**"],
+                        "max_items_per_section": 1,
+                        "max_recommended_files": 1,
+                        "max_recommended_tests": 0,
+                        "include_source_snippets": False,
+                    }
+                ),
+                encoding="utf-8",
+            )
+            store_root = str(Path(tmp) / "store")
+            _import_payment_mini(store_root, fixture, "payment_mini_policy")
+
+            context = _run_cli(
+                [
+                    "--store-root",
+                    store_root,
+                    "context",
+                    "payment_mini_policy",
+                    "Explain settlement",
+                    "--max-items-per-section",
+                    "5",
+                ]
+            )["context_pack"]
+            impact = _run_cli(
+                [
+                    "--store-root",
+                    store_root,
+                    "impact",
+                    "payment_mini_policy",
+                    "Change settlement contract",
+                    "--changed-file",
+                    "contract/src/main/java/example/payment/settlement/SettlementService.java",
+                    "--max-items-per-section",
+                    "5",
+                ]
+            )["impact_analysis"]
+
+            self.assertLessEqual(len(context["recommended_files"]), 1)
+            self.assertEqual(context["recommended_tests"], [])
+            self.assertEqual(impact["recommended_tests"], [])
+            self.assertFalse(_contains_path(context, "service/src/test/"))
+            self.assertFalse(_contains_path(impact, "service/src/test/"))
+
 
 def _import_payment_mini(store_root: str, fixture: dict[str, Path], project_id: str) -> None:
     _run_cli(
@@ -269,6 +318,14 @@ def _call_tool(server: ProjectBrainMcpServer, name: str, arguments: dict) -> dic
     if response["result"].get("isError"):
         raise AssertionError(response["result"]["content"][0]["text"])
     return json.loads(response["result"]["content"][0]["text"])
+
+
+def _contains_path(value: object, path_fragment: str) -> bool:
+    if isinstance(value, dict):
+        return any(_contains_path(item, path_fragment) for item in value.values())
+    if isinstance(value, list):
+        return any(_contains_path(item, path_fragment) for item in value)
+    return isinstance(value, str) and path_fragment in value
 
 
 if __name__ == "__main__":

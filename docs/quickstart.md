@@ -154,6 +154,22 @@ Runtime artifacts are stored under `.projectbrain/`, which is ignored by Git.
 
 Do not publish private source code, private `.codegraph/codegraph.db` files, private `.projectbrain/` stores, or private exported facts.
 
+For private repositories, put a local `.projectbrain-policy.json` in the imported project root to minimize outputs:
+
+```json
+{
+  "deny_paths": ["private/**", "src/main/resources/config/**"],
+  "output_limits": {
+    "max_items_per_section": 8,
+    "max_recommended_files": 8,
+    "max_recommended_tests": 5
+  },
+  "include_source_snippets": false
+}
+```
+
+Context Pack, Impact Analysis, and Git diff review apply this policy before saving or returning artifacts. Source snippets are disabled by default.
+
 The checked-in `examples/payment-mini/` data is synthetic.
 
 ## Local MCP Server

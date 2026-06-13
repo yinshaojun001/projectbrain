@@ -39,7 +39,7 @@ Must be true:
 
 ## Phase 4: Experience Claim Authoring
 
-Status: active.
+Status: done.
 
 Goal: make human project memory easy to add locally.
 
@@ -48,11 +48,12 @@ Must be true:
 - CLI can add claims.
 - MCP can add claims.
 - Claims are matched in context/impact.
-- Claims can be reviewed and marked stale later.
+- Claims can be listed, reviewed, and archived.
+- Archived claims stay stored but are ignored by context/impact.
 
 ## Phase 5: Privacy Policy
 
-Status: planned.
+Status: active.
 
 Goal: move from documented privacy guidance to enforceable local policy.
 

@@ -167,6 +167,22 @@ MCP tools include project import, project listing, experience claim authoring, C
 
 Privacy note: ProjectBrain controls the tool side, not the AI client side. MCP results may contain file paths, symbol names, and inferred risk notes. Whether those results are sent to a model provider depends on your AI client and model settings. For strict private-code environments, use a local model or an approved enterprise endpoint.
 
+For additional local output controls, add `.projectbrain-policy.json` or `.projectbrain-policy.yml` to the imported project root:
+
+```json
+{
+  "deny_paths": ["private/**", "src/main/resources/config/**"],
+  "output_limits": {
+    "max_items_per_section": 8,
+    "max_recommended_files": 8,
+    "max_recommended_tests": 5
+  },
+  "include_source_snippets": false
+}
+```
+
+Context Pack, Impact Analysis, Git diff review, API, and MCP read outputs apply the policy. Source snippets remain disabled by default.
+
 ## Repository Layout
 
 ```text

@@ -187,10 +187,27 @@ AI client + model provider: depends on your chosen client and model settings
 
 ProjectBrain's current MCP tools return structured analysis, not source file contents. This keeps output smaller and reduces accidental disclosure.
 
+Imported projects can define a local `.projectbrain-policy.json`, `.projectbrain-policy.yml`, or `.projectbrain-policy.yaml` in the project root:
+
+```json
+{
+  "deny_paths": ["private/**", "src/main/resources/config/**"],
+  "output_limits": {
+    "max_items_per_section": 8,
+    "max_recommended_files": 8,
+    "max_recommended_tests": 5
+  },
+  "include_source_snippets": false
+}
+```
+
+The policy applies to Context Pack, Impact Analysis, and Git diff review outputs returned through CLI, API, and MCP. Denied paths are removed from structured artifacts, output caps reduce list sizes, and source-like fields such as `body`, `snippet`, and `source_code` are stripped unless explicitly enabled.
+
 Still, outputs can reveal architecture and business context. For sensitive projects:
 
 - import the narrowest useful scope with `path_prefixes`
 - use lower `node_limit` and `edge_limit` values when importing
+- add deny paths for private modules, config directories, generated secrets, and local-only test fixtures
 - keep private experience seed statements concise
 - avoid putting secrets, credentials, private URLs, or customer data in experience seeds
 - review generated Context Packs before sharing them outside your trusted environment

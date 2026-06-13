@@ -91,7 +91,8 @@ As a developer on private code, I want local policy controls so ProjectBrain min
 Acceptance:
 
 - `.projectbrain-policy.yml` or JSON policy can set output limits and deny paths.
-- MCP tools apply output limits.
+- CLI, API, and MCP read tools apply output limits and deny paths.
+- Source-like fields are stripped by default unless explicitly enabled by local policy.
 - Documentation clearly separates tool-side privacy from AI-client privacy.
 
 ### US5: Knowledge Becomes Stale When Code Moves
@@ -211,6 +212,34 @@ Current Phase 4 status: active implementation. Added and reviewed claims are sto
 ### R5: Synthetic Mini Repo
 
 Provide a tiny source repository demo in addition to exported JSON.
+
+### R6: Local Privacy Policy
+
+Add enforceable local output controls.
+
+Policy files:
+
+```text
+.projectbrain-policy.json
+.projectbrain-policy.yml
+.projectbrain-policy.yaml
+```
+
+Supported controls:
+
+```json
+{
+  "deny_paths": ["private/**", "src/main/resources/config/**"],
+  "output_limits": {
+    "max_items_per_section": 8,
+    "max_recommended_files": 8,
+    "max_recommended_tests": 5
+  },
+  "include_source_snippets": false
+}
+```
+
+Current Phase 5 status: active implementation. Context Pack, Impact Analysis, and Git diff review apply project-local policy before saving or returning artifacts.
 
 ## 8. Success Metrics
 

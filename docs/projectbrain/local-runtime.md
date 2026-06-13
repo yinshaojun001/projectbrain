@@ -77,7 +77,35 @@ Files:
 | `experience_claims.json` | Claims loaded from `experience-seed.md` and claims added locally with `claim add`. |
 | `runs/*.json` | Latest generated context/impact artifacts. |
 
-## 4. Public Demo Without Private Code
+## 4. Local Privacy Policy
+
+Add `.projectbrain-policy.json`, `.projectbrain-policy.yml`, or `.projectbrain-policy.yaml` to the imported project root when outputs need local controls:
+
+```json
+{
+  "deny_paths": ["private/**", "src/main/resources/config/**"],
+  "output_limits": {
+    "max_items_per_section": 8,
+    "max_recommended_files": 8,
+    "max_recommended_tests": 5
+  },
+  "include_source_snippets": false
+}
+```
+
+The policy is loaded from the project source path recorded at import time. It applies to generated Context Pack, Impact Analysis, and Git diff review artifacts before they are saved under `.projectbrain/projects/<project_id>/runs/` or returned through CLI, API, or MCP.
+
+Supported fields:
+
+| Field | Behavior |
+| --- | --- |
+| `deny_paths` | Glob-like path patterns removed from structured output. |
+| `max_items_per_section` | Caps `sections[].items`. |
+| `max_recommended_files` | Caps `recommended_files`. |
+| `max_recommended_tests` | Caps `recommended_tests`. |
+| `include_source_snippets` | Defaults to `false`; source-like fields such as `body`, `snippet`, and `source_code` are stripped unless enabled. |
+
+## 5. Public Demo Without Private Code
 
 The public repository includes a synthetic export under:
 
@@ -104,7 +132,7 @@ projectbrain facts impact \
   --changed-file contract/src/main/java/example/payment/settlement/SettlementService.java
 ```
 
-## 5. Import Your Own Project
+## 6. Import Your Own Project
 
 For real local projects, ProjectBrain expects CodeGraph facts at:
 
@@ -128,7 +156,7 @@ projectbrain import /path/to/my/project \
 
 Do not publish private source code, private CodeGraph databases, or private exported facts.
 
-## 6. Add Local Experience Claims
+## 7. Add Local Experience Claims
 
 Add a local human claim:
 
@@ -165,7 +193,7 @@ projectbrain claim archive my_project exp_checkout_validation \
 
 Archived claims stay in `experience_claims.json` and can be listed with `--include-archived`, but Context Pack, Impact Analysis, and Git diff review ignore archived claims.
 
-## 7. Generate Context Pack
+## 8. Generate Context Pack
 
 After import, this no longer needs `--project-path`, `--path-prefix`, or `--experience-seed`; it uses stored facts.
 
@@ -179,7 +207,7 @@ Output is written to:
 .projectbrain/projects/my_project/runs/context-pack-latest.json
 ```
 
-## 8. Generate Impact Analysis
+## 9. Generate Impact Analysis
 
 ```bash
 projectbrain impact my_project "Change checkout validation" \
@@ -202,7 +230,7 @@ projectbrain impact my_project "Change checkout validation" \
   --format agent
 ```
 
-## 9. Review Local Git Diff Impact
+## 10. Review Local Git Diff Impact
 
 Review staged changes:
 
@@ -230,7 +258,7 @@ Use `--format agent` to return a compact `agent_output` object for AI coding cli
 projectbrain impact-diff my_project "Review staged checkout changes" --staged --format agent
 ```
 
-## 10. Current Limits
+## 11. Current Limits
 
 - Storage is JSON files, not PostgreSQL.
 - Import scope is fixed at import time; broaden `--path-prefix` and re-import to analyze more code.
@@ -240,7 +268,7 @@ projectbrain impact-diff my_project "Review staged checkout changes" --staged --
 - Experience claims can be loaded from Markdown seed tables, added locally, reviewed, and archived; stale-claim detection is still planned.
 - The runtime is local-first; FastAPI is optional and MCP exists as a local-only stdio server.
 
-## 11. Repository Boundary
+## 12. Repository Boundary
 
 The minimal schema package now exists under:
 
@@ -275,7 +303,7 @@ Current repository types:
 
 This keeps the current local runtime usable while preparing the same service layer for FastAPI, MCP, and database-backed storage.
 
-## 12. FastAPI Skeleton
+## 13. FastAPI Skeleton
 
 A thin FastAPI service now exists under:
 
@@ -314,7 +342,7 @@ PYTHONPATH=apps/api:packages/adapters:packages/runtime:packages/schema \
 
 The route handlers are split into `handlers.py`, so tests can validate API behavior without FastAPI installed. When the `api` extra is installed, FastAPI `TestClient` exercises the real HTTP routes.
 
-## 13. Next Step
+## 14. Next Step
 
 The next engineering steps are to improve agent-friendly output modes, add request/response schema models for the API boundary, and generate an OpenAPI snapshot:
 
