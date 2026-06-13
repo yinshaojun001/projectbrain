@@ -87,7 +87,22 @@ See [Quickstart](docs/quickstart.md) for a fuller walkthrough. A Chinese walkthr
 
 ## Use With Your Own Repository
 
-ProjectBrain currently expects CodeGraph facts at:
+One command sets up a local repository for agent use:
+
+```bash
+projectbrain --store-root ~/.projectbrain-work setup /path/to/my/project \
+  --id my_project
+```
+
+`setup` runs CodeGraph init/index, imports ProjectBrain facts, runs a Context Pack smoke test, and prints an MCP config for your AI coding agent. After that, configure the agent to start:
+
+```bash
+projectbrain --store-root /absolute/path/to/.projectbrain-work mcp serve
+```
+
+Ask the agent to call `projectbrain_context_pack` before editing and `projectbrain_review_git_diff` after editing, both with `output_format: "agent"`.
+
+For manual or advanced setup, ProjectBrain expects CodeGraph facts at:
 
 ```text
 <your-project>/.codegraph/codegraph.db

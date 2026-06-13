@@ -86,7 +86,22 @@ python3 -m venv .venv
 
 ## 3. 导入自己的项目
 
-ProjectBrain 当前从 CodeGraph SQLite 数据库读取代码事实，默认路径是：
+给 AI coding agent 使用时，优先跑一个 setup 命令：
+
+```bash
+projectbrain --store-root ~/.projectbrain-work setup /path/to/your/project \
+  --id my_project
+```
+
+`setup` 会初始化并索引 CodeGraph、导入 ProjectBrain facts、跑一次 Context Pack smoke test，并输出一段 MCP 配置。把这段配置放进你的 AI client，让 agent 启动：
+
+```bash
+projectbrain --store-root /absolute/path/to/.projectbrain-work mcp serve
+```
+
+之后要求 agent 改代码前调用 `projectbrain_context_pack`，改完后调用 `projectbrain_review_git_diff`，两者都使用 `output_format: "agent"`。
+
+如果需要手动或高级配置，ProjectBrain 当前从 CodeGraph SQLite 数据库读取代码事实，默认路径是：
 
 ```text
 <your-project>/.codegraph/codegraph.db

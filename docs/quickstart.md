@@ -78,7 +78,22 @@ The output explains which entities and relations are adjacent to the changed fil
 
 ## 4. Use Your Own Project
 
-ProjectBrain currently expects a CodeGraph SQLite database at:
+For an AI coding agent, use one setup command:
+
+```bash
+projectbrain --store-root ~/.projectbrain-work setup /path/to/your/project \
+  --id my_project
+```
+
+`setup` initializes and indexes CodeGraph, imports ProjectBrain facts, runs a Context Pack smoke test, and prints an MCP config. Use the printed config in your AI client so it starts:
+
+```bash
+projectbrain --store-root /absolute/path/to/.projectbrain-work mcp serve
+```
+
+Then ask the agent to call `projectbrain_context_pack` before editing and `projectbrain_review_git_diff` after editing, both with `output_format: "agent"`.
+
+For manual or advanced setup, ProjectBrain expects a CodeGraph SQLite database at:
 
 ```text
 <your-project>/.codegraph/codegraph.db

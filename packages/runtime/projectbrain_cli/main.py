@@ -4,7 +4,11 @@ from __future__ import annotations
 
 import argparse
 import json
+import re
+import shutil
+import subprocess
 import sys
+from dataclasses import dataclass
 from pathlib import Path
 from typing import Any
 
@@ -21,6 +25,13 @@ from projectbrain_runtime.repository import JsonProjectBrainRepository
 from projectbrain_runtime.service import ProjectBrainRuntime
 
 
+@dataclass(frozen=True)
+class CommandResult:
+    returncode: int
+    stdout: str
+    stderr: str
+
+
 def build_parser() -> argparse.ArgumentParser:
     parser = argparse.ArgumentParser(
         prog="projectbrain",
@@ -31,6 +42,19 @@ def build_parser() -> argparse.ArgumentParser:
     subcommands = parser.add_subparsers(dest="command", required=True)
 
     subcommands.add_parser("doctor", help="Check local ProjectBrain CLI health")
+
+    setup = subcommands.add_parser("setup", help="Set up a local project for agent use")
+    setup.add_argument("project_path", help="Path to the local repository")
+    setup.add_argument("--id", dest="project_id", help="ProjectBrain project id")
+    setup.add_argument("--name", help="Human-readable project name")
+    setup.add_argument("--task", default="Explain the main flow", help="Smoke-test task for the first Context Pack")
+    setup.add_argument("--experience-seed", help="Markdown experience seed table")
+    setup.add_argument("--path-prefix", action="append", default=[], help="Only import nodes under this prefix")
+    setup.add_argument("--kind", action="append", default=[], help="Only import CodeGraph nodes of this kind")
+    setup.add_argument("--node-limit", type=int, default=800)
+    setup.add_argument("--edge-limit", type=int, default=1200)
+    setup.add_argument("--skip-codegraph", action="store_true", help="Skip CodeGraph init/index and import existing facts only")
+    setup.add_argument("--mcp-command", help="Command path to use in the printed MCP config")
 
     mcp = subcommands.add_parser("mcp", help="Run ProjectBrain MCP server commands")
     mcp_subcommands = mcp.add_subparsers(dest="mcp_command", required=True)
@@ -138,7 +162,7 @@ def build_parser() -> argparse.ArgumentParser:
     return parser
 
 
-def main(argv: list[str] | None = None) -> int:
+def main(argv: list[str] | None = None, *, command_runner: Any | None = None) -> int:
     args = build_parser().parse_args(argv)
 
     if args.command == "doctor":
@@ -161,6 +185,11 @@ def main(argv: list[str] | None = None) -> int:
 
     repository = JsonProjectBrainRepository(args.store_root)
     runtime = ProjectBrainRuntime(repository)
+
+    if args.command == "setup":
+        data = _setup_project(args, runtime=runtime, command_runner=command_runner or _run_command)
+        print_json(data)
+        return 0
 
     if args.command == "import":
         data = runtime.import_project(
@@ -309,6 +338,105 @@ def _handle_facts(args: argparse.Namespace) -> int:
         return 0
 
     raise ValueError(f"Unsupported facts command: {args.facts_command}")
+
+
+def _setup_project(args: argparse.Namespace, *, runtime: ProjectBrainRuntime, command_runner: Any) -> dict[str, Any]:
+    project_path = Path(args.project_path).expanduser().resolve()
+    if not project_path.exists():
+        raise FileNotFoundError(f"Project path not found: {project_path}")
+    if not project_path.is_dir():
+        raise NotADirectoryError(f"Project path is not a directory: {project_path}")
+
+    codegraph_steps: list[dict[str, Any]] = []
+    codegraph_db = project_path / ".codegraph" / "codegraph.db"
+    if not args.skip_codegraph:
+        codegraph_steps.append(_run_setup_command(["codegraph", "init", str(project_path)], project_path, command_runner))
+        codegraph_steps.append(_run_setup_command(["codegraph", "index", str(project_path)], project_path, command_runner))
+    if not codegraph_db.exists():
+        raise FileNotFoundError(
+            "CodeGraph database not found after setup. Expected "
+            f"{codegraph_db}. Run codegraph init/index or use an existing .codegraph/codegraph.db."
+        )
+
+    project_id = args.project_id or _default_project_id(project_path)
+    import_data = runtime.import_project(
+        project_id=project_id,
+        project_path=project_path,
+        name=args.name or project_path.name,
+        options=ImportOptions(
+            path_prefixes=args.path_prefix,
+            kinds=args.kind or ["class", "interface", "method", "function"],
+            node_limit=args.node_limit,
+            edge_limit=args.edge_limit,
+        ),
+        experience_seed=args.experience_seed,
+    )
+    context_data = runtime.build_context_pack(project_id=project_id, task=args.task)
+    smoke_test = format_output(context_data, "agent")["agent_output"]
+
+    store_root = str(Path(args.store_root).expanduser().resolve())
+    return {
+        "status": "ok",
+        "project": import_data["project"],
+        "inventory_summary": import_data["inventory_summary"],
+        "facts_summary": import_data["facts_summary"],
+        "experience_claims": import_data["experience_claims"],
+        "codegraph": {
+            "database": str(codegraph_db),
+            "steps": codegraph_steps,
+        },
+        "smoke_test": smoke_test,
+        "mcp_config": _mcp_config(command=args.mcp_command or _default_mcp_command(), store_root=store_root),
+        "next_agent_prompt": (
+            f"Use ProjectBrain MCP project_id '{project_id}'. "
+            "Before editing, call projectbrain_context_pack with output_format='agent'. "
+            "After editing, call projectbrain_review_git_diff with output_format='agent'."
+        ),
+    }
+
+
+def _run_setup_command(command: list[str], cwd: Path, command_runner: Any) -> dict[str, Any]:
+    result = command_runner(command, cwd=cwd)
+    step = {
+        "command": command,
+        "cwd": str(cwd),
+        "returncode": result.returncode,
+    }
+    if result.stdout:
+        step["stdout"] = result.stdout
+    if result.stderr:
+        step["stderr"] = result.stderr
+    if result.returncode != 0:
+        raise RuntimeError(
+            f"Setup command failed ({result.returncode}): {' '.join(command)}"
+            + (f"\n{result.stderr}" if result.stderr else "")
+        )
+    return step
+
+
+def _run_command(command: list[str], *, cwd: Path | None = None) -> CommandResult:
+    completed = subprocess.run(command, cwd=cwd, capture_output=True, text=True, check=False)
+    return CommandResult(returncode=completed.returncode, stdout=completed.stdout, stderr=completed.stderr)
+
+
+def _default_project_id(project_path: Path) -> str:
+    value = re.sub(r"[^a-zA-Z0-9_]+", "_", project_path.name.strip()).strip("_").lower()
+    return value or "local_project"
+
+
+def _default_mcp_command() -> str:
+    return shutil.which("projectbrain") or sys.argv[0]
+
+
+def _mcp_config(*, command: str, store_root: str) -> dict[str, Any]:
+    return {
+        "mcpServers": {
+            "projectbrain": {
+                "command": command,
+                "args": ["--store-root", store_root, "mcp", "serve"],
+            }
+        }
+    }
 
 
 def _add_fact_source_arguments(parser: argparse.ArgumentParser) -> None:
