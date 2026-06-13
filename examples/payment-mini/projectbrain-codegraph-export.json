@@ -1,0 +1,213 @@
+{
+  "project_id": "payment_mini",
+  "source": {
+    "type": "codegraph",
+    "db_path": "synthetic-demo"
+  },
+  "stats": {
+    "nodes_exported": 5,
+    "edges_exported": 3,
+    "sources_exported": 5
+  },
+  "entities": [
+    {
+      "entity_type": "Interface",
+      "stable_key": "codegraph:interface:example.payment.settlement::SettlementService",
+      "name": "SettlementService",
+      "qualified_name": "example.payment.settlement::SettlementService",
+      "properties": {
+        "source": "codegraph",
+        "source_node_id": "interface:settlement-service",
+        "source_kind": "interface",
+        "language": "java",
+        "file_path": "contract/src/main/java/example/payment/settlement/SettlementService.java",
+        "signature": null,
+        "visibility": "public",
+        "module": "contract"
+      },
+      "source_refs": ["codegraph://payment_mini/node/interface:settlement-service"]
+    },
+    {
+      "entity_type": "Method",
+      "stable_key": "codegraph:method:example.payment.settlement::SettlementService::requestSettlement",
+      "name": "requestSettlement",
+      "qualified_name": "example.payment.settlement::SettlementService::requestSettlement",
+      "properties": {
+        "source": "codegraph",
+        "source_node_id": "method:request-settlement",
+        "source_kind": "method",
+        "language": "java",
+        "file_path": "contract/src/main/java/example/payment/settlement/SettlementService.java",
+        "signature": "SettlementResult requestSettlement(SettlementRequest request)",
+        "visibility": "public",
+        "module": "contract"
+      },
+      "source_refs": ["codegraph://payment_mini/node/method:request-settlement"]
+    },
+    {
+      "entity_type": "Class",
+      "stable_key": "codegraph:class:example.payment.settlement::SettlementServiceImpl",
+      "name": "SettlementServiceImpl",
+      "qualified_name": "example.payment.settlement::SettlementServiceImpl",
+      "properties": {
+        "source": "codegraph",
+        "source_node_id": "class:settlement-service-impl",
+        "source_kind": "class",
+        "language": "java",
+        "file_path": "service/src/main/java/example/payment/settlement/SettlementServiceImpl.java",
+        "signature": null,
+        "visibility": "public",
+        "module": "service"
+      },
+      "source_refs": ["codegraph://payment_mini/node/class:settlement-service-impl"]
+    },
+    {
+      "entity_type": "Method",
+      "stable_key": "codegraph:method:example.payment.settlement::SettlementServiceImpl::requestSettlement",
+      "name": "requestSettlement",
+      "qualified_name": "example.payment.settlement::SettlementServiceImpl::requestSettlement",
+      "properties": {
+        "source": "codegraph",
+        "source_node_id": "method:impl-request-settlement",
+        "source_kind": "method",
+        "language": "java",
+        "file_path": "service/src/main/java/example/payment/settlement/SettlementServiceImpl.java",
+        "signature": "SettlementResult requestSettlement(SettlementRequest request)",
+        "visibility": "public",
+        "module": "service"
+      },
+      "source_refs": ["codegraph://payment_mini/node/method:impl-request-settlement"]
+    },
+    {
+      "entity_type": "Method",
+      "stable_key": "codegraph:method:example.payment.settlement::SettlementFlowTest::requestSettlement",
+      "name": "requestSettlement",
+      "qualified_name": "example.payment.settlement::SettlementFlowTest::requestSettlement",
+      "properties": {
+        "source": "codegraph",
+        "source_node_id": "method:settlement-flow-test",
+        "source_kind": "method",
+        "language": "java",
+        "file_path": "service/src/test/java/example/payment/settlement/SettlementFlowTest.java",
+        "signature": "void requestSettlement()",
+        "visibility": "public",
+        "module": "service"
+      },
+      "source_refs": ["codegraph://payment_mini/node/method:settlement-flow-test"]
+    }
+  ],
+  "relations": [
+    {
+      "relation_type": "CALLS",
+      "from_stable_key": "codegraph:method:example.payment.settlement::SettlementService::requestSettlement",
+      "to_stable_key": "codegraph:method:example.payment.settlement::SettlementServiceImpl::requestSettlement",
+      "confidence": 0.75,
+      "properties": {
+        "source": "codegraph",
+        "source_edge_id": "edge:contract-to-impl",
+        "source_edge_kind": "calls",
+        "provenance": "synthetic",
+        "line": 2,
+        "col": 3
+      },
+      "source_refs": ["codegraph://payment_mini/edge/edge:contract-to-impl"]
+    },
+    {
+      "relation_type": "CALLS",
+      "from_stable_key": "codegraph:method:example.payment.settlement::SettlementFlowTest::requestSettlement",
+      "to_stable_key": "codegraph:method:example.payment.settlement::SettlementService::requestSettlement",
+      "confidence": 0.9,
+      "properties": {
+        "source": "codegraph",
+        "source_edge_id": "edge:test-to-contract",
+        "source_edge_kind": "calls",
+        "provenance": "synthetic",
+        "line": 4,
+        "col": 5
+      },
+      "source_refs": ["codegraph://payment_mini/edge/edge:test-to-contract"]
+    },
+    {
+      "relation_type": "IMPLEMENTS_INTERFACE",
+      "from_stable_key": "codegraph:class:example.payment.settlement::SettlementServiceImpl",
+      "to_stable_key": "codegraph:interface:example.payment.settlement::SettlementService",
+      "confidence": 1.0,
+      "properties": {
+        "source": "codegraph",
+        "source_edge_id": "edge:impl-interface",
+        "source_edge_kind": "implements",
+        "provenance": "synthetic",
+        "line": 1,
+        "col": 1
+      },
+      "source_refs": ["codegraph://payment_mini/edge/edge:impl-interface"]
+    }
+  ],
+  "sources": [
+    {
+      "source_type": "code_location",
+      "uri": "codegraph://payment_mini/node/interface:settlement-service",
+      "locator": {
+        "file": "contract/src/main/java/example/payment/settlement/SettlementService.java",
+        "start_line": 1,
+        "end_line": 4,
+        "start_column": 1,
+        "end_column": 1,
+        "symbol": "example.payment.settlement::SettlementService"
+      },
+      "metadata": {"language": "java", "kind": "interface"}
+    },
+    {
+      "source_type": "code_location",
+      "uri": "codegraph://payment_mini/node/method:request-settlement",
+      "locator": {
+        "file": "contract/src/main/java/example/payment/settlement/SettlementService.java",
+        "start_line": 2,
+        "end_line": 3,
+        "start_column": 3,
+        "end_column": 1,
+        "symbol": "example.payment.settlement::SettlementService::requestSettlement"
+      },
+      "metadata": {"language": "java", "kind": "method"}
+    },
+    {
+      "source_type": "code_location",
+      "uri": "codegraph://payment_mini/node/class:settlement-service-impl",
+      "locator": {
+        "file": "service/src/main/java/example/payment/settlement/SettlementServiceImpl.java",
+        "start_line": 1,
+        "end_line": 8,
+        "start_column": 1,
+        "end_column": 1,
+        "symbol": "example.payment.settlement::SettlementServiceImpl"
+      },
+      "metadata": {"language": "java", "kind": "class"}
+    },
+    {
+      "source_type": "code_location",
+      "uri": "codegraph://payment_mini/node/method:impl-request-settlement",
+      "locator": {
+        "file": "service/src/main/java/example/payment/settlement/SettlementServiceImpl.java",
+        "start_line": 3,
+        "end_line": 7,
+        "start_column": 3,
+        "end_column": 1,
+        "symbol": "example.payment.settlement::SettlementServiceImpl::requestSettlement"
+      },
+      "metadata": {"language": "java", "kind": "method"}
+    },
+    {
+      "source_type": "code_location",
+      "uri": "codegraph://payment_mini/node/method:settlement-flow-test",
+      "locator": {
+        "file": "service/src/test/java/example/payment/settlement/SettlementFlowTest.java",
+        "start_line": 3,
+        "end_line": 6,
+        "start_column": 3,
+        "end_column": 1,
+        "symbol": "example.payment.settlement::SettlementFlowTest::requestSettlement"
+      },
+      "metadata": {"language": "java", "kind": "method"}
+    }
+  ]
+}

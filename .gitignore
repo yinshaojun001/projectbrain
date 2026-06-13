@@ -1,0 +1,13 @@
+.venv/
+.projectbrain/
+__pycache__/
+*.py[cod]
+.DS_Store
+*.egg-info/
+.qoder/
+
+# Private/local pilot material. Keep these on this machine, but do not publish.
+docs/payment/
+docs/projectbrain/pilots/zhangfang/
+docs/projectbrain/local-zhangfang-pilot.md
+examples/zhangfang/
