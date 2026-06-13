@@ -85,13 +85,21 @@ projectbrain --store-root ~/.projectbrain-work setup /path/to/your/project \
   --id my_project
 ```
 
-`setup` initializes and indexes CodeGraph, imports ProjectBrain facts, runs a Context Pack smoke test, and prints an MCP config. Use the printed config in your AI client so it starts:
+`setup` initializes and indexes CodeGraph, imports ProjectBrain facts, runs a Context Pack smoke test, detects local agents, and prompts you to install ProjectBrain MCP where supported, including Codex CLI, Claude Code, Cursor, and Trae. It also prints an MCP config for manual setup:
 
 ```bash
 projectbrain --store-root /absolute/path/to/.projectbrain-work mcp serve
 ```
 
 Then ask the agent to call `projectbrain_context_pack` before editing and `projectbrain_review_git_diff` after editing, both with `output_format: "agent"`.
+
+For non-interactive setup, pass one or more agents:
+
+```bash
+projectbrain --store-root ~/.projectbrain-work setup /path/to/your/project \
+  --id my_project \
+  --agent codex
+```
 
 For manual or advanced setup, ProjectBrain expects a CodeGraph SQLite database at:
 

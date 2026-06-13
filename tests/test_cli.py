@@ -149,6 +149,186 @@ class ProjectBrainCliTest(unittest.TestCase):
                 ["--store-root", store_root, "mcp", "serve"],
             )
 
+    def test_setup_can_install_codex_mcp_server(self):
+        with tempfile.TemporaryDirectory() as tmp:
+            fixture = create_payment_mini_codegraph_project(Path(tmp))
+            project_path = Path(fixture["project_path"]).resolve()
+            store_root = str((Path(tmp) / "store").resolve())
+            calls = []
+
+            def fake_run(command, *, cwd=None):
+                calls.append((command, cwd))
+                return cli_main.CommandResult(returncode=0, stdout="", stderr="")
+
+            def fake_agent_detector(command):
+                return {
+                    "codex": "/opt/homebrew/bin/codex",
+                    "claude": "/Users/a58/.local/bin/claude",
+                    "cursor": "/usr/local/bin/cursor",
+                    "trae": "/usr/local/bin/trae",
+                }.get(command)
+
+            output = _run_cli(
+                [
+                    "--store-root",
+                    store_root,
+                    "setup",
+                    str(project_path),
+                    "--id",
+                    "payment_mini_setup_agents",
+                    "--skip-codegraph",
+                    "--agent",
+                    "codex",
+                    "--mcp-command",
+                    "/opt/homebrew/bin/projectbrain",
+                ],
+                command_runner=fake_run,
+                agent_detector=fake_agent_detector,
+            )
+
+            self.assertEqual(
+                calls,
+                [
+                    (
+                        [
+                            "/opt/homebrew/bin/codex",
+                            "mcp",
+                            "add",
+                            "projectbrain",
+                            "--",
+                            "/opt/homebrew/bin/projectbrain",
+                            "--store-root",
+                            store_root,
+                            "mcp",
+                            "serve",
+                        ],
+                        None,
+                    )
+                ],
+            )
+            self.assertEqual(output["agents"]["requested"], ["codex"])
+            self.assertEqual(output["agents"]["install_results"][0]["agent"], "codex")
+            self.assertEqual(output["agents"]["install_results"][0]["status"], "installed")
+            detected = {agent["agent"]: agent for agent in output["agents"]["detected"]}
+            self.assertTrue(detected["codex"]["installed"])
+            self.assertEqual(detected["cursor"]["status"], "auto_install_available")
+
+    def test_setup_can_install_claude_cursor_and_trae_mcp_servers(self):
+        with tempfile.TemporaryDirectory() as tmp:
+            fixture = create_payment_mini_codegraph_project(Path(tmp))
+            project_path = Path(fixture["project_path"]).resolve()
+            store_root = str((Path(tmp) / "store").resolve())
+            calls = []
+
+            def fake_run(command, *, cwd=None):
+                calls.append((command, cwd))
+                return cli_main.CommandResult(returncode=0, stdout="", stderr="")
+
+            def fake_agent_detector(command):
+                return {
+                    "claude": "/Users/a58/.local/bin/claude",
+                    "cursor": "/usr/local/bin/cursor",
+                    "trae": "/usr/local/bin/trae",
+                }.get(command)
+
+            output = _run_cli(
+                [
+                    "--store-root",
+                    store_root,
+                    "setup",
+                    str(project_path),
+                    "--id",
+                    "payment_mini_setup_more_agents",
+                    "--skip-codegraph",
+                    "--agent",
+                    "claude",
+                    "--agent",
+                    "cursor",
+                    "--agent",
+                    "trae",
+                    "--mcp-command",
+                    "/opt/homebrew/bin/projectbrain",
+                ],
+                command_runner=fake_run,
+                agent_detector=fake_agent_detector,
+            )
+
+            mcp_json = json.dumps(
+                {
+                    "name": "projectbrain",
+                    "command": "/opt/homebrew/bin/projectbrain",
+                    "args": ["--store-root", store_root, "mcp", "serve"],
+                },
+                ensure_ascii=False,
+            )
+            self.assertEqual(
+                calls,
+                [
+                    (
+                        [
+                            "/Users/a58/.local/bin/claude",
+                            "mcp",
+                            "add",
+                            "projectbrain",
+                            "--",
+                            "/opt/homebrew/bin/projectbrain",
+                            "--store-root",
+                            store_root,
+                            "mcp",
+                            "serve",
+                        ],
+                        None,
+                    ),
+                    (["/usr/local/bin/cursor", "--add-mcp", mcp_json], None),
+                    (["/usr/local/bin/trae", "--add-mcp", mcp_json], None),
+                ],
+            )
+            self.assertEqual(output["agents"]["requested"], ["claude", "cursor", "trae"])
+            self.assertEqual([result["status"] for result in output["agents"]["install_results"]], ["installed", "installed", "installed"])
+
+    def test_setup_prompts_for_agents_when_not_provided(self):
+        with tempfile.TemporaryDirectory() as tmp:
+            fixture = create_payment_mini_codegraph_project(Path(tmp))
+            project_path = Path(fixture["project_path"]).resolve()
+            store_root = str((Path(tmp) / "store").resolve())
+            calls = []
+            prompts = []
+
+            def fake_run(command, *, cwd=None):
+                calls.append((command, cwd))
+                return cli_main.CommandResult(returncode=0, stdout="", stderr="")
+
+            def fake_agent_detector(command):
+                return {
+                    "codex": "/opt/homebrew/bin/codex",
+                    "claude": "/Users/a58/.local/bin/claude",
+                }.get(command)
+
+            def fake_input(prompt):
+                prompts.append(prompt)
+                return "1"
+
+            output = _run_cli(
+                [
+                    "--store-root",
+                    store_root,
+                    "setup",
+                    str(project_path),
+                    "--id",
+                    "payment_mini_setup_prompt",
+                    "--skip-codegraph",
+                    "--mcp-command",
+                    "/opt/homebrew/bin/projectbrain",
+                ],
+                command_runner=fake_run,
+                agent_detector=fake_agent_detector,
+                input_reader=fake_input,
+            )
+
+            self.assertTrue(prompts)
+            self.assertEqual(output["agents"]["requested"], ["codex"])
+            self.assertEqual(output["agents"]["install_results"][0]["status"], "installed")
+
 
 def _run_cli(argv: list[str], **kwargs) -> dict:
     output = StringIO()

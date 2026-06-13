@@ -55,6 +55,13 @@ def build_parser() -> argparse.ArgumentParser:
     setup.add_argument("--edge-limit", type=int, default=1200)
     setup.add_argument("--skip-codegraph", action="store_true", help="Skip CodeGraph init/index and import existing facts only")
     setup.add_argument("--mcp-command", help="Command path to use in the printed MCP config")
+    setup.add_argument(
+        "--agent",
+        action="append",
+        choices=["codex", "claude", "cursor", "trae"],
+        default=[],
+        help="Install ProjectBrain MCP into a detected agent. Repeat to install multiple agents.",
+    )
 
     mcp = subcommands.add_parser("mcp", help="Run ProjectBrain MCP server commands")
     mcp_subcommands = mcp.add_subparsers(dest="mcp_command", required=True)
@@ -162,7 +169,13 @@ def build_parser() -> argparse.ArgumentParser:
     return parser
 
 
-def main(argv: list[str] | None = None, *, command_runner: Any | None = None) -> int:
+def main(
+    argv: list[str] | None = None,
+    *,
+    command_runner: Any | None = None,
+    agent_detector: Any | None = None,
+    input_reader: Any | None = None,
+) -> int:
     args = build_parser().parse_args(argv)
 
     if args.command == "doctor":
@@ -187,7 +200,13 @@ def main(argv: list[str] | None = None, *, command_runner: Any | None = None) ->
     runtime = ProjectBrainRuntime(repository)
 
     if args.command == "setup":
-        data = _setup_project(args, runtime=runtime, command_runner=command_runner or _run_command)
+        data = _setup_project(
+            args,
+            runtime=runtime,
+            command_runner=command_runner or _run_command,
+            agent_detector=agent_detector or shutil.which,
+            input_reader=input_reader or _read_interactive_input,
+        )
         print_json(data)
         return 0
 
@@ -340,7 +359,14 @@ def _handle_facts(args: argparse.Namespace) -> int:
     raise ValueError(f"Unsupported facts command: {args.facts_command}")
 
 
-def _setup_project(args: argparse.Namespace, *, runtime: ProjectBrainRuntime, command_runner: Any) -> dict[str, Any]:
+def _setup_project(
+    args: argparse.Namespace,
+    *,
+    runtime: ProjectBrainRuntime,
+    command_runner: Any,
+    agent_detector: Any,
+    input_reader: Any,
+) -> dict[str, Any]:
     project_path = Path(args.project_path).expanduser().resolve()
     if not project_path.exists():
         raise FileNotFoundError(f"Project path not found: {project_path}")
@@ -375,6 +401,16 @@ def _setup_project(args: argparse.Namespace, *, runtime: ProjectBrainRuntime, co
     smoke_test = format_output(context_data, "agent")["agent_output"]
 
     store_root = str(Path(args.store_root).expanduser().resolve())
+    mcp_command = args.mcp_command or _default_mcp_command()
+    mcp_config = _mcp_config(command=mcp_command, store_root=store_root)
+    agents = _setup_agents(
+        requested_agents=args.agent,
+        mcp_command=mcp_command,
+        store_root=store_root,
+        command_runner=command_runner,
+        agent_detector=agent_detector,
+        input_reader=input_reader,
+    )
     return {
         "status": "ok",
         "project": import_data["project"],
@@ -386,12 +422,158 @@ def _setup_project(args: argparse.Namespace, *, runtime: ProjectBrainRuntime, co
             "steps": codegraph_steps,
         },
         "smoke_test": smoke_test,
-        "mcp_config": _mcp_config(command=args.mcp_command or _default_mcp_command(), store_root=store_root),
+        "mcp_config": mcp_config,
+        "agents": agents,
         "next_agent_prompt": (
             f"Use ProjectBrain MCP project_id '{project_id}'. "
             "Before editing, call projectbrain_context_pack with output_format='agent'. "
             "After editing, call projectbrain_review_git_diff with output_format='agent'."
         ),
+    }
+
+
+def _setup_agents(
+    *,
+    requested_agents: list[str],
+    mcp_command: str,
+    store_root: str,
+    command_runner: Any,
+    agent_detector: Any,
+    input_reader: Any,
+) -> dict[str, Any]:
+    detected = [_agent_status(agent, agent_detector(agent), mcp_command, store_root) for agent in AGENTS]
+    selected_agents = requested_agents or _prompt_for_agents(detected, input_reader)
+    install_results = [
+        _install_agent(agent, detected, mcp_command, store_root, command_runner)
+        for agent in selected_agents
+    ]
+    return {
+        "requested": selected_agents,
+        "detected": detected,
+        "install_results": install_results,
+    }
+
+
+AGENTS = ("codex", "claude", "cursor", "trae")
+
+
+def _prompt_for_agents(detected: list[dict[str, Any]], input_reader: Any) -> list[str]:
+    choices = [agent for agent in detected if agent["installed"] and agent["status"] in {"auto_install_available", "manual_config_available"}]
+    if not choices:
+        return []
+    lines = ["Detected agents:"]
+    for index, agent in enumerate(choices, start=1):
+        install_note = "auto install" if agent["status"] == "auto_install_available" else "manual config"
+        lines.append(f"[{index}] {agent['agent']} ({install_note})")
+    lines.append("Install ProjectBrain MCP into which agents? Enter numbers like 1,2 or press Enter to skip: ")
+    try:
+        answer = input_reader("\n".join(lines))
+    except EOFError:
+        return []
+    return _parse_agent_selection(answer, choices)
+
+
+def _read_interactive_input(prompt: str) -> str:
+    if not sys.stdin.isatty():
+        raise EOFError
+    print(prompt, file=sys.stderr)
+    return input()
+
+
+def _parse_agent_selection(answer: str, choices: list[dict[str, Any]]) -> list[str]:
+    selected: list[str] = []
+    for part in answer.split(","):
+        value = part.strip()
+        if not value:
+            continue
+        if not value.isdigit():
+            continue
+        index = int(value)
+        if 1 <= index <= len(choices):
+            agent = choices[index - 1]["agent"]
+            if agent not in selected:
+                selected.append(agent)
+    return selected
+
+
+def _agent_status(agent: str, executable: str | None, mcp_command: str, store_root: str) -> dict[str, Any]:
+    manual_config = _mcp_config(command=mcp_command, store_root=store_root)
+    if agent in {"codex", "claude", "cursor", "trae"}:
+        return {
+            "agent": agent,
+            "installed": bool(executable),
+            "executable": executable,
+            "status": "auto_install_available" if executable else "not_detected",
+            "install_command": _agent_install_command(agent, executable or agent, mcp_command, store_root),
+            "manual_config": manual_config,
+        }
+    return {
+        "agent": agent,
+        "installed": bool(executable),
+        "executable": executable,
+        "status": "manual_config_available" if executable else "not_detected",
+        "manual_config": manual_config,
+    }
+
+
+def _install_agent(
+    agent: str,
+    detected: list[dict[str, Any]],
+    mcp_command: str,
+    store_root: str,
+    command_runner: Any,
+) -> dict[str, Any]:
+    status_by_agent = {item["agent"]: item for item in detected}
+    agent_status = status_by_agent[agent]
+    if not agent_status["installed"]:
+        return {"agent": agent, "status": "not_detected"}
+    command = _agent_install_command(agent, agent_status["executable"], mcp_command, store_root)
+    result = command_runner(command, cwd=None)
+    if result.returncode != 0:
+        return {
+            "agent": agent,
+            "status": "failed",
+            "command": command,
+            "returncode": result.returncode,
+            "stderr": result.stderr,
+        }
+    return {
+        "agent": agent,
+        "status": "installed",
+        "command": command,
+        "stdout": result.stdout,
+        "stderr": result.stderr,
+    }
+
+
+def _agent_install_command(agent: str, agent_command: str, mcp_command: str, store_root: str) -> list[str]:
+    if agent in {"codex", "claude"}:
+        return [
+            agent_command,
+            "mcp",
+            "add",
+            "projectbrain",
+            "--",
+            mcp_command,
+            "--store-root",
+            store_root,
+            "mcp",
+            "serve",
+        ]
+    if agent in {"cursor", "trae"}:
+        return [
+            agent_command,
+            "--add-mcp",
+            json.dumps(_vscode_style_mcp_definition(mcp_command, store_root), ensure_ascii=False),
+        ]
+    raise ValueError(f"Unsupported agent: {agent}")
+
+
+def _vscode_style_mcp_definition(mcp_command: str, store_root: str) -> dict[str, Any]:
+    return {
+        "name": "projectbrain",
+        "command": mcp_command,
+        "args": ["--store-root", store_root, "mcp", "serve"],
     }
 
 
