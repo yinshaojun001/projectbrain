@@ -14,8 +14,10 @@
 6. [Delivery Gap Analysis](delivery-gap-analysis.md)
 7. [CodeGraph Integration](codegraph-integration.md)
 8. [Local Runtime](local-runtime.md)
-9. [Refund Handling Fee Walkthrough](refund-handling-fee-walkthrough.md)
-10. [Evaluation Plan](evaluation-plan.md)
+9. [v0.2 Release Readiness](../release-readiness.md)
+10. [中文快速上手](../zh/quickstart.md)
+11. [Refund Handling Fee Walkthrough](refund-handling-fee-walkthrough.md)
+12. [Evaluation Plan](evaluation-plan.md)
 
 ## 文档职责
 
@@ -31,6 +33,8 @@
 | [Delivery Gap Analysis](delivery-gap-analysis.md) | 当前文档与实现之间还缺什么，以及下一步优先级。 |
 | [CodeGraph Integration](codegraph-integration.md) | 将 CodeGraph 作为 V0.1 代码事实层，ProjectBrain 专注长期记忆、业务理解、知识治理和 Context Pack。 |
 | [Local Runtime](local-runtime.md) | 当前本地 CLI、JSON runtime、FastAPI skeleton 和 synthetic demo 的使用方式。 |
+| [v0.2 Release Readiness](../release-readiness.md) | v0.2 发布前的测试、CLI/MCP smoke、policy 和隐私边界检查清单。 |
+| [中文快速上手](../zh/quickstart.md) | 面向中文读者的安装、demo、自有项目、MCP、claims 和隐私策略说明。 |
 | [Refund Handling Fee Walkthrough](refund-handling-fee-walkthrough.md) | 用“增加退款手续费”贯穿 Brain Update、Knowledge Graph、stale claim 和 Impact Analysis。 |
 | [Evaluation Plan](evaluation-plan.md) | 评估 ProjectBrain 知识质量、Context Pack、Impact Analysis、Brain Update 和 Agent 任务效果。 |
 

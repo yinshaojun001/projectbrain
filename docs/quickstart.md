@@ -2,6 +2,8 @@
 
 This guide runs ProjectBrain from a clean checkout using only the synthetic public demo.
 
+Chinese version: [中文快速上手](zh/quickstart.md).
+
 ## 1. Install Locally
 
 ```bash
@@ -187,3 +189,7 @@ ProjectBrain can also run as a local stdio MCP server:
 ```
 
 Use it from an MCP-capable AI coding client when you want the agent to request Context Packs and Impact Analysis without uploading project facts to a ProjectBrain server. See [Local MCP Usage](mcp-usage.md).
+
+## v0.2 Readiness
+
+Before publishing or recommending a v0.2 build, run the release checklist in [v0.2 Release Readiness](release-readiness.md).

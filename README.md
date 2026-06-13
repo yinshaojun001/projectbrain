@@ -63,7 +63,7 @@ Generate an Impact Analysis:
   --changed-file contract/src/main/java/example/payment/settlement/SettlementService.java
 ```
 
-See [Quickstart](docs/quickstart.md) for a fuller walkthrough.
+See [Quickstart](docs/quickstart.md) for a fuller walkthrough. A Chinese walkthrough is available at [中文快速上手](docs/zh/quickstart.md).
 
 ## Use With Your Own Repository
 
@@ -232,6 +232,8 @@ See [Open Source Checklist](docs/open-source-checklist.md).
 | [CodeGraph Integration](docs/projectbrain/codegraph-integration.md) | CodeGraph as the first code-fact provider. |
 | [Local Runtime](docs/projectbrain/local-runtime.md) | CLI/runtime/API usage for the current local prototype. |
 | [MCP Usage](docs/mcp-usage.md) | Local-only stdio MCP server usage and privacy boundary. |
+| [v0.2 Release Readiness](docs/release-readiness.md) | Release gate checks for tests, CLI/MCP smoke, policy, and privacy boundary. |
+| [中文快速上手](docs/zh/quickstart.md) | Chinese quickstart for local install, demo, MCP, claims, and privacy policy. |
 | [Delivery Gap Analysis](docs/projectbrain/delivery-gap-analysis.md) | Remaining gaps between design and implementation. |
 | [Evaluation Plan](docs/projectbrain/evaluation-plan.md) | How to evaluate context quality, impact quality, and agent outcomes. |
 

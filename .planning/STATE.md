@@ -12,7 +12,7 @@
 
 ## Current Priority
 
-Phase 5: Privacy Policy.
+v0.2 Release Readiness.
 
 ## Current Workspace Status
 
@@ -24,24 +24,25 @@ Phase 5: Privacy Policy.
 - Commit: `1e17669 feat: add experience claim authoring`.
 - Phase 4b Claim Lifecycle is complete and pushed.
 - Commit: `782f995 feat: add experience claim lifecycle`.
-- Working tree should stay limited to Phase 5 planning, implementation, tests, and public docs.
+- Phase 5 Privacy Policy controls are complete and pushed.
+- Commit: `d8e4ca4 feat: add local privacy policy controls`.
+- Phase 5b Privacy Policy Inspection is complete and pushed.
+- Commit: `2633f3a feat: add privacy policy inspection`.
+- Working tree should stay limited to v0.2 release readiness docs, tests, and public metadata.
 
 ## Next Engineering Task
 
-Implement Phase 5 Privacy Policy.
+Prepare v0.2 release readiness.
 
 Recommended order:
 
-1. Add project-local `.projectbrain-policy` loading.
-2. Add deny path filtering for read artifacts.
-3. Add output size caps for read artifacts.
-4. Keep source snippets disabled by default.
-5. Apply policy to CLI, API, and MCP context/impact/git-diff output.
-6. Update README, quickstart, MCP usage, local runtime, PRD, and roadmap.
-7. Run tests and CLI/MCP smoke checks.
-8. Run privacy scan to ensure private payment code/details are not tracked.
-9. Commit and push the public-only changes.
-10. Check GitHub Actions.
+1. Add v0.2 release readiness checklist.
+2. Add Chinese quickstart documentation.
+3. Link release readiness and Chinese docs from README and docs index.
+4. Run tests and CLI/MCP smoke checks.
+5. Run privacy scan to ensure private payment code/details are not tracked.
+6. Commit and push the public-only changes.
+7. Check GitHub Actions.
 
 ## Verification Commands
 
