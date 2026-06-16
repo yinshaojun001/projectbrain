@@ -66,8 +66,8 @@ def _base_context(**extra: Any) -> dict[str, Any]:
     context: dict[str, Any] = {
         "htmx_url": _htmx_asset_url(),
         "banner_text": (
-            "This UI observes AI agent context. "
-            "It is not a code search or code editor."
+            "本观察台用于查看 AI 智能体看到的上下文，"
+            "不是代码搜索或代码编辑器。"
         ),
     }
     context.update(extra)
@@ -133,8 +133,8 @@ def ui_index(request: Request) -> HTMLResponse:
         request,
         "index.html",
         _base_context(
-            title="ProjectBrain Observability",
-            heading="ProjectBrain Observability",
+            title="ProjectBrain · 观察台",
+            heading="ProjectBrain 观察台",
         ),
     )
 
@@ -147,8 +147,8 @@ def ui_projects_list(request: Request) -> HTMLResponse:
         request,
         "projects/list.html",
         _base_context(
-            title="Projects · ProjectBrain",
-            heading="Projects",
+            title="项目列表 · ProjectBrain",
+            heading="项目列表",
             projects=projects,
         ),
     )
@@ -182,7 +182,7 @@ def ui_projects_import(
             options=options,
         )
     except (FileNotFoundError, ValueError) as exc:
-        return _error_partial(request, f"Import failed: {exc}")
+        return _error_partial(request, f"导入失败：{exc}")
 
     target = f"/ui/projects/{project_id}/context"
     if request.headers.get("hx-request") == "true":
@@ -209,7 +209,7 @@ def ui_context_page(request: Request, project_id: str) -> HTMLResponse:
         project = runtime.repository.get_project(project_id).to_dict()
     except (FileNotFoundError, ValueError):
         return _error_partial(
-            request, f"Project '{project_id}' not found", status_code=404
+            request, f"未找到项目 '{project_id}'", status_code=404
         )
     last_run = _read_latest_run(runtime, project_id, "context-pack-latest.json")
     return templates.TemplateResponse(
@@ -244,7 +244,7 @@ def ui_context_run(
             max_items_per_section=int(max_items_per_section),
         )
     except (FileNotFoundError, ValueError) as exc:
-        return _error_partial(request, f"Context pack failed: {exc}")
+        return _error_partial(request, f"Context Pack 构建失败：{exc}")
     return templates.TemplateResponse(
         request,
         "_partials/context_result.html",
@@ -269,7 +269,7 @@ def ui_impact_page(request: Request, project_id: str) -> HTMLResponse:
         project = runtime.repository.get_project(project_id).to_dict()
     except (FileNotFoundError, ValueError):
         return _error_partial(
-            request, f"Project '{project_id}' not found", status_code=404
+            request, f"未找到项目 '{project_id}'", status_code=404
         )
     return templates.TemplateResponse(
         request,
@@ -306,7 +306,7 @@ def ui_impact_manual(
             max_items_per_section=int(max_items_per_section),
         )
     except (FileNotFoundError, ValueError) as exc:
-        return _error_partial(request, f"Impact analysis failed: {exc}")
+        return _error_partial(request, f"Impact Analysis 失败：{exc}")
     return templates.TemplateResponse(
         request,
         "_partials/impact_result.html",
@@ -349,7 +349,7 @@ def ui_impact_git_diff(
             max_items_per_section=int(max_items_per_section),
         )
     except (FileNotFoundError, ValueError) as exc:
-        return _error_partial(request, f"Git diff impact failed: {exc}")
+        return _error_partial(request, f"Git diff 影响分析失败：{exc}")
     return templates.TemplateResponse(
         request,
         "_partials/impact_result.html",
@@ -373,8 +373,8 @@ def ui_impact_last_run(request: Request, project_id: str) -> HTMLResponse:
     if payload is None:
         return _error_partial(
             request,
-            "No impact-analysis-latest.json found for this project. "
-            "Run an analysis first via the Manual or Git-diff tab.",
+            "该项目未找到 impact-analysis-latest.json。"
+            "请先在「手动」或「Git diff」标签下运行一次分析。",
             status_code=404,
         )
     return templates.TemplateResponse(
@@ -403,15 +403,15 @@ def ui_policy_page(request: Request, project_id: str) -> HTMLResponse:
         project = runtime.repository.get_project(project_id).to_dict()
     except (FileNotFoundError, ValueError):
         return _error_partial(
-            request, f"Project '{project_id}' not found", status_code=404
+            request, f"未找到项目 '{project_id}'", status_code=404
         )
     policy = _load_policy_summary(runtime, project_id)
     return templates.TemplateResponse(
         request,
         "projects/policy.html",
         _base_context(
-            title=f"Policy · {project_id}",
-            heading=f"Policy — {project_id}",
+            title=f"策略 · {project_id}",
+            heading=f"策略 — {project_id}",
             project=project,
             policy=policy,
         ),

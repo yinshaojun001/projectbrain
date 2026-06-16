@@ -4,35 +4,35 @@
 <section class="pb-card">
   <h1>{{ heading }}</h1>
   <p class="pb-lead">
-    A read-only window into what the ProjectBrain runtime exposes to AI agents
-    via the local API and MCP server.
+    一个只读视窗，用来查看 ProjectBrain 运行时通过本地 API 与 MCP 服务
+    暴露给 AI 智能体的上下文。
   </p>
 
-  <h2>Sections</h2>
+  <h2>功能区</h2>
   <ul class="pb-list">
     <li>
-      <a href="/ui/projects">Projects</a>
-      <span class="pb-muted"> — list, import, inspect (Wave 3)</span>
+      <a href="/ui/projects">项目列表</a>
+      <span class="pb-muted"> — 列出 / 导入 / 查看（Wave 3）</span>
     </li>
     <li>
-      Context Pack browser
-      <span class="pb-muted"> — preview <code>/api/v1/projects/{id}/context-pack</code> (Wave 3)</span>
+      Context Pack 浏览器
+      <span class="pb-muted"> — 预览 <code>/api/v1/projects/{id}/context-pack</code>（Wave 3）</span>
     </li>
     <li>
-      Impact Analysis viewer
-      <span class="pb-muted"> — manual / git-diff / last-run (Wave 3)</span>
+      Impact Analysis 查看器
+      <span class="pb-muted"> — 手动 / git-diff / 最近一次（Wave 3）</span>
     </li>
     <li>
-      Policy inspector
-      <span class="pb-muted"> — view effective <code>.projectbrain-policy</code> (Wave 3)</span>
+      策略查看器
+      <span class="pb-muted"> — 查看生效的 <code>.projectbrain-policy</code>（Wave 3）</span>
     </li>
   </ul>
 
-  <h2>API Quick Links</h2>
+  <h2>API 快速链接</h2>
   <ul class="pb-list">
     <li><a href="/api/v1/projects">GET /api/v1/projects</a></li>
     <li><a href="/health">GET /health</a></li>
-    <li><a href="/docs" target="_blank" rel="noopener">FastAPI Swagger UI</a></li>
+    <li><a href="/docs" target="_blank" rel="noopener">FastAPI Swagger 文档</a></li>
   </ul>
 </section>
 {% endblock %}

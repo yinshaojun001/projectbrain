@@ -1,12 +1,12 @@
 {# Sidebar policy summary, included in context.html and impact.html. Expects `policy` and `project` in context. #}
 <aside class="pb-card pb-sidebar">
-  <h2>Policy</h2>
+  <h2>策略</h2>
   {% if policy %}
     <p class="pb-muted">
       {% if policy.policy_found %}
-        loaded from <code class="pb-truncate" title="{{ policy.source_path }}">{{ policy.source_path }}</code>
+        加载自 <code class="pb-truncate" title="{{ policy.source_path }}">{{ policy.source_path }}</code>
       {% else %}
-        no policy file — defaults in effect
+        未找到策略文件 — 使用默认值
       {% endif %}
     </p>
     <dl class="pb-kv pb-kv-tight">
@@ -17,20 +17,20 @@
             {% for path in policy.policy.deny_paths %}<li>{{ path }}</li>{% endfor %}
           </ul>
         {% else %}
-          <span class="pb-muted">(none)</span>
+          <span class="pb-muted">（无）</span>
         {% endif %}
       </dd>
-      <dt>section cap</dt>
-      <dd><code>{{ policy.policy.output_limits.max_items_per_section or "unset" }}</code></dd>
-      <dt>files cap</dt>
-      <dd><code>{{ policy.policy.output_limits.max_recommended_files or "unset" }}</code></dd>
-      <dt>tests cap</dt>
-      <dd><code>{{ policy.policy.output_limits.max_recommended_tests or "unset" }}</code></dd>
-      <dt>snippets</dt>
+      <dt>section 上限</dt>
+      <dd><code>{{ policy.policy.output_limits.max_items_per_section or "未设置" }}</code></dd>
+      <dt>files 上限</dt>
+      <dd><code>{{ policy.policy.output_limits.max_recommended_files or "未设置" }}</code></dd>
+      <dt>tests 上限</dt>
+      <dd><code>{{ policy.policy.output_limits.max_recommended_tests or "未设置" }}</code></dd>
+      <dt>代码片段</dt>
       <dd><code>{{ policy.policy.include_source_snippets }}</code></dd>
     </dl>
-    <a class="pb-link-small" href="/ui/projects/{{ project.project_id }}/policy">Full policy →</a>
+    <a class="pb-link-small" href="/ui/projects/{{ project.project_id }}/policy">完整策略 →</a>
   {% else %}
-    <p class="pb-muted">Policy unavailable.</p>
+    <p class="pb-muted">无法加载策略。</p>
   {% endif %}
 </aside>

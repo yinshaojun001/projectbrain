@@ -5,7 +5,7 @@
   <div class="pb-card-head">
     <h1>{{ heading }}</h1>
     <nav class="pb-subnav">
-      <a href="/ui/projects">← All projects</a>
+      <a href="/ui/projects">← 项目列表</a>
       <a href="/ui/projects/{{ project.project_id }}/context">Context</a>
       <a href="/ui/projects/{{ project.project_id }}/impact">Impact</a>
     </nav>
@@ -13,10 +13,10 @@
   <p class="pb-muted"><code>{{ project.source_path }}</code></p>
 
   {% if policy %}
-  <h2>Effective policy</h2>
+  <h2>当前生效策略</h2>
   <dl class="pb-kv">
     <dt>policy_found</dt>
-    <dd>{{ "yes" if policy.policy_found else "no (defaults applied)" }}</dd>
+    <dd>{{ "是" if policy.policy_found else "否（使用默认值）" }}</dd>
     {% if policy.source_path %}
     <dt>source_path</dt>
     <dd><code>{{ policy.source_path }}</code></dd>
@@ -27,27 +27,27 @@
       <ul class="pb-mono">
         {% for path in policy.policy.deny_paths %}<li>{{ path }}</li>{% endfor %}
       </ul>
-      {% else %}<span class="pb-muted">(none)</span>{% endif %}
+      {% else %}<span class="pb-muted">（无）</span>{% endif %}
     </dd>
     <dt>output_limits</dt>
     <dd>
       <ul>
-        <li>max_items_per_section: <code>{{ policy.policy.output_limits.max_items_per_section or "unset" }}</code></li>
-        <li>max_recommended_files: <code>{{ policy.policy.output_limits.max_recommended_files or "unset" }}</code></li>
-        <li>max_recommended_tests: <code>{{ policy.policy.output_limits.max_recommended_tests or "unset" }}</code></li>
+        <li>max_items_per_section：<code>{{ policy.policy.output_limits.max_items_per_section or "未设置" }}</code></li>
+        <li>max_recommended_files：<code>{{ policy.policy.output_limits.max_recommended_files or "未设置" }}</code></li>
+        <li>max_recommended_tests：<code>{{ policy.policy.output_limits.max_recommended_tests or "未设置" }}</code></li>
       </ul>
     </dd>
     <dt>include_source_snippets</dt>
     <dd><code>{{ policy.policy.include_source_snippets }}</code></dd>
   </dl>
-  <h2>Summary</h2>
+  <h2>摘要</h2>
   <ul>
-    <li>deny_path_count: <code>{{ policy.summary.deny_path_count }}</code></li>
-    <li>has_output_caps: <code>{{ policy.summary.has_output_caps }}</code></li>
-    <li>source_snippets_enabled: <code>{{ policy.summary.source_snippets_enabled }}</code></li>
+    <li>deny_path_count：<code>{{ policy.summary.deny_path_count }}</code></li>
+    <li>has_output_caps：<code>{{ policy.summary.has_output_caps }}</code></li>
+    <li>source_snippets_enabled：<code>{{ policy.summary.source_snippets_enabled }}</code></li>
   </ul>
   {% else %}
-  <p class="pb-muted">Policy could not be loaded for this project.</p>
+  <p class="pb-muted">无法加载该项目的策略。</p>
   {% endif %}
 </section>
 {% endblock %}

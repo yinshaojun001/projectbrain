@@ -54,10 +54,10 @@ class UiSmokeTest(unittest.TestCase):
             response = self.client.get(path, follow_redirects=True)
             self.assertEqual(response.status_code, 200, path)
             body = response.text
-            self.assertIn("ProjectBrain Observability", body)
-            self.assertIn("observes AI agent context", body)
+            self.assertIn("ProjectBrain 观察台", body)
+            self.assertIn("AI 智能体看到的上下文", body)
             # Banner explicitly clarifies this is not a code editor (STATE.md L11).
-            self.assertIn("not a code search", body)
+            self.assertIn("不是代码搜索", body)
 
     def test_static_css_is_mounted(self) -> None:
         response = self.client.get("/ui/static/app.css")
@@ -70,14 +70,14 @@ class UiSmokeTest(unittest.TestCase):
     def test_empty_project_list_renders(self) -> None:
         response = self.client.get("/ui/projects")
         self.assertEqual(response.status_code, 200)
-        self.assertIn("Projects", response.text)
-        self.assertIn("Import a project", response.text)
-        self.assertIn("No projects imported yet", response.text)
+        self.assertIn("项目列表", response.text)
+        self.assertIn("导入项目", response.text)
+        self.assertIn("尚未导入任何项目", response.text)
 
     def test_unknown_project_context_returns_404(self) -> None:
         response = self.client.get("/ui/projects/__does_not_exist__/context")
         self.assertEqual(response.status_code, 404)
-        self.assertIn("not found", response.text)
+        self.assertIn("未找到", response.text)
         self.assertIn("pb-error", response.text)
 
     def test_unknown_project_impact_returns_404(self) -> None:
@@ -93,7 +93,7 @@ class UiSmokeTest(unittest.TestCase):
             "/ui/projects/__does_not_exist__/impact/last-run"
         )
         self.assertEqual(response.status_code, 404)
-        self.assertIn("No impact-analysis-latest.json", response.text)
+        self.assertIn("impact-analysis-latest.json", response.text)
 
     def test_project_redirect_to_context(self) -> None:
         response = self.client.get(

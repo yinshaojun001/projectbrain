@@ -4,7 +4,7 @@
 <section class="pb-card">
   <div class="pb-card-head">
     <h1>{{ heading }}</h1>
-    <span class="pb-muted">{{ projects | length }} project(s)</span>
+    <span class="pb-muted">共 {{ projects | length }} 个项目</span>
   </div>
 
   {% if projects %}
@@ -12,10 +12,10 @@
     <thead>
       <tr>
         <th>project_id</th>
-        <th>name</th>
+        <th>名称</th>
         <th>source_path</th>
-        <th>imported</th>
-        <th>actions</th>
+        <th>导入时间</th>
+        <th>操作</th>
       </tr>
     </thead>
     <tbody>
@@ -28,23 +28,22 @@
         <td class="pb-actions">
           <a href="/ui/projects/{{ project.project_id }}/context">Context</a>
           <a href="/ui/projects/{{ project.project_id }}/impact">Impact</a>
-          <a href="/ui/projects/{{ project.project_id }}/policy">Policy</a>
+          <a href="/ui/projects/{{ project.project_id }}/policy">策略</a>
         </td>
       </tr>
       {% endfor %}
     </tbody>
   </table>
   {% else %}
-  <p class="pb-muted">No projects imported yet. Use the form below to import one.</p>
+  <p class="pb-muted">尚未导入任何项目。请使用下方表单导入。</p>
   {% endif %}
 </section>
 
 <section class="pb-card">
-  <h2>Import a project</h2>
+  <h2>导入项目</h2>
   <p class="pb-muted">
-    Runs the same logic as <code>POST /api/v1/projects/import</code>. Long
-    imports may take a few seconds; a spinner shows while the request is in
-    flight.
+    执行与 <code>POST /api/v1/projects/import</code> 相同的逻辑。导入耗时
+    可能几秒，期间会显示进度提示。
   </p>
   <form
     class="pb-form"
@@ -59,25 +58,25 @@
         <input type="text" name="project_id" required placeholder="payment_mini" />
       </label>
       <label>
-        <span>name</span>
+        <span>名称（name）</span>
         <input type="text" name="name" placeholder="Payment Mini Demo" />
       </label>
     </div>
     <label>
-      <span>project_path <em>*</em> (absolute path to source repo)</span>
+      <span>project_path <em>*</em>（源码仓库的绝对路径）</span>
       <input type="text" name="project_path" required placeholder="/path/to/repo" />
     </label>
     <label>
-      <span>experience_seed (optional path to seed file)</span>
+      <span>experience_seed（可选，经验种子文件路径）</span>
       <input type="text" name="experience_seed" placeholder="/path/to/experience-seed.md" />
     </label>
     <label>
-      <span>path_prefixes (one per line, optional)</span>
+      <span>path_prefixes（每行一个，可选）</span>
       <textarea name="path_prefixes" rows="3" placeholder="src/main/java/com/example/"></textarea>
     </label>
     <div class="pb-form-row">
       <label>
-        <span>kinds (comma-separated)</span>
+        <span>kinds（逗号分隔）</span>
         <input type="text" name="kinds" placeholder="class, interface, method" />
       </label>
       <label>
@@ -90,8 +89,8 @@
       </label>
     </div>
     <div class="pb-form-actions">
-      <button type="submit">Import</button>
-      <span id="import-spinner" class="htmx-indicator pb-muted">Importing… this can take a few seconds.</span>
+      <button type="submit">导入</button>
+      <span id="import-spinner" class="htmx-indicator pb-muted">正在导入… 可能需要几秒钟。</span>
     </div>
   </form>
   <div id="import-error" aria-live="polite"></div>

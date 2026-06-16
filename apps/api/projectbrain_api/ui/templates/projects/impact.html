@@ -6,17 +6,17 @@
     <div class="pb-card-head">
       <h1>{{ heading }}</h1>
       <nav class="pb-subnav">
-        <a href="/ui/projects">← All projects</a>
+        <a href="/ui/projects">← 项目列表</a>
         <a href="/ui/projects/{{ project.project_id }}/context">Context</a>
-        <a href="/ui/projects/{{ project.project_id }}/policy">Policy</a>
+        <a href="/ui/projects/{{ project.project_id }}/policy">策略</a>
       </nav>
     </div>
     <p class="pb-muted"><code>{{ project.source_path }}</code></p>
 
     <div class="pb-tabs" role="tablist" data-tab-group="impact">
-      <button type="button" class="pb-tab is-active" data-tab="manual" role="tab" aria-selected="true">Manual</button>
+      <button type="button" class="pb-tab is-active" data-tab="manual" role="tab" aria-selected="true">手动</button>
       <button type="button" class="pb-tab" data-tab="git" role="tab" aria-selected="false">Git diff</button>
-      <button type="button" class="pb-tab" data-tab="last" role="tab" aria-selected="false">Last run</button>
+      <button type="button" class="pb-tab" data-tab="last" role="tab" aria-selected="false">最近一次</button>
     </div>
 
     <div class="pb-tab-panels">
@@ -30,15 +30,15 @@
         >
           <label>
             <span>task <em>*</em></span>
-            <input type="text" name="task" required placeholder="Change settlement contract" />
+            <input type="text" name="task" required placeholder="修改结算接口约定" />
           </label>
           <label>
-            <span>changed_files (one per line)</span>
+            <span>changed_files（每行一个）</span>
             <textarea name="changed_files" rows="4" placeholder="src/main/java/com/example/SettlementService.java"></textarea>
           </label>
           <div class="pb-form-row">
             <label>
-              <span>changed_symbols (comma-separated)</span>
+              <span>changed_symbols（逗号分隔）</span>
               <input type="text" name="changed_symbols" placeholder="SettlementService.compute" />
             </label>
             <label>
@@ -47,8 +47,8 @@
             </label>
           </div>
           <div class="pb-form-actions">
-            <button type="submit">Analyze</button>
-            <span class="htmx-indicator pb-muted" id="impact-spinner">Analyzing…</span>
+            <button type="submit">分析</button>
+            <span class="htmx-indicator pb-muted" id="impact-spinner">分析中…</span>
           </div>
         </form>
       </div>
@@ -63,29 +63,29 @@
         >
           <label>
             <span>task <em>*</em></span>
-            <input type="text" name="task" required placeholder="Review staged changes" />
+            <input type="text" name="task" required placeholder="审查待提交变更" />
           </label>
           <div class="pb-form-row">
             <label>
               <span>selection</span>
               <select name="selection_kind">
-                <option value="staged" selected>staged (working tree)</option>
-                <option value="last-commit">last-commit</option>
-                <option value="branch">branch (from..to)</option>
+                <option value="staged" selected>staged（工作区）</option>
+                <option value="last-commit">last-commit（最后一个提交）</option>
+                <option value="branch">branch（from..to）</option>
               </select>
             </label>
             <label>
-              <span>from_ref (branch only)</span>
+              <span>from_ref（仅 branch）</span>
               <input type="text" name="from_ref" placeholder="main" />
             </label>
             <label>
-              <span>to_ref (branch only)</span>
+              <span>to_ref（仅 branch）</span>
               <input type="text" name="to_ref" placeholder="HEAD" />
             </label>
           </div>
           <div class="pb-form-row">
             <label>
-              <span>changed_symbols (comma-separated)</span>
+              <span>changed_symbols（逗号分隔）</span>
               <input type="text" name="changed_symbols" placeholder="" />
             </label>
             <label>
@@ -94,19 +94,19 @@
             </label>
           </div>
           <div class="pb-form-actions">
-            <button type="submit">Analyze diff</button>
+            <button type="submit">分析 diff</button>
           </div>
           <p class="pb-muted">
-            Runs <code>git diff</code> inside <code>{{ project.source_path }}</code>.
-            Make sure the path is a git working tree.
+            在 <code>{{ project.source_path }}</code> 下执行 <code>git diff</code>。
+            请确保该路径是一个 git 工作树。
           </p>
         </form>
       </div>
 
       <div class="pb-tab-panel" data-tab-panel="last">
         <p class="pb-muted">
-          Loads the cached <code>impact-analysis-latest.json</code> artifact
-          without re-running the analysis.
+          加载缓存的 <code>impact-analysis-latest.json</code> 产物，
+          不重新运行分析。
         </p>
         <button
           type="button"
@@ -114,12 +114,12 @@
           hx-get="/ui/projects/{{ project.project_id }}/impact/last-run"
           hx-target="#impact-result"
           hx-swap="innerHTML"
-        >Load last run</button>
+        >加载最近一次</button>
       </div>
     </div>
 
     <div id="impact-result" class="pb-result-area" aria-live="polite">
-      <p class="pb-muted">Submit a form above to see Impact Analysis output here.</p>
+      <p class="pb-muted">提交上方任一表单，Impact Analysis 结果将显示在这里。</p>
     </div>
   </section>
 

@@ -8,19 +8,19 @@
 
   {% if git_diff %}
   <div class="pb-callout">
-    <strong>git diff</strong>: <code>{{ git_diff.selection }}</code>
-    in <code class="pb-truncate" title="{{ git_diff.repo_path }}">{{ git_diff.repo_path }}</code>
-    — {{ git_diff.changed_files | length }} file(s) changed.
+    <strong>git diff</strong>：<code>{{ git_diff.selection }}</code>
+    于 <code class="pb-truncate" title="{{ git_diff.repo_path }}">{{ git_diff.repo_path }}</code>
+    — {{ git_diff.changed_files | length }} 个文件变更。
   </div>
   {% endif %}
 
   {% if artifact_path %}
-  <p class="pb-muted">Saved to <code class="pb-truncate" title="{{ artifact_path }}">{{ artifact_path }}</code></p>
+  <p class="pb-muted">已保存至 <code class="pb-truncate" title="{{ artifact_path }}">{{ artifact_path }}</code></p>
   {% endif %}
 
   {% if impact_analysis.review_recommendation %}
   <div class="pb-callout pb-callout-{{ impact_analysis.review_recommendation.action or 'info' }}">
-    <strong>review_recommendation:</strong>
+    <strong>review_recommendation：</strong>
     <code>{{ impact_analysis.review_recommendation.action }}</code>
     {% if impact_analysis.review_recommendation.reason %}
       — {{ impact_analysis.review_recommendation.reason }}
@@ -40,7 +40,7 @@
   <details class="pb-section" {% if section["items"] %}open{% endif %}>
     <summary>
       <span class="pb-section-name">{{ section.type }}</span>
-      <span class="pb-section-count">{{ section["items"] | length }} item(s)</span>
+      <span class="pb-section-count">共 {{ section["items"] | length }} 项</span>
     </summary>
     {% if section["items"] %}
     <ul class="pb-section-items">
@@ -67,13 +67,13 @@
       {% endfor %}
     </ul>
     {% else %}
-    <p class="pb-muted pb-empty">(empty)</p>
+    <p class="pb-muted pb-empty">（空）</p>
     {% endif %}
   </details>
   {% endfor %}
 
   {% if impact_analysis.recommended_tests %}
-  <h4>recommended_tests ({{ impact_analysis.recommended_tests | length }})</h4>
+  <h4>recommended_tests（{{ impact_analysis.recommended_tests | length }}）</h4>
   <ul class="pb-mono pb-tight">
     {% for test in impact_analysis.recommended_tests %}
     <li>{{ test.qualified_name if test is mapping else test }}</li>

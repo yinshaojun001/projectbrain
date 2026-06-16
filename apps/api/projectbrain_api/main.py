@@ -22,6 +22,7 @@ from projectbrain_api.handlers import (
 
 try:
     from fastapi import FastAPI, HTTPException
+    from fastapi.responses import RedirectResponse
     from fastapi.staticfiles import StaticFiles
 except ModuleNotFoundError as exc:  # pragma: no cover - exercised only without api extra.
     raise ModuleNotFoundError(
@@ -41,6 +42,12 @@ app.mount(
     StaticFiles(directory=str(_UI_STATIC_DIR)),
     name="ui-static",
 )
+
+
+@app.get("/", include_in_schema=False)
+def root() -> RedirectResponse:
+    # 根路径直接跳到 UI，方便浏览器直接访问 127.0.0.1:8765。
+    return RedirectResponse(url="/ui", status_code=307)
 
 
 @app.get("/health")

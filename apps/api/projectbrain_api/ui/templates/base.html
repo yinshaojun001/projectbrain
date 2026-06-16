@@ -1,5 +1,5 @@
 <!doctype html>
-<html lang="en">
+<html lang="zh-CN">
 <head>
   <meta charset="utf-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1" />
@@ -11,9 +11,9 @@
   <header class="pb-header">
     <a href="/ui" class="pb-logo">ProjectBrain</a>
     <nav class="pb-nav">
-      <a href="/ui">Home</a>
-      <a href="/ui/projects">Projects</a>
-      <a href="/health" target="_blank" rel="noopener">Health</a>
+      <a href="/ui">首页</a>
+      <a href="/ui/projects">项目</a>
+      <a href="/health" target="_blank" rel="noopener">健康检查</a>
     </nav>
     {% if banner_text %}
     <div class="pb-banner" role="note">{{ banner_text }}</div>
@@ -23,8 +23,8 @@
     {% block content %}{% endblock %}
   </main>
   <footer class="pb-footer">
-    <span>API base: <code>/api/v1</code></span>
-    <span>Local-only: <code>127.0.0.1</code></span>
+    <span>API 基址：<code>/api/v1</code></span>
+    <span>仅本地访问：<code>127.0.0.1</code></span>
   </footer>
 </body>
 </html>

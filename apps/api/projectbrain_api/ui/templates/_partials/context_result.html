@@ -6,14 +6,14 @@
   </div>
   <p class="pb-muted">{{ context_pack.summary }}</p>
   {% if artifact_path %}
-  <p class="pb-muted">Saved to <code class="pb-truncate" title="{{ artifact_path }}">{{ artifact_path }}</code></p>
+  <p class="pb-muted">已保存至 <code class="pb-truncate" title="{{ artifact_path }}">{{ artifact_path }}</code></p>
   {% endif %}
 
   {% for section in context_pack.sections %}
   <details class="pb-section" open>
     <summary>
       <span class="pb-section-name">{{ section.type }}</span>
-      <span class="pb-section-count">{{ section["items"] | length }} item(s)</span>
+      <span class="pb-section-count">共 {{ section["items"] | length }} 项</span>
     </summary>
     {% if section["items"] %}
     <ul class="pb-section-items">
@@ -21,7 +21,7 @@
       <li>
         {% if section.type == "modules" %}
           <strong>{{ item.module }}</strong>
-          <span class="pb-muted">— {{ item.entity_count }} entities</span>
+          <span class="pb-muted">— {{ item.entity_count }} 个实体</span>
         {% elif section.type == "important_entities" %}
           <code>{{ item.entity_type }}</code>
           <strong>{{ item.qualified_name or item.name }}</strong>
@@ -44,13 +44,13 @@
       {% endfor %}
     </ul>
     {% else %}
-    <p class="pb-muted pb-empty">(empty)</p>
+    <p class="pb-muted pb-empty">（空）</p>
     {% endif %}
   </details>
   {% endfor %}
 
   {% if context_pack.recommended_files %}
-  <h4>recommended_files ({{ context_pack.recommended_files | length }})</h4>
+  <h4>recommended_files（{{ context_pack.recommended_files | length }}）</h4>
   <ul class="pb-mono pb-tight">
     {% for file in context_pack.recommended_files %}
     <li>{{ file.file if file is mapping else file }}</li>
@@ -59,7 +59,7 @@
   {% endif %}
 
   {% if context_pack.recommended_symbols %}
-  <h4>recommended_symbols ({{ context_pack.recommended_symbols | length }})</h4>
+  <h4>recommended_symbols（{{ context_pack.recommended_symbols | length }}）</h4>
   <ul class="pb-mono pb-tight">
     {% for symbol in context_pack.recommended_symbols %}
     <li>{{ symbol.qualified_name if symbol is mapping else symbol }}</li>

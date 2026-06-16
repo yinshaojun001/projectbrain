@@ -171,8 +171,8 @@ class FastApiTest(unittest.TestCase):
             response = client.get(path, follow_redirects=True)
             self.assertEqual(response.status_code, 200, path)
             body = response.text
-            self.assertIn("ProjectBrain Observability", body)
-            self.assertIn("observes AI agent context", body)
+            self.assertIn("ProjectBrain 观察台", body)
+            self.assertIn("AI 智能体看到的上下文", body)
             self.assertIn('href="/ui/static/app.css"', body)
             self.assertIn("htmx", body)
 
@@ -195,7 +195,7 @@ class FastApiTest(unittest.TestCase):
                 # Empty project list page renders even with no projects.
                 empty_list = client.get("/ui/projects")
                 self.assertEqual(empty_list.status_code, 200)
-                self.assertIn("No projects imported yet", empty_list.text)
+                self.assertIn("尚未导入任何项目", empty_list.text)
 
                 # Import via the UI form (multipart) drives the same runtime
                 # path as the JSON API and triggers an HX-Redirect.
@@ -246,7 +246,7 @@ class FastApiTest(unittest.TestCase):
                     "/ui/projects/payment_mini_ui_test/context"
                 )
                 self.assertEqual(context_page.status_code, 200)
-                self.assertIn("Build a Context Pack", context_page.text)
+                self.assertIn("构建 Context Pack", context_page.text)
                 self.assertIn("pb-sidebar", context_page.text)
                 self.assertIn("deny_paths", context_page.text)
 
@@ -313,14 +313,14 @@ class FastApiTest(unittest.TestCase):
                     "/ui/projects/payment_mini_ui_test/policy"
                 )
                 self.assertEqual(policy_page.status_code, 200)
-                self.assertIn("Effective policy", policy_page.text)
+                self.assertIn("当前生效策略", policy_page.text)
                 self.assertIn("deny_paths", policy_page.text)
                 self.assertIn("include_source_snippets", policy_page.text)
 
                 # Unknown project returns a 404 inline error.
                 unknown = client.get("/ui/projects/does_not_exist/context")
                 self.assertEqual(unknown.status_code, 404)
-                self.assertIn("not found", unknown.text)
+                self.assertIn("未找到", unknown.text)
             finally:
                 if previous is None:
                     os.environ.pop("PROJECTBRAIN_STORE_ROOT", None)
