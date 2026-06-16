@@ -28,6 +28,7 @@ v0.2 Release Readiness.
 - Commit: `d8e4ca4 feat: add local privacy policy controls`.
 - Phase 5b Privacy Policy Inspection is complete and pushed.
 - Commit: `2633f3a feat: add privacy policy inspection`.
+- Phase 6 Human Observability UI is complete (FastAPI + Jinja2 + HTMX, mounted at `/ui/*`, 127.0.0.1 only).
 - Working tree should stay limited to v0.2 release readiness docs, tests, and public metadata.
 
 ## Next Engineering Task

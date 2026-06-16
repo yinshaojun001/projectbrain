@@ -1,0 +1,152 @@
+{% extends "base.html" %}
+{% block title %}{{ title }}{% endblock %}
+{% block content %}
+<div class="pb-grid">
+  <section class="pb-card">
+    <div class="pb-card-head">
+      <h1>{{ heading }}</h1>
+      <nav class="pb-subnav">
+        <a href="/ui/projects">← All projects</a>
+        <a href="/ui/projects/{{ project.project_id }}/context">Context</a>
+        <a href="/ui/projects/{{ project.project_id }}/policy">Policy</a>
+      </nav>
+    </div>
+    <p class="pb-muted"><code>{{ project.source_path }}</code></p>
+
+    <div class="pb-tabs" role="tablist" data-tab-group="impact">
+      <button type="button" class="pb-tab is-active" data-tab="manual" role="tab" aria-selected="true">Manual</button>
+      <button type="button" class="pb-tab" data-tab="git" role="tab" aria-selected="false">Git diff</button>
+      <button type="button" class="pb-tab" data-tab="last" role="tab" aria-selected="false">Last run</button>
+    </div>
+
+    <div class="pb-tab-panels">
+      <div class="pb-tab-panel is-active" data-tab-panel="manual">
+        <form
+          class="pb-form"
+          hx-post="/ui/projects/{{ project.project_id }}/impact/manual"
+          hx-target="#impact-result"
+          hx-swap="innerHTML"
+          hx-indicator="#impact-spinner"
+        >
+          <label>
+            <span>task <em>*</em></span>
+            <input type="text" name="task" required placeholder="Change settlement contract" />
+          </label>
+          <label>
+            <span>changed_files (one per line)</span>
+            <textarea name="changed_files" rows="4" placeholder="src/main/java/com/example/SettlementService.java"></textarea>
+          </label>
+          <div class="pb-form-row">
+            <label>
+              <span>changed_symbols (comma-separated)</span>
+              <input type="text" name="changed_symbols" placeholder="SettlementService.compute" />
+            </label>
+            <label>
+              <span>max_items_per_section</span>
+              <input type="number" name="max_items_per_section" value="12" min="1" max="100" />
+            </label>
+          </div>
+          <div class="pb-form-actions">
+            <button type="submit">Analyze</button>
+            <span class="htmx-indicator pb-muted" id="impact-spinner">Analyzing…</span>
+          </div>
+        </form>
+      </div>
+
+      <div class="pb-tab-panel" data-tab-panel="git">
+        <form
+          class="pb-form"
+          hx-post="/ui/projects/{{ project.project_id }}/impact/git-diff"
+          hx-target="#impact-result"
+          hx-swap="innerHTML"
+          hx-indicator="#impact-spinner"
+        >
+          <label>
+            <span>task <em>*</em></span>
+            <input type="text" name="task" required placeholder="Review staged changes" />
+          </label>
+          <div class="pb-form-row">
+            <label>
+              <span>selection</span>
+              <select name="selection_kind">
+                <option value="staged" selected>staged (working tree)</option>
+                <option value="last-commit">last-commit</option>
+                <option value="branch">branch (from..to)</option>
+              </select>
+            </label>
+            <label>
+              <span>from_ref (branch only)</span>
+              <input type="text" name="from_ref" placeholder="main" />
+            </label>
+            <label>
+              <span>to_ref (branch only)</span>
+              <input type="text" name="to_ref" placeholder="HEAD" />
+            </label>
+          </div>
+          <div class="pb-form-row">
+            <label>
+              <span>changed_symbols (comma-separated)</span>
+              <input type="text" name="changed_symbols" placeholder="" />
+            </label>
+            <label>
+              <span>max_items_per_section</span>
+              <input type="number" name="max_items_per_section" value="12" min="1" max="100" />
+            </label>
+          </div>
+          <div class="pb-form-actions">
+            <button type="submit">Analyze diff</button>
+          </div>
+          <p class="pb-muted">
+            Runs <code>git diff</code> inside <code>{{ project.source_path }}</code>.
+            Make sure the path is a git working tree.
+          </p>
+        </form>
+      </div>
+
+      <div class="pb-tab-panel" data-tab-panel="last">
+        <p class="pb-muted">
+          Loads the cached <code>impact-analysis-latest.json</code> artifact
+          without re-running the analysis.
+        </p>
+        <button
+          type="button"
+          class="pb-btn"
+          hx-get="/ui/projects/{{ project.project_id }}/impact/last-run"
+          hx-target="#impact-result"
+          hx-swap="innerHTML"
+        >Load last run</button>
+      </div>
+    </div>
+
+    <div id="impact-result" class="pb-result-area" aria-live="polite">
+      <p class="pb-muted">Submit a form above to see Impact Analysis output here.</p>
+    </div>
+  </section>
+
+  {% include "_partials/policy_summary.html" %}
+</div>
+
+<script>
+  // Minimal vanilla tab switcher (no JS framework dependency).
+  document.querySelectorAll('[data-tab-group]').forEach(function (group) {
+    var tabs = group.querySelectorAll('.pb-tab');
+    var panels = group.parentElement.querySelectorAll('[data-tab-panel]');
+    tabs.forEach(function (tab) {
+      tab.addEventListener('click', function () {
+        var name = tab.getAttribute('data-tab');
+        tabs.forEach(function (t) {
+          var active = t === tab;
+          t.classList.toggle('is-active', active);
+          t.setAttribute('aria-selected', active ? 'true' : 'false');
+        });
+        panels.forEach(function (panel) {
+          panel.classList.toggle(
+            'is-active',
+            panel.getAttribute('data-tab-panel') === name
+          );
+        });
+      });
+    });
+  });
+</script>
+{% endblock %}

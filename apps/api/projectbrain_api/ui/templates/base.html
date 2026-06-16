@@ -1,0 +1,30 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>{% block title %}ProjectBrain{% endblock %}</title>
+  <link rel="stylesheet" href="/ui/static/app.css" />
+  <script src="{{ htmx_url }}" defer></script>
+</head>
+<body>
+  <header class="pb-header">
+    <a href="/ui" class="pb-logo">ProjectBrain</a>
+    <nav class="pb-nav">
+      <a href="/ui">Home</a>
+      <a href="/ui/projects">Projects</a>
+      <a href="/health" target="_blank" rel="noopener">Health</a>
+    </nav>
+    {% if banner_text %}
+    <div class="pb-banner" role="note">{{ banner_text }}</div>
+    {% endif %}
+  </header>
+  <main class="pb-main">
+    {% block content %}{% endblock %}
+  </main>
+  <footer class="pb-footer">
+    <span>API base: <code>/api/v1</code></span>
+    <span>Local-only: <code>127.0.0.1</code></span>
+  </footer>
+</body>
+</html>

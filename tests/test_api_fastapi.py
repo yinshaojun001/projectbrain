@@ -80,6 +80,247 @@ class FastApiTest(unittest.TestCase):
                     impact_response.json()["impact_analysis"]["review_recommendation"]["action"],
                     "manual_review_required",
                 )
+
+                policy_response = client.get(
+                    "/api/v1/projects/payment_mini_http_test/policy"
+                )
+                self.assertEqual(policy_response.status_code, 200)
+                self.assertEqual(
+                    policy_response.json()["project_id"], "payment_mini_http_test"
+                )
+
+                add_claim_response = client.post(
+                    "/api/v1/projects/payment_mini_http_test/claims",
+                    json={
+                        "claim_id": "exp_http_test",
+                        "statement": "HTTP claim added via UI API.",
+                        "applies_to": "settlement",
+                        "risk_level": "medium",
+                        "review_state": "pending",
+                    },
+                )
+                self.assertEqual(add_claim_response.status_code, 200)
+                self.assertEqual(
+                    add_claim_response.json()["claim"]["id"], "exp_http_test"
+                )
+
+                review_response = client.patch(
+                    "/api/v1/projects/payment_mini_http_test/claims/exp_http_test",
+                    json={"review_state": "approved"},
+                )
+                self.assertEqual(review_response.status_code, 200)
+                self.assertEqual(
+                    review_response.json()["claim"]["review_state"], "approved"
+                )
+
+                list_response = client.get(
+                    "/api/v1/projects/payment_mini_http_test/claims"
+                )
+                self.assertEqual(list_response.status_code, 200)
+                claim_ids = [c["id"] for c in list_response.json()["claims"]]
+                self.assertIn("exp_http_test", claim_ids)
+
+                archive_response = client.delete(
+                    "/api/v1/projects/payment_mini_http_test/claims/exp_http_test",
+                    params={"reason": "Cleanup after smoke test."},
+                )
+                self.assertEqual(archive_response.status_code, 200)
+                self.assertEqual(
+                    archive_response.json()["claim"]["lifecycle_state"], "archived"
+                )
+
+                active_after_archive = client.get(
+                    "/api/v1/projects/payment_mini_http_test/claims"
+                ).json()
+                with_archived = client.get(
+                    "/api/v1/projects/payment_mini_http_test/claims",
+                    params={"include_archived": "true"},
+                ).json()
+                self.assertNotIn(
+                    "exp_http_test",
+                    [c["id"] for c in active_after_archive["claims"]],
+                )
+                self.assertIn(
+                    "exp_http_test",
+                    [c["id"] for c in with_archived["claims"]],
+                )
+
+                bad_git_diff = client.post(
+                    "/api/v1/projects/payment_mini_http_test/impact-analysis/git-diff",
+                    json={
+                        "task": "Review diff",
+                        "selection": {"kind": "unknown"},
+                    },
+                )
+                self.assertEqual(bad_git_diff.status_code, 400)
+            finally:
+                if previous is None:
+                    os.environ.pop("PROJECTBRAIN_STORE_ROOT", None)
+                else:
+                    os.environ["PROJECTBRAIN_STORE_ROOT"] = previous
+
+
+    def test_ui_scaffold_renders(self):
+        if TestClient is None or app is None:
+            self.skipTest("FastAPI is not installed in this interpreter")
+        client = TestClient(app)
+
+        # Index page is reachable both with and without trailing slash and
+        # carries the observability banner that warns this is not a code editor.
+        for path in ("/ui", "/ui/"):
+            response = client.get(path, follow_redirects=True)
+            self.assertEqual(response.status_code, 200, path)
+            body = response.text
+            self.assertIn("ProjectBrain Observability", body)
+            self.assertIn("observes AI agent context", body)
+            self.assertIn('href="/ui/static/app.css"', body)
+            self.assertIn("htmx", body)
+
+        # Static assets are served from the mounted directory.
+        css_response = client.get("/ui/static/app.css")
+        self.assertEqual(css_response.status_code, 200)
+        self.assertIn("pb-header", css_response.text)
+        self.assertIn("pb-tabs", css_response.text)
+
+    def test_ui_wave3_pages(self):
+        if TestClient is None or app is None:
+            self.skipTest("FastAPI is not installed in this interpreter")
+        with tempfile.TemporaryDirectory() as tmp:
+            fixture = create_payment_mini_codegraph_project(Path(tmp))
+            previous = os.environ.get("PROJECTBRAIN_STORE_ROOT")
+            os.environ["PROJECTBRAIN_STORE_ROOT"] = tmp
+            try:
+                client = TestClient(app)
+
+                # Empty project list page renders even with no projects.
+                empty_list = client.get("/ui/projects")
+                self.assertEqual(empty_list.status_code, 200)
+                self.assertIn("No projects imported yet", empty_list.text)
+
+                # Import via the UI form (multipart) drives the same runtime
+                # path as the JSON API and triggers an HX-Redirect.
+                import_response = client.post(
+                    "/ui/projects/import",
+                    data={
+                        "project_id": "payment_mini_ui_test",
+                        "project_path": str(fixture["project_path"]),
+                        "name": "Payment Mini UI Test",
+                        "experience_seed": str(fixture["experience_seed"]),
+                        "path_prefixes": (
+                            "contract/src/main/java/example/payment/settlement/\n"
+                            "service/src/main/java/example/payment/settlement/\n"
+                        ),
+                        "kinds": "class, interface, method",
+                        "node_limit": "50",
+                        "edge_limit": "80",
+                    },
+                    headers={"HX-Request": "true"},
+                )
+                self.assertEqual(import_response.status_code, 200)
+                self.assertEqual(
+                    import_response.headers.get("hx-redirect"),
+                    "/ui/projects/payment_mini_ui_test/context",
+                )
+
+                # Project list now shows the imported row.
+                list_response = client.get("/ui/projects")
+                self.assertEqual(list_response.status_code, 200)
+                self.assertIn("payment_mini_ui_test", list_response.text)
+                self.assertIn("Payment Mini UI Test", list_response.text)
+                self.assertIn(
+                    '/ui/projects/payment_mini_ui_test/context', list_response.text
+                )
+
+                # /ui/projects/{id} redirects to the context page.
+                redirect_response = client.get(
+                    "/ui/projects/payment_mini_ui_test", follow_redirects=False
+                )
+                self.assertEqual(redirect_response.status_code, 303)
+                self.assertEqual(
+                    redirect_response.headers["location"],
+                    "/ui/projects/payment_mini_ui_test/context",
+                )
+
+                # Context page renders with policy sidebar.
+                context_page = client.get(
+                    "/ui/projects/payment_mini_ui_test/context"
+                )
+                self.assertEqual(context_page.status_code, 200)
+                self.assertIn("Build a Context Pack", context_page.text)
+                self.assertIn("pb-sidebar", context_page.text)
+                self.assertIn("deny_paths", context_page.text)
+
+                # POST /context/run returns an HTML partial containing the pack.
+                context_run = client.post(
+                    "/ui/projects/payment_mini_ui_test/context/run",
+                    data={"task": "Explain settlement", "max_items_per_section": "5"},
+                    headers={"HX-Request": "true"},
+                )
+                self.assertEqual(context_run.status_code, 200)
+                self.assertIn("Context Pack", context_run.text)
+                self.assertIn("pb-section", context_run.text)
+
+                # Impact page exposes the three tabs.
+                impact_page = client.get(
+                    "/ui/projects/payment_mini_ui_test/impact"
+                )
+                self.assertEqual(impact_page.status_code, 200)
+                self.assertIn('data-tab="manual"', impact_page.text)
+                self.assertIn('data-tab="git"', impact_page.text)
+                self.assertIn('data-tab="last"', impact_page.text)
+
+                # Manual tab POST returns review_recommendation in the partial.
+                impact_manual = client.post(
+                    "/ui/projects/payment_mini_ui_test/impact/manual",
+                    data={
+                        "task": "Change settlement contract",
+                        "changed_files": (
+                            "contract/src/main/java/example/payment/settlement/"
+                            "SettlementService.java\n"
+                        ),
+                        "changed_symbols": "",
+                        "max_items_per_section": "5",
+                    },
+                    headers={"HX-Request": "true"},
+                )
+                self.assertEqual(impact_manual.status_code, 200)
+                self.assertIn("review_recommendation", impact_manual.text)
+                self.assertIn("manual_review_required", impact_manual.text)
+
+                # Last-run tab now succeeds because manual tab persisted the
+                # impact-analysis-latest.json artifact.
+                last_run = client.get(
+                    "/ui/projects/payment_mini_ui_test/impact/last-run"
+                )
+                self.assertEqual(last_run.status_code, 200)
+                self.assertIn("Impact Analysis", last_run.text)
+                self.assertIn("last-run", last_run.text)
+
+                # Bad git-diff selection_kind surfaces an inline error partial.
+                bad_diff = client.post(
+                    "/ui/projects/payment_mini_ui_test/impact/git-diff",
+                    data={
+                        "task": "Review diff",
+                        "selection_kind": "unknown",
+                    },
+                    headers={"HX-Request": "true"},
+                )
+                self.assertEqual(bad_diff.status_code, 400)
+                self.assertIn("pb-error", bad_diff.text)
+
+                # Policy page renders the full policy view.
+                policy_page = client.get(
+                    "/ui/projects/payment_mini_ui_test/policy"
+                )
+                self.assertEqual(policy_page.status_code, 200)
+                self.assertIn("Effective policy", policy_page.text)
+                self.assertIn("deny_paths", policy_page.text)
+                self.assertIn("include_source_snippets", policy_page.text)
+
+                # Unknown project returns a 404 inline error.
+                unknown = client.get("/ui/projects/does_not_exist/context")
+                self.assertEqual(unknown.status_code, 404)
+                self.assertIn("not found", unknown.text)
             finally:
                 if previous is None:
                     os.environ.pop("PROJECTBRAIN_STORE_ROOT", None)

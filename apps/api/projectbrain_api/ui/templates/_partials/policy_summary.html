@@ -1,0 +1,36 @@
+{# Sidebar policy summary, included in context.html and impact.html. Expects `policy` and `project` in context. #}
+<aside class="pb-card pb-sidebar">
+  <h2>Policy</h2>
+  {% if policy %}
+    <p class="pb-muted">
+      {% if policy.policy_found %}
+        loaded from <code class="pb-truncate" title="{{ policy.source_path }}">{{ policy.source_path }}</code>
+      {% else %}
+        no policy file — defaults in effect
+      {% endif %}
+    </p>
+    <dl class="pb-kv pb-kv-tight">
+      <dt>deny_paths</dt>
+      <dd>
+        {% if policy.policy.deny_paths %}
+          <ul class="pb-mono pb-tight">
+            {% for path in policy.policy.deny_paths %}<li>{{ path }}</li>{% endfor %}
+          </ul>
+        {% else %}
+          <span class="pb-muted">(none)</span>
+        {% endif %}
+      </dd>
+      <dt>section cap</dt>
+      <dd><code>{{ policy.policy.output_limits.max_items_per_section or "unset" }}</code></dd>
+      <dt>files cap</dt>
+      <dd><code>{{ policy.policy.output_limits.max_recommended_files or "unset" }}</code></dd>
+      <dt>tests cap</dt>
+      <dd><code>{{ policy.policy.output_limits.max_recommended_tests or "unset" }}</code></dd>
+      <dt>snippets</dt>
+      <dd><code>{{ policy.policy.include_source_snippets }}</code></dd>
+    </dl>
+    <a class="pb-link-small" href="/ui/projects/{{ project.project_id }}/policy">Full policy →</a>
+  {% else %}
+    <p class="pb-muted">Policy unavailable.</p>
+  {% endif %}
+</aside>

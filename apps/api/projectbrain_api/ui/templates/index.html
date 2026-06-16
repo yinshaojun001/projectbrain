@@ -1,0 +1,38 @@
+{% extends "base.html" %}
+{% block title %}{{ title }}{% endblock %}
+{% block content %}
+<section class="pb-card">
+  <h1>{{ heading }}</h1>
+  <p class="pb-lead">
+    A read-only window into what the ProjectBrain runtime exposes to AI agents
+    via the local API and MCP server.
+  </p>
+
+  <h2>Sections</h2>
+  <ul class="pb-list">
+    <li>
+      <a href="/ui/projects">Projects</a>
+      <span class="pb-muted"> — list, import, inspect (Wave 3)</span>
+    </li>
+    <li>
+      Context Pack browser
+      <span class="pb-muted"> — preview <code>/api/v1/projects/{id}/context-pack</code> (Wave 3)</span>
+    </li>
+    <li>
+      Impact Analysis viewer
+      <span class="pb-muted"> — manual / git-diff / last-run (Wave 3)</span>
+    </li>
+    <li>
+      Policy inspector
+      <span class="pb-muted"> — view effective <code>.projectbrain-policy</code> (Wave 3)</span>
+    </li>
+  </ul>
+
+  <h2>API Quick Links</h2>
+  <ul class="pb-list">
+    <li><a href="/api/v1/projects">GET /api/v1/projects</a></li>
+    <li><a href="/health">GET /health</a></li>
+    <li><a href="/docs" target="_blank" rel="noopener">FastAPI Swagger UI</a></li>
+  </ul>
+</section>
+{% endblock %}

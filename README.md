@@ -199,15 +199,38 @@ PYTHONPATH=apps/api:packages/adapters:packages/runtime:packages/schema \
 .venv/bin/uvicorn projectbrain_api.main:app --reload
 ```
 
-Routes:
+JSON routes:
 
 ```text
-GET  /health
-POST /api/v1/projects/import
-GET  /api/v1/projects
-POST /api/v1/projects/{project_id}/context-pack
-POST /api/v1/projects/{project_id}/impact-analysis
+GET    /health
+POST   /api/v1/projects/import
+GET    /api/v1/projects
+POST   /api/v1/projects/{project_id}/context-pack
+POST   /api/v1/projects/{project_id}/impact-analysis
+POST   /api/v1/projects/{project_id}/impact-analysis/git-diff
+GET    /api/v1/projects/{project_id}/policy
+GET    /api/v1/projects/{project_id}/claims
+POST   /api/v1/projects/{project_id}/claims
+PATCH  /api/v1/projects/{project_id}/claims/{claim_id}
+DELETE /api/v1/projects/{project_id}/claims/{claim_id}
 ```
+
+### Optional Observability UI
+
+With the same `--reload` server running, open the local-only HTMX UI at
+[http://127.0.0.1:8000/ui/projects](http://127.0.0.1:8000/ui/projects) to:
+
+- import a project through a form (same runtime path as the JSON API),
+- inspect the Context Pack a coding agent would receive,
+- run Impact Analysis from manual changes, a `git diff`, or the cached
+  `impact-analysis-latest.json`,
+- view the effective `.projectbrain-policy` (deny paths, output limits,
+  source-snippet flag).
+
+The UI is an observability layer for AI-agent context, not a code editor or
+code-search tool. It binds to `127.0.0.1` only, ships no third-party CDN by
+default when `apps/api/projectbrain_api/ui/static/vendor/htmx.min.js` is
+present, and re-uses the same policy enforcement as the CLI/MCP surfaces.
 
 ## Local MCP Server
 

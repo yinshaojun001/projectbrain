@@ -1,0 +1,56 @@
+{% extends "base.html" %}
+{% block title %}{{ title }}{% endblock %}
+{% block content %}
+<div class="pb-grid">
+  <section class="pb-card">
+    <div class="pb-card-head">
+      <h1>{{ heading }}</h1>
+      <nav class="pb-subnav">
+        <a href="/ui/projects">← All projects</a>
+        <a href="/ui/projects/{{ project.project_id }}/impact">Impact</a>
+        <a href="/ui/projects/{{ project.project_id }}/policy">Policy</a>
+      </nav>
+    </div>
+    <p class="pb-muted">
+      <code>{{ project.source_path }}</code>
+    </p>
+
+    <h2>Build a Context Pack</h2>
+    <form
+      class="pb-form"
+      hx-post="/ui/projects/{{ project.project_id }}/context/run"
+      hx-target="#context-result"
+      hx-swap="innerHTML"
+      hx-indicator="#context-spinner"
+    >
+      <label>
+        <span>task <em>*</em> (what is the agent trying to do?)</span>
+        <input type="text" name="task" required placeholder="Explain how settlement is computed" />
+      </label>
+      <div class="pb-form-row">
+        <label>
+          <span>max_items_per_section</span>
+          <input type="number" name="max_items_per_section" value="12" min="1" max="100" />
+        </label>
+        <div class="pb-form-actions">
+          <button type="submit">Build Context</button>
+          <span id="context-spinner" class="htmx-indicator pb-muted">Building…</span>
+        </div>
+      </div>
+    </form>
+
+    <div id="context-result" class="pb-result-area" aria-live="polite">
+      {% if last_run %}
+        {% with context_pack = last_run, artifact_path = None %}
+          {% include "_partials/context_result.html" %}
+        {% endwith %}
+      {% else %}
+        <p class="pb-muted">Submit the form above to build a Context Pack. The
+          result will appear here.</p>
+      {% endif %}
+    </div>
+  </section>
+
+  {% include "_partials/policy_summary.html" %}
+</div>
+{% endblock %}

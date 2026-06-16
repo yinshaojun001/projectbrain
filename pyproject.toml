@@ -10,7 +10,7 @@ requires-python = ">=3.11"
 dependencies = []
 
 [project.optional-dependencies]
-api = ["fastapi>=0.115", "uvicorn>=0.30", "httpx>=0.28"]
+api = ["fastapi>=0.115", "uvicorn>=0.30", "httpx>=0.28", "jinja2>=3.1", "python-multipart>=0.0.9"]
 
 [tool.setuptools.packages.find]
 where = ["packages/adapters", "packages/runtime", "packages/schema", "apps/api"]

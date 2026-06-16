@@ -19,6 +19,7 @@ v0.2 includes:
 - local `.projectbrain-policy` output controls
 - policy inspection through CLI and MCP
 - local-only stdio MCP server
+- optional local-only Observability UI (`/ui/*`, 127.0.0.1)
 
 v0.2 does not include:
 
@@ -178,6 +179,32 @@ git diff --cached | rg -n "PRIVATE KEY|PASSWORD|SECRET_KEY|AKIA|sk-[A-Za-z0-9]|i
 Expected result:
 
 - no output
+
+## Optional UI Smoke
+
+If the optional `[api]` extra is installed, also exercise the Observability UI:
+
+```bash
+PYTHONPATH=apps/api:packages/adapters:packages/runtime:packages/schema \
+.venv/bin/uvicorn projectbrain_api.main:app --reload
+```
+
+In another shell:
+
+```bash
+curl -sf http://127.0.0.1:8000/ui/projects > /dev/null
+curl -sf http://127.0.0.1:8000/ui/static/app.css | head -1
+```
+
+Expected result:
+
+- `/ui/projects` returns HTML with the import form
+- `/ui/static/app.css` returns the bundled stylesheet
+- the running uvicorn process binds only to `127.0.0.1` (verify with
+  `lsof -nP -iTCP:8000 -sTCP:LISTEN` — no `*:8000` or `0.0.0.0:8000`)
+
+This path is also covered automatically by `tests/test_ui_smoke.py` and
+`tests/test_api_fastapi.py::test_ui_wave3_pages`.
 
 ## GitHub Actions
 

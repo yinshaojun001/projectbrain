@@ -1,0 +1,99 @@
+{% extends "base.html" %}
+{% block title %}{{ title }}{% endblock %}
+{% block content %}
+<section class="pb-card">
+  <div class="pb-card-head">
+    <h1>{{ heading }}</h1>
+    <span class="pb-muted">{{ projects | length }} project(s)</span>
+  </div>
+
+  {% if projects %}
+  <table class="pb-table">
+    <thead>
+      <tr>
+        <th>project_id</th>
+        <th>name</th>
+        <th>source_path</th>
+        <th>imported</th>
+        <th>actions</th>
+      </tr>
+    </thead>
+    <tbody>
+      {% for project in projects %}
+      <tr>
+        <td><code>{{ project.project_id }}</code></td>
+        <td>{{ project.name }}</td>
+        <td class="pb-mono pb-truncate" title="{{ project.source_path }}">{{ project.source_path }}</td>
+        <td class="pb-muted">{{ project.metadata.imported_at or project.created_at or "—" }}</td>
+        <td class="pb-actions">
+          <a href="/ui/projects/{{ project.project_id }}/context">Context</a>
+          <a href="/ui/projects/{{ project.project_id }}/impact">Impact</a>
+          <a href="/ui/projects/{{ project.project_id }}/policy">Policy</a>
+        </td>
+      </tr>
+      {% endfor %}
+    </tbody>
+  </table>
+  {% else %}
+  <p class="pb-muted">No projects imported yet. Use the form below to import one.</p>
+  {% endif %}
+</section>
+
+<section class="pb-card">
+  <h2>Import a project</h2>
+  <p class="pb-muted">
+    Runs the same logic as <code>POST /api/v1/projects/import</code>. Long
+    imports may take a few seconds; a spinner shows while the request is in
+    flight.
+  </p>
+  <form
+    class="pb-form"
+    hx-post="/ui/projects/import"
+    hx-target="#import-error"
+    hx-swap="innerHTML"
+    hx-indicator="#import-spinner"
+  >
+    <div class="pb-form-row">
+      <label>
+        <span>project_id <em>*</em></span>
+        <input type="text" name="project_id" required placeholder="payment_mini" />
+      </label>
+      <label>
+        <span>name</span>
+        <input type="text" name="name" placeholder="Payment Mini Demo" />
+      </label>
+    </div>
+    <label>
+      <span>project_path <em>*</em> (absolute path to source repo)</span>
+      <input type="text" name="project_path" required placeholder="/path/to/repo" />
+    </label>
+    <label>
+      <span>experience_seed (optional path to seed file)</span>
+      <input type="text" name="experience_seed" placeholder="/path/to/experience-seed.md" />
+    </label>
+    <label>
+      <span>path_prefixes (one per line, optional)</span>
+      <textarea name="path_prefixes" rows="3" placeholder="src/main/java/com/example/"></textarea>
+    </label>
+    <div class="pb-form-row">
+      <label>
+        <span>kinds (comma-separated)</span>
+        <input type="text" name="kinds" placeholder="class, interface, method" />
+      </label>
+      <label>
+        <span>node_limit</span>
+        <input type="number" name="node_limit" value="200" min="1" />
+      </label>
+      <label>
+        <span>edge_limit</span>
+        <input type="number" name="edge_limit" value="300" min="1" />
+      </label>
+    </div>
+    <div class="pb-form-actions">
+      <button type="submit">Import</button>
+      <span id="import-spinner" class="htmx-indicator pb-muted">Importing… this can take a few seconds.</span>
+    </div>
+  </form>
+  <div id="import-error" aria-live="polite"></div>
+</section>
+{% endblock %}

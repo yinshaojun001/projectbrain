@@ -1,0 +1,83 @@
+{# Render an Impact Analysis result. Expects `impact_analysis`, `artifact_path`, `git_diff`, `source_label`. #}
+<div class="pb-result">
+  <div class="pb-result-head">
+    <h3>Impact Analysis <span class="pb-pill pb-pill-soft">{{ source_label }}</span></h3>
+    <span class="pb-pill">{{ impact_analysis.impact_analysis_id }}</span>
+  </div>
+  <p class="pb-muted">{{ impact_analysis.summary }}</p>
+
+  {% if git_diff %}
+  <div class="pb-callout">
+    <strong>git diff</strong>: <code>{{ git_diff.selection }}</code>
+    in <code class="pb-truncate" title="{{ git_diff.repo_path }}">{{ git_diff.repo_path }}</code>
+    — {{ git_diff.changed_files | length }} file(s) changed.
+  </div>
+  {% endif %}
+
+  {% if artifact_path %}
+  <p class="pb-muted">Saved to <code class="pb-truncate" title="{{ artifact_path }}">{{ artifact_path }}</code></p>
+  {% endif %}
+
+  {% if impact_analysis.review_recommendation %}
+  <div class="pb-callout pb-callout-{{ impact_analysis.review_recommendation.action or 'info' }}">
+    <strong>review_recommendation:</strong>
+    <code>{{ impact_analysis.review_recommendation.action }}</code>
+    {% if impact_analysis.review_recommendation.reason %}
+      — {{ impact_analysis.review_recommendation.reason }}
+    {% endif %}
+  </div>
+  {% endif %}
+
+  {% if impact_analysis.change %}
+  <h4>change</h4>
+  <ul class="pb-tight pb-mono">
+    {% for path in impact_analysis.change.changed_files %}<li>{{ path }}</li>{% endfor %}
+    {% for symbol in impact_analysis.change.changed_symbols %}<li>{{ symbol }}</li>{% endfor %}
+  </ul>
+  {% endif %}
+
+  {% for section in impact_analysis.sections %}
+  <details class="pb-section" {% if section["items"] %}open{% endif %}>
+    <summary>
+      <span class="pb-section-name">{{ section.type }}</span>
+      <span class="pb-section-count">{{ section["items"] | length }} item(s)</span>
+    </summary>
+    {% if section["items"] %}
+    <ul class="pb-section-items">
+      {% for item in section["items"] %}
+      <li>
+        {% if section.type == "changed_entities" or section.type == "affected_entities" %}
+          <code>{{ item.entity_type }}</code> <strong>{{ item.qualified_name or item.name }}</strong>
+          {% if item.file or (item.properties and item.properties.file_path) %}
+            <span class="pb-muted">— {{ item.file or item.properties.file_path }}</span>
+          {% endif %}
+        {% elif section.type == "affected_calls" or section.type == "affected_dependencies" %}
+          <code>{{ item.relation_type }}</code> {{ item["from"] }} → {{ item["to"] }}
+        {% elif section.type == "experience_claims" %}
+          <code>{{ item.review_state or "?" }}</code> · <code>{{ item.risk_level or "?" }}</code>
+          — {{ item.statement }}
+        {% elif section.type == "risk_warnings" %}
+          {{ item.statement or item }}
+        {% elif item is mapping %}
+          <code class="pb-mono pb-tight">{{ item | tojson }}</code>
+        {% else %}
+          {{ item }}
+        {% endif %}
+      </li>
+      {% endfor %}
+    </ul>
+    {% else %}
+    <p class="pb-muted pb-empty">(empty)</p>
+    {% endif %}
+  </details>
+  {% endfor %}
+
+  {% if impact_analysis.recommended_tests %}
+  <h4>recommended_tests ({{ impact_analysis.recommended_tests | length }})</h4>
+  <ul class="pb-mono pb-tight">
+    {% for test in impact_analysis.recommended_tests %}
+    <li>{{ test.qualified_name if test is mapping else test }}</li>
+    {% endfor %}
+  </ul>
+  {% endif %}
+</div>
