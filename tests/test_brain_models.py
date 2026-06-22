@@ -262,6 +262,73 @@ class BrainModelsTest(unittest.TestCase):
         )
         self.assertEqual(candidate.proposed_unit["confidence"], 0.7)
 
+    def test_memory_candidate_rejects_invalid_proposed_unit_shape(self):
+        invalid_units = (
+            {"statement": "Refund fee rule"},
+            {"type": "unsupported", "statement": "Refund fee rule"},
+            {"type": "constraint"},
+            {"type": "constraint", "statement": "   "},
+            {"type": "constraint", "statement": "Refund fee rule", "title": "   "},
+        )
+
+        for proposed_unit in invalid_units:
+            with self.subTest(proposed_unit=proposed_unit):
+                with self.assertRaises(ValueError):
+                    MemoryCandidate(
+                        candidate_id="mc_invalid_shape",
+                        project_id="payment",
+                        session_id=None,
+                        proposed_unit=proposed_unit,
+                    )
+
+    def test_memory_candidate_accepts_plan_compatible_proposed_unit_without_title(self):
+        candidate = MemoryCandidate(
+            candidate_id="mc_plan_compatible",
+            project_id="payment",
+            session_id=None,
+            proposed_unit={"type": "constraint", "statement": "Refund fee rule"},
+        )
+
+        self.assertEqual(
+            candidate.to_dict()["proposed_unit"],
+            {"type": "constraint", "statement": "Refund fee rule"},
+        )
+
+    def test_memory_candidate_normalizes_proposed_unit_string_lists(self):
+        candidate = MemoryCandidate(
+            candidate_id="mc_normalized_lists",
+            project_id="payment",
+            session_id=None,
+            proposed_unit={
+                "type": "constraint",
+                "statement": "Refund fee rule",
+                "tags": " refund ",
+                "applies_to": [" RefundService ", "", "SettlementService"],
+            },
+        )
+
+        self.assertEqual(candidate.proposed_unit["tags"], ["refund"])
+        self.assertEqual(candidate.proposed_unit["applies_to"], ["RefundService", "SettlementService"])
+
+    def test_review_state_strips_whitespace_and_defaults_blank(self):
+        unit = KnowledgeUnit(
+            id="ku_review_state_strip",
+            type="constraint",
+            title="Review state strip",
+            statement="Whitespace review states should be normalized.",
+            review_state=" human_confirmed ",
+        )
+        candidate = MemoryCandidate(
+            candidate_id="mc_review_state_blank",
+            project_id="payment",
+            session_id=None,
+            proposed_unit={"type": "constraint", "statement": "Refund fee rule"},
+            review_state="   ",
+        )
+
+        self.assertEqual(unit.review_state, "human_confirmed")
+        self.assertEqual(candidate.review_state, "human_review_required")
+
     def test_required_knowledge_unit_fields_reject_empty_strings(self):
         with self.assertRaises(ValueError):
             KnowledgeUnit(

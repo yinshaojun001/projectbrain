@@ -71,6 +71,7 @@ class _ImmutableDict(dict):
 
 
 def make_brain_id(prefix: str, text: str, *, max_slug_length: int = 64) -> str:
+    # Stable readable ID helper; callers still own global uniqueness.
     safe_prefix = re.sub(r"[^a-zA-Z0-9]+", "_", str(prefix).strip().lower()).strip("_")
     safe_prefix = re.sub(r"_+", "_", safe_prefix) or "memory"
     slug = re.sub(r"[^a-zA-Z0-9]+", "_", str(text).strip().lower()).strip("_")
@@ -137,7 +138,8 @@ def _plain(value: Any) -> Any:
 
 
 def _review_state(value: str | None) -> str:
-    normalized = value or "human_review_required"
+    normalized = str(value).strip() if value is not None else ""
+    normalized = normalized or "human_review_required"
     if normalized not in REVIEW_STATES:
         raise ValueError(f"Unsupported review_state: {normalized}")
     return normalized
@@ -147,6 +149,24 @@ def _knowledge_type(value: str) -> str:
     if value not in KNOWLEDGE_TYPES:
         raise ValueError(f"Unsupported knowledge type: {value}")
     return value
+
+
+def _proposed_unit(value: Any) -> dict[str, Any]:
+    if not isinstance(value, dict) or not value:
+        raise ValueError("proposed_unit must be a non-empty dict")
+    normalized = deepcopy(value)
+    normalized["type"] = _required_string("proposed_unit.type", normalized.get("type"))
+    _knowledge_type(normalized["type"])
+    normalized["statement"] = _required_string("proposed_unit.statement", normalized.get("statement"))
+    if "title" in normalized:
+        normalized["title"] = _required_string("proposed_unit.title", normalized.get("title"))
+    if "confidence" in normalized:
+        normalized["confidence"] = _confidence(normalized["confidence"])
+    if "tags" in normalized:
+        normalized["tags"] = _string_list(normalized["tags"])
+    if "applies_to" in normalized:
+        normalized["applies_to"] = _string_list(normalized["applies_to"])
+    return normalized
 
 
 @dataclass(frozen=True)
@@ -237,12 +257,7 @@ class MemoryCandidate:
         object.__setattr__(self, "project_id", _required_string("project_id", self.project_id))
         if self.session_id is not None:
             object.__setattr__(self, "session_id", _required_string("session_id", self.session_id))
-        if not isinstance(self.proposed_unit, dict) or not self.proposed_unit:
-            raise ValueError("proposed_unit must be a non-empty dict")
-        proposed_unit = deepcopy(self.proposed_unit)
-        if "confidence" in proposed_unit:
-            proposed_unit["confidence"] = _confidence(proposed_unit["confidence"])
-        object.__setattr__(self, "proposed_unit", _freeze(proposed_unit))
+        object.__setattr__(self, "proposed_unit", _freeze(_proposed_unit(self.proposed_unit)))
         object.__setattr__(self, "evidence", _freeze(_dict_list(self.evidence)))
         object.__setattr__(self, "extraction", _freeze(_dict(self.extraction)))
         object.__setattr__(self, "possible_duplicates", _freeze(_dict_list(self.possible_duplicates)))
