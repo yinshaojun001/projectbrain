@@ -1,0 +1,33 @@
+{% if candidates %}
+<ul class="pb-list">
+  {% for candidate in candidates %}
+  <li>
+    <div class="pb-list-head">
+      <strong>{{ candidate.proposed_unit.title or candidate.proposed_unit.type or "候选知识" }}</strong>
+      <code>{{ candidate.review_state }}</code>
+    </div>
+    <p>{{ candidate.proposed_unit.statement }}</p>
+    <p class="pb-muted">
+      candidate_id：<code>{{ candidate.candidate_id }}</code>
+      {% if candidate.session_id %}· session：<code>{{ candidate.session_id }}</code>{% endif %}
+    </p>
+    {% if candidate.possible_duplicates %}
+    <details>
+      <summary>可能重复：{{ candidate.possible_duplicates | length }}</summary>
+      <ul>
+        {% for duplicate in candidate.possible_duplicates %}
+        <li>
+          <code>{{ duplicate.knowledge_unit_id }}</code>
+          similarity=<code>{{ duplicate.similarity }}</code>
+          — {{ duplicate.statement }}
+        </li>
+        {% endfor %}
+      </ul>
+    </details>
+    {% endif %}
+  </li>
+  {% endfor %}
+</ul>
+{% else %}
+<p class="pb-muted">暂无待确认知识。</p>
+{% endif %}

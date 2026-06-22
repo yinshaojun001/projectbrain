@@ -1,0 +1,26 @@
+{% if units %}
+<ul class="pb-list">
+  {% for unit in units %}
+  <li>
+    <div class="pb-list-head">
+      <strong>{{ unit.title or unit.type }}</strong>
+      <code>{{ unit.type }}</code>
+    </div>
+    <p>{{ unit.statement }}</p>
+    <p class="pb-muted">
+      状态：<code>{{ unit.review_state }}</code>
+      · 置信度：<code>{{ unit.confidence }}</code>
+      · 风险：<code>{{ unit.risk_level }}</code>
+    </p>
+    {% if unit.tags %}
+    <p class="pb-muted">标签：{{ unit.tags | join(", ") }}</p>
+    {% endif %}
+    {% if unit.applies_to %}
+    <p class="pb-muted">适用：{{ unit.applies_to | join(", ") }}</p>
+    {% endif %}
+  </li>
+  {% endfor %}
+</ul>
+{% else %}
+<p class="pb-muted">暂无知识。</p>
+{% endif %}

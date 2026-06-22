@@ -13,6 +13,7 @@ Routes (all local-only, mounted under /ui):
 * POST /ui/projects/{id}/impact/git-diff         — HTMX partial: git-diff impact
 * GET  /ui/projects/{id}/impact/last-run         — HTMX partial: last run
 * GET  /ui/projects/{id}/policy                  — Policy details page
+* GET  /ui/projects/{id}/brain                   — Brain Explorer page
 
 This module renders HTML only. JSON API consumers continue to use /api/v1/*.
 """
@@ -193,6 +194,49 @@ def ui_projects_import(
 @router.get("/projects/{project_id}", include_in_schema=False)
 def ui_project_detail(project_id: str) -> RedirectResponse:
     return RedirectResponse(url=f"/ui/projects/{project_id}/context", status_code=303)
+
+
+# ---------- Brain Explorer ---------- #
+
+
+def brain_page_context(runtime: Any, project_id: str, q: str | None = None) -> dict[str, Any]:
+    project = runtime.repository.get_project(project_id)
+    brain = runtime.brain_for_project(project_id)
+    knowledge = brain.search(q) if q else brain.list_knowledge()
+    candidates = brain.list_candidates(review_state="human_review_required")
+    return {
+        "title": f"{project.name} · Brain",
+        "heading": "Project Brain",
+        "project": project,
+        "summary": brain.summary(),
+        "knowledge": knowledge,
+        "candidates": candidates,
+        "query": q or "",
+    }
+
+
+@router.get(
+    "/projects/{project_id}/brain",
+    response_class=HTMLResponse,
+    include_in_schema=False,
+)
+def project_brain(
+    request: Request,
+    project_id: str,
+    q: str | None = None,
+) -> HTMLResponse:
+    runtime = _runtime()
+    try:
+        context = brain_page_context(runtime, project_id, q=q)
+    except (FileNotFoundError, ValueError):
+        return _error_partial(
+            request, f"未找到项目 '{project_id}'", status_code=404
+        )
+    return templates.TemplateResponse(
+        request,
+        "projects/brain.html",
+        _base_context(**context),
+    )
 
 
 # ---------- Context Pack ---------- #

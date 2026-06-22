@@ -1,0 +1,46 @@
+{% extends "base.html" %}
+{% block title %}{{ title }}{% endblock %}
+{% block content %}
+<div class="pb-grid">
+  <section class="pb-card">
+    <div class="pb-card-head">
+      <h1>{{ heading }}</h1>
+      <nav class="pb-subnav">
+        <a href="/ui/projects">← 项目列表</a>
+        <a href="/ui/projects/{{ project.project_id }}/context">Context</a>
+        <a href="/ui/projects/{{ project.project_id }}/impact">Impact</a>
+        <a href="/ui/projects/{{ project.project_id }}/policy">策略</a>
+      </nav>
+    </div>
+    <p class="pb-muted"><code>{{ project.source_path }}</code></p>
+
+    <div class="pb-callout">
+      <strong>Brain Summary</strong>：{{ summary.knowledge_unit_count }} 条知识，{{ summary.candidate_count }} 条待确认。
+    </div>
+
+    <form class="pb-form" method="get" action="/ui/projects/{{ project.project_id }}/brain">
+      <label>
+        <span>搜索项目大脑</span>
+        <input type="text" name="q" value="{{ query }}" aria-label="搜索项目大脑" />
+      </label>
+      <div class="pb-form-actions"><button type="submit">搜索</button></div>
+    </form>
+
+    <h2>待确认知识</h2>
+    {% with candidates = candidates.candidates %}
+      {% include "_partials/brain_candidate_list.html" %}
+    {% endwith %}
+
+    <h2>知识库</h2>
+    {% if knowledge.matches is defined %}
+      {% with units = knowledge.matches %}
+        {% include "_partials/brain_knowledge_list.html" %}
+      {% endwith %}
+    {% else %}
+      {% with units = knowledge.knowledge_units %}
+        {% include "_partials/brain_knowledge_list.html" %}
+      {% endwith %}
+    {% endif %}
+  </section>
+</div>
+{% endblock %}
