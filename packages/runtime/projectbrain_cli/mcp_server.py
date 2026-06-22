@@ -137,6 +137,52 @@ class ProjectBrainMcpServer:
                 )
                 return self._tool_result(request_id, data)
 
+            if name == "projectbrain_remember":
+                data = self.runtime.brain_for_project(_required(arguments, "project_id")).remember(
+                    type=_required(arguments, "type"),
+                    statement=_required(arguments, "statement"),
+                    title=arguments.get("title"),
+                    summary=arguments.get("summary", ""),
+                    tags=arguments.get("tags", []),
+                    applies_to=arguments.get("applies_to", []),
+                    review_state=arguments.get("review_state", "human_review_required"),
+                    confidence=float(arguments.get("confidence", 0.8)),
+                    risk_level=arguments.get("risk_level", "normal"),
+                )
+                return self._tool_result(request_id, data)
+
+            if name == "projectbrain_propose_memories":
+                data = self.runtime.brain_for_project(_required(arguments, "project_id")).propose_memories(
+                    project_id=_required(arguments, "project_id"),
+                    session_id=arguments.get("session_id"),
+                    candidates=arguments.get("candidates", []),
+                )
+                return self._tool_result(request_id, data)
+
+            if name == "projectbrain_search_brain":
+                data = self.runtime.brain_for_project(_required(arguments, "project_id")).search(
+                    _required(arguments, "query"),
+                    limit=int(arguments.get("limit", 20)),
+                )
+                return self._tool_result(request_id, data)
+
+            if name == "projectbrain_list_memory_candidates":
+                data = self.runtime.brain_for_project(_required(arguments, "project_id")).list_candidates(
+                    review_state=arguments.get("review_state")
+                )
+                return self._tool_result(request_id, data)
+
+            if name == "projectbrain_review_memory_candidate":
+                service = self.runtime.brain_for_project(_required(arguments, "project_id"))
+                action = arguments.get("action", "confirm")
+                if action == "confirm":
+                    data = service.confirm_candidate(_required(arguments, "candidate_id"))
+                elif action == "reject":
+                    data = service.reject_candidate(_required(arguments, "candidate_id"))
+                else:
+                    raise ValueError("action must be confirm or reject")
+                return self._tool_result(request_id, data)
+
             if name == "projectbrain_context_pack":
                 data = self.runtime.build_context_pack(
                     project_id=_required(arguments, "project_id"),
@@ -276,6 +322,77 @@ class ProjectBrainMcpServer:
                         "project_id": {"type": "string"},
                         "claim_id": {"type": "string"},
                         "reason": {"type": "string"},
+                    },
+                },
+            },
+            {
+                "name": "projectbrain_remember",
+                "description": "Write durable project knowledge into the local project Brain.",
+                "inputSchema": {
+                    "type": "object",
+                    "required": ["project_id", "type", "statement"],
+                    "properties": {
+                        "project_id": {"type": "string"},
+                        "type": {"type": "string"},
+                        "statement": {"type": "string"},
+                        "title": {"type": "string"},
+                        "summary": {"type": "string"},
+                        "tags": {"type": "array", "items": {"type": "string"}},
+                        "applies_to": {"type": "array", "items": {"type": "string"}},
+                        "review_state": {"type": "string"},
+                        "confidence": {"type": "number"},
+                        "risk_level": {"type": "string"},
+                    },
+                },
+            },
+            {
+                "name": "projectbrain_propose_memories",
+                "description": "Submit memory candidates extracted from a Codex session for human review.",
+                "inputSchema": {
+                    "type": "object",
+                    "required": ["project_id", "candidates"],
+                    "properties": {
+                        "project_id": {"type": "string"},
+                        "session_id": {"type": "string"},
+                        "candidates": {"type": "array", "items": {"type": "object"}},
+                    },
+                },
+            },
+            {
+                "name": "projectbrain_search_brain",
+                "description": "Search durable local project Brain knowledge.",
+                "inputSchema": {
+                    "type": "object",
+                    "required": ["project_id", "query"],
+                    "properties": {
+                        "project_id": {"type": "string"},
+                        "query": {"type": "string"},
+                        "limit": {"type": "integer", "default": 20},
+                    },
+                },
+            },
+            {
+                "name": "projectbrain_list_memory_candidates",
+                "description": "List memory candidates awaiting review.",
+                "inputSchema": {
+                    "type": "object",
+                    "required": ["project_id"],
+                    "properties": {
+                        "project_id": {"type": "string"},
+                        "review_state": {"type": "string"},
+                    },
+                },
+            },
+            {
+                "name": "projectbrain_review_memory_candidate",
+                "description": "Confirm or reject a memory candidate.",
+                "inputSchema": {
+                    "type": "object",
+                    "required": ["project_id", "candidate_id", "action"],
+                    "properties": {
+                        "project_id": {"type": "string"},
+                        "candidate_id": {"type": "string"},
+                        "action": {"type": "string", "enum": ["confirm", "reject"]},
                     },
                 },
             },

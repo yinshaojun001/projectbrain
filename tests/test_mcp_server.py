@@ -14,6 +14,7 @@ sys.path.insert(0, str(ROOT / "tests"))
 
 from fixtures import create_payment_mini_codegraph_project  # noqa: E402
 from projectbrain_cli.mcp_server import ProjectBrainMcpServer, serve_stdio  # noqa: E402
+from projectbrain_runtime.models import ProjectRecord  # noqa: E402
 
 
 class ProjectBrainMcpServerTest(unittest.TestCase):
@@ -33,6 +34,11 @@ class ProjectBrainMcpServerTest(unittest.TestCase):
             self.assertIn("projectbrain_list_experience_claims", tool_names)
             self.assertIn("projectbrain_review_experience_claim", tool_names)
             self.assertIn("projectbrain_archive_experience_claim", tool_names)
+            self.assertIn("projectbrain_remember", tool_names)
+            self.assertIn("projectbrain_propose_memories", tool_names)
+            self.assertIn("projectbrain_search_brain", tool_names)
+            self.assertIn("projectbrain_list_memory_candidates", tool_names)
+            self.assertIn("projectbrain_review_memory_candidate", tool_names)
             self.assertIn("projectbrain_context_pack", tool_names)
             self.assertIn("projectbrain_impact_analysis", tool_names)
             self.assertIn("projectbrain_review_git_diff", tool_names)
@@ -102,6 +108,60 @@ class ProjectBrainMcpServerTest(unittest.TestCase):
             response = json.loads(stdout.getvalue())
             self.assertEqual(response["id"], 1)
             self.assertIn("tools", response["result"])
+
+    def test_mcp_can_propose_search_and_confirm_brain_memory(self):
+        with tempfile.TemporaryDirectory() as tmp:
+            project_path = Path(tmp) / "repo"
+            project_path.mkdir()
+            server = ProjectBrainMcpServer(store_root=str(Path(tmp) / "store"))
+            server.repository.save_project(ProjectRecord(
+                project_id="payment",
+                name="Payment",
+                source_path=str(project_path),
+                codegraph_db_path=str(project_path / ".codegraph/codegraph.db"),
+            ))
+
+            proposed = server.handle_message({
+                "jsonrpc": "2.0",
+                "id": 1,
+                "method": "tools/call",
+                "params": {
+                    "name": "projectbrain_propose_memories",
+                    "arguments": {
+                        "project_id": "payment",
+                        "session_id": "session1",
+                        "candidates": [
+                            {"type": "constraint", "statement": "Refund fee must be booked separately.", "tags": ["refund"]}
+                        ],
+                    },
+                },
+            })
+            proposed_data = json.loads(proposed["result"]["content"][0]["text"])
+            candidate_id = proposed_data["candidates"][0]["candidate_id"]
+
+            confirmed = server.handle_message({
+                "jsonrpc": "2.0",
+                "id": 2,
+                "method": "tools/call",
+                "params": {
+                    "name": "projectbrain_review_memory_candidate",
+                    "arguments": {"project_id": "payment", "candidate_id": candidate_id, "action": "confirm"},
+                },
+            })
+            confirmed_data = json.loads(confirmed["result"]["content"][0]["text"])
+            self.assertEqual(confirmed_data["knowledge_unit"]["type"], "constraint")
+
+            search = server.handle_message({
+                "jsonrpc": "2.0",
+                "id": 3,
+                "method": "tools/call",
+                "params": {
+                    "name": "projectbrain_search_brain",
+                    "arguments": {"project_id": "payment", "query": "refund"},
+                },
+            })
+            search_data = json.loads(search["result"]["content"][0]["text"])
+            self.assertEqual(search_data["matches"][0]["type"], "constraint")
 
 
 def _call_tool(server: ProjectBrainMcpServer, name: str, arguments: dict) -> dict:
