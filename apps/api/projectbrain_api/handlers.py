@@ -137,6 +137,51 @@ def archive_claim_handler(
     )
 
 
+def brain_summary_handler(runtime: ProjectBrainRuntime, project_id: str) -> dict[str, Any]:
+    return runtime.brain_for_project(project_id).summary()
+
+
+def brain_knowledge_list_handler(runtime: ProjectBrainRuntime, project_id: str, query: dict[str, Any]) -> dict[str, Any]:
+    q = query.get("q")
+    service = runtime.brain_for_project(project_id)
+    if q:
+        return service.search(str(q), limit=int(query.get("limit", 20)))
+    return service.list_knowledge(
+        type=query.get("type"),
+        review_state=query.get("review_state"),
+        staleness=query.get("staleness"),
+        tag=query.get("tag"),
+        include_archived=bool(query.get("include_archived", False)),
+    )
+
+
+def brain_knowledge_create_handler(runtime: ProjectBrainRuntime, project_id: str, payload: dict[str, Any]) -> dict[str, Any]:
+    _require_payload_keys(payload, ["type", "statement"])
+    return runtime.brain_for_project(project_id).remember(
+        type=payload["type"],
+        statement=payload["statement"],
+        title=payload.get("title"),
+        summary=payload.get("summary", ""),
+        tags=payload.get("tags", []),
+        applies_to=payload.get("applies_to", []),
+        review_state=payload.get("review_state", "human_review_required"),
+        confidence=float(payload.get("confidence", 0.8)),
+        risk_level=payload.get("risk_level", "normal"),
+    )
+
+
+def brain_candidates_handler(runtime: ProjectBrainRuntime, project_id: str, query: dict[str, Any]) -> dict[str, Any]:
+    return runtime.brain_for_project(project_id).list_candidates(review_state=query.get("review_state"))
+
+
+def brain_candidate_confirm_handler(runtime: ProjectBrainRuntime, project_id: str, candidate_id: str) -> dict[str, Any]:
+    return runtime.brain_for_project(project_id).confirm_candidate(candidate_id)
+
+
+def brain_candidate_reject_handler(runtime: ProjectBrainRuntime, project_id: str, candidate_id: str) -> dict[str, Any]:
+    return runtime.brain_for_project(project_id).reject_candidate(candidate_id)
+
+
 def _parse_git_diff_selection(selection: dict[str, Any]) -> GitDiffSelection:
     if not isinstance(selection, dict):
         raise ValueError("selection must be an object")

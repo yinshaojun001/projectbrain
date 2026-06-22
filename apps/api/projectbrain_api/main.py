@@ -9,6 +9,12 @@ from projectbrain_api.dependencies import build_runtime
 from projectbrain_api.handlers import (
     add_claim_handler,
     archive_claim_handler,
+    brain_candidate_confirm_handler,
+    brain_candidate_reject_handler,
+    brain_candidates_handler,
+    brain_knowledge_create_handler,
+    brain_knowledge_list_handler,
+    brain_summary_handler,
     context_pack_handler,
     git_diff_impact_handler,
     health_response,
@@ -128,5 +134,53 @@ def review_claim(project_id: str, claim_id: str, payload: dict[str, Any]) -> dic
 def archive_claim(project_id: str, claim_id: str, reason: str | None = None) -> dict[str, Any]:
     try:
         return archive_claim_handler(build_runtime(), project_id, claim_id, reason=reason)
+    except (FileNotFoundError, ValueError) as exc:
+        raise HTTPException(status_code=400, detail=str(exc)) from exc
+
+
+@app.get("/api/v1/projects/{project_id}/brain/summary")
+def brain_summary(project_id: str) -> dict[str, Any]:
+    try:
+        return brain_summary_handler(build_runtime(), project_id)
+    except (FileNotFoundError, ValueError) as exc:
+        raise HTTPException(status_code=400, detail=str(exc)) from exc
+
+
+@app.get("/api/v1/projects/{project_id}/brain/knowledge")
+def brain_knowledge(project_id: str, q: str | None = None, type: str | None = None, review_state: str | None = None, tag: str | None = None, limit: int = 20) -> dict[str, Any]:
+    try:
+        return brain_knowledge_list_handler(build_runtime(), project_id, {"q": q, "type": type, "review_state": review_state, "tag": tag, "limit": limit})
+    except (FileNotFoundError, ValueError) as exc:
+        raise HTTPException(status_code=400, detail=str(exc)) from exc
+
+
+@app.post("/api/v1/projects/{project_id}/brain/knowledge")
+def brain_create_knowledge(project_id: str, payload: dict[str, Any]) -> dict[str, Any]:
+    try:
+        return brain_knowledge_create_handler(build_runtime(), project_id, payload)
+    except (FileNotFoundError, ValueError) as exc:
+        raise HTTPException(status_code=400, detail=str(exc)) from exc
+
+
+@app.get("/api/v1/projects/{project_id}/brain/candidates")
+def brain_candidates(project_id: str, review_state: str | None = None) -> dict[str, Any]:
+    try:
+        return brain_candidates_handler(build_runtime(), project_id, {"review_state": review_state})
+    except (FileNotFoundError, ValueError) as exc:
+        raise HTTPException(status_code=400, detail=str(exc)) from exc
+
+
+@app.post("/api/v1/projects/{project_id}/brain/candidates/{candidate_id}/confirm")
+def brain_confirm_candidate(project_id: str, candidate_id: str) -> dict[str, Any]:
+    try:
+        return brain_candidate_confirm_handler(build_runtime(), project_id, candidate_id)
+    except (FileNotFoundError, ValueError) as exc:
+        raise HTTPException(status_code=400, detail=str(exc)) from exc
+
+
+@app.post("/api/v1/projects/{project_id}/brain/candidates/{candidate_id}/reject")
+def brain_reject_candidate(project_id: str, candidate_id: str) -> dict[str, Any]:
+    try:
+        return brain_candidate_reject_handler(build_runtime(), project_id, candidate_id)
     except (FileNotFoundError, ValueError) as exc:
         raise HTTPException(status_code=400, detail=str(exc)) from exc
