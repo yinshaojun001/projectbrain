@@ -10,7 +10,7 @@ from pathlib import Path
 from typing import Iterator
 from typing import TypeVar
 
-from projectbrain_runtime.brain.models import ConversationSession, KnowledgeUnit, MemoryCandidate, now_iso
+from projectbrain_runtime.brain.models import ConversationSession, KnowledgeUnit, MemoryCandidate, make_brain_id, now_iso
 
 T = TypeVar("T")
 
@@ -84,6 +84,61 @@ class BrainRepository:
 
     def get_memory_candidate(self, candidate_id: str) -> MemoryCandidate:
         return _get_by_key(self.list_memory_candidates(), "candidate_id", candidate_id)
+
+    def confirm_memory_candidate(self, candidate_id: str) -> tuple[MemoryCandidate, KnowledgeUnit]:
+        self.ensure()
+        with _locked_jsonl(self.root / "transaction.jsonl"):
+            candidate_items = _read_jsonl(self.candidates_path)
+            candidate_data = _get_dict_by_key(candidate_items, "candidate_id", candidate_id)
+            candidate = MemoryCandidate.from_dict(candidate_data)
+
+            if candidate.review_state == "human_confirmed":
+                unit_id = candidate.extraction.get("confirmed_knowledge_unit_id")
+                if not unit_id:
+                    raise ValueError(f"Confirmed candidate has no linked knowledge unit: {candidate_id}")
+                unit_data = _get_dict_by_key(_read_jsonl(self.knowledge_path), "id", str(unit_id))
+                return candidate, KnowledgeUnit.from_dict(unit_data)
+            if candidate.review_state == "rejected":
+                raise ValueError(f"Cannot confirm rejected candidate: {candidate_id}")
+            if candidate.review_state != "human_review_required":
+                raise ValueError(f"Cannot confirm candidate in state {candidate.review_state}: {candidate_id}")
+
+            proposed = candidate.proposed_unit
+            unit = KnowledgeUnit(
+                id=make_brain_id("ku", proposed.get("title") or proposed["statement"]),
+                type=proposed["type"],
+                title=proposed.get("title") or proposed["statement"][:80],
+                statement=proposed["statement"],
+                summary=proposed.get("summary", ""),
+                tags=proposed.get("tags", []),
+                applies_to=proposed.get("applies_to", []),
+                confidence=float(proposed.get("confidence", 0.8)),
+                risk_level=proposed.get("risk_level", "normal"),
+                review_state="human_confirmed",
+                source={
+                    "kind": "conversation",
+                    "session_id": candidate.session_id,
+                    "candidate_id": candidate.candidate_id,
+                    "client": "codex-brain",
+                },
+                evidence=candidate.evidence,
+            )
+
+            knowledge_items = _read_jsonl(self.knowledge_path)
+            unit_data = unit.to_dict()
+            unit_data["id"] = _available_key(str(unit_data["id"]), {str(existing.get("id")) for existing in knowledge_items})
+
+            extraction = {**candidate.to_dict().get("extraction", {}), "confirmed_knowledge_unit_id": unit_data["id"]}
+            updated_candidate = MemoryCandidate.from_dict({
+                **candidate.to_dict(),
+                "extraction": extraction,
+                "review_state": "human_confirmed",
+                "updated_at": now_iso(),
+            })
+
+            _write_jsonl(self.knowledge_path, [*knowledge_items, unit_data])
+            _write_jsonl(self.candidates_path, _replace_by_key(candidate_items, updated_candidate.to_dict(), key="candidate_id"))
+            return updated_candidate, KnowledgeUnit.from_dict(unit_data)
 
     def save_conversation_session(self, session: ConversationSession) -> None:
         self.ensure()
@@ -205,6 +260,13 @@ def _available_key(desired_key: str, existing_keys: set[str]) -> str:
     while f"{desired_key}_{suffix}" in existing_keys:
         suffix += 1
     return f"{desired_key}_{suffix}"
+
+
+def _get_dict_by_key(items: list[dict], key: str, value: str) -> dict:
+    for item in items:
+        if item.get(key) == value:
+            return item
+    raise FileNotFoundError(f"Brain record not found: {key}={value}")
 
 
 def _get_by_key(items: list[T], attr: str, value: str) -> T:

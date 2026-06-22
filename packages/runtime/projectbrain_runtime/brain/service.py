@@ -122,43 +122,8 @@ class BrainService:
         return {"candidates": candidates, "candidate_count": len(candidates)}
 
     def confirm_candidate(self, candidate_id: str) -> dict[str, Any]:
-        candidate = self.repository.get_memory_candidate(candidate_id)
-        if candidate.review_state == "human_confirmed":
-            unit_id = candidate.extraction.get("confirmed_knowledge_unit_id")
-            if not unit_id:
-                raise ValueError(f"Confirmed candidate has no linked knowledge unit: {candidate_id}")
-            unit = self.repository.get_knowledge_unit(str(unit_id))
-            return {"candidate": candidate.to_dict(), "knowledge_unit": unit.to_dict()}
-        if candidate.review_state == "rejected":
-            raise ValueError(f"Cannot confirm rejected candidate: {candidate_id}")
-        if candidate.review_state != "human_review_required":
-            raise ValueError(f"Cannot confirm candidate in state {candidate.review_state}: {candidate_id}")
-
-        proposed = candidate.proposed_unit
-        unit = KnowledgeUnit(
-            id=make_brain_id("ku", proposed.get("title") or proposed["statement"]),
-            type=proposed["type"],
-            title=proposed.get("title") or proposed["statement"][:80],
-            statement=proposed["statement"],
-            summary=proposed.get("summary", ""),
-            tags=proposed.get("tags", []),
-            applies_to=proposed.get("applies_to", []),
-            confidence=float(proposed.get("confidence", 0.8)),
-            risk_level=proposed.get("risk_level", "normal"),
-            review_state="human_confirmed",
-            source={"kind": "conversation", "session_id": candidate.session_id, "candidate_id": candidate.candidate_id, "client": "codex-brain"},
-            evidence=candidate.evidence,
-        )
-        unit = self.repository.create_knowledge_unit_with_available_id(unit)
-        extraction = {**candidate.to_dict().get("extraction", {}), "confirmed_knowledge_unit_id": unit.id}
-        updated_candidate = MemoryCandidate.from_dict({
-            **candidate.to_dict(),
-            "extraction": extraction,
-            "review_state": "human_confirmed",
-            "updated_at": now_iso(),
-        })
-        self.repository.save_memory_candidate(updated_candidate)
-        return {"candidate": updated_candidate.to_dict(), "knowledge_unit": unit.to_dict()}
+        candidate, unit = self.repository.confirm_memory_candidate(candidate_id)
+        return {"candidate": candidate.to_dict(), "knowledge_unit": unit.to_dict()}
 
     def reject_candidate(self, candidate_id: str) -> dict[str, Any]:
         candidate = self.repository.get_memory_candidate(candidate_id)

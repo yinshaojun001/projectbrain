@@ -1,7 +1,9 @@
 import sys
 import tempfile
 import unittest
+from concurrent.futures import ThreadPoolExecutor
 from pathlib import Path
+from threading import Barrier
 
 ROOT = Path(__file__).resolve().parents[1]
 sys.path.insert(0, str(ROOT / "packages" / "runtime"))
@@ -130,6 +132,47 @@ class BrainServiceTest(unittest.TestCase):
             self.assertEqual(first.id, "ku_collision")
             self.assertEqual(second.id, "ku_collision_2")
             self.assertEqual([unit.statement for unit in units], ["First record.", "Second record."])
+
+
+    def test_concurrent_confirm_candidate_is_atomic_and_idempotent(self):
+        class RacingConfirmRepository(BrainRepository):
+            def __init__(self, project_path: Path) -> None:
+                super().__init__(project_path)
+                self.confirm_barrier = Barrier(2)
+                self.raced_candidate_id: str | None = None
+
+            def get_memory_candidate(self, candidate_id: str):  # type: ignore[no-untyped-def]
+                candidate = super().get_memory_candidate(candidate_id)
+                if candidate_id == self.raced_candidate_id and candidate.review_state == "human_review_required":
+                    self.confirm_barrier.wait(timeout=5)
+                return candidate
+
+        with tempfile.TemporaryDirectory() as tmp:
+            repo = RacingConfirmRepository(Path(tmp))
+            service = BrainService(repo)
+            candidate = service.propose_memories(
+                project_id="payment",
+                session_id="session1",
+                candidates=[{"type": "decision", "statement": "Concurrent confirmation creates one unit."}],
+            )["candidates"][0]
+            repo.raced_candidate_id = candidate["candidate_id"]
+            start_barrier = Barrier(2)
+
+            def confirm_after_both_threads_are_ready() -> dict:
+                start_barrier.wait(timeout=5)
+                return service.confirm_candidate(candidate["candidate_id"])
+
+            with ThreadPoolExecutor(max_workers=2) as executor:
+                results = list(executor.map(lambda _: confirm_after_both_threads_are_ready(), range(2)))
+
+            units = service.list_knowledge()["knowledge_units"]
+            linked_candidate = service.list_candidates(review_state="human_confirmed")["candidates"][0]
+            returned_unit_ids = {result["knowledge_unit"]["id"] for result in results}
+
+            self.assertEqual(len(returned_unit_ids), 1)
+            self.assertEqual(len(units), 1)
+            self.assertEqual(linked_candidate["extraction"]["confirmed_knowledge_unit_id"], units[0]["id"])
+            self.assertEqual(returned_unit_ids, {units[0]["id"]})
 
     def test_confirm_candidate_twice_is_idempotent_and_does_not_duplicate_units(self):
         with tempfile.TemporaryDirectory() as tmp:
