@@ -17,6 +17,7 @@ where = ["packages/adapters", "packages/runtime", "packages/schema", "apps/api"]
 
 [project.scripts]
 projectbrain = "projectbrain_cli.main:main"
+codex-brain = "projectbrain_cli.codex_brain:main"
 
 [tool.unittest]
 start-directory = "tests"

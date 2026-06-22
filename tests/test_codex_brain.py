@@ -101,5 +101,28 @@ class CodexBrainTest(unittest.TestCase):
         self.assertEqual(candidate["applies_to"], [])
 
 
+from projectbrain_cli.codex_brain import main as codex_brain_main  # noqa: E402
+
+
+class CodexBrainMainTest(unittest.TestCase):
+    def test_codex_brain_no_extract_runs_injected_command_runner(self):
+        with tempfile.TemporaryDirectory() as tmp:
+            calls = []
+
+            def fake_runner(command, *, cwd):
+                calls.append((command, cwd))
+                return 0
+
+            return_code = codex_brain_main(
+                ["--project", tmp, "--no-ui", "--no-extract", "--codex-command", "codex --version"],
+                command_runner=fake_runner,
+                browser_opener=lambda url: None,
+            )
+
+            self.assertEqual(return_code, 0)
+            self.assertEqual(calls[0][0], ["codex", "--version"])
+            self.assertEqual(calls[0][1], Path(tmp).resolve())
+
+
 if __name__ == "__main__":
     unittest.main()
