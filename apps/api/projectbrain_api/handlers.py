@@ -81,7 +81,7 @@ def list_claims_handler(
 ) -> dict[str, Any]:
     return runtime.list_experience_claims(
         project_id=project_id,
-        include_archived=bool(include_archived),
+        include_archived=_as_bool(include_archived),
     )
 
 
@@ -144,14 +144,23 @@ def brain_summary_handler(runtime: ProjectBrainRuntime, project_id: str) -> dict
 def brain_knowledge_list_handler(runtime: ProjectBrainRuntime, project_id: str, query: dict[str, Any]) -> dict[str, Any]:
     q = query.get("q")
     service = runtime.brain_for_project(project_id)
+    include_archived = _as_bool(query.get("include_archived", False))
     if q:
-        return service.search(str(q), limit=int(query.get("limit", 20)))
+        return service.search(
+            str(q),
+            limit=int(query.get("limit", 20)),
+            type=query.get("type"),
+            review_state=query.get("review_state"),
+            staleness=query.get("staleness"),
+            tag=query.get("tag"),
+            include_archived=include_archived,
+        )
     return service.list_knowledge(
         type=query.get("type"),
         review_state=query.get("review_state"),
         staleness=query.get("staleness"),
         tag=query.get("tag"),
-        include_archived=bool(query.get("include_archived", False)),
+        include_archived=include_archived,
     )
 
 
@@ -205,3 +214,13 @@ def _require_payload_keys(payload: dict[str, Any], keys: list[str]) -> None:
     missing = [key for key in keys if key not in payload or payload[key] in (None, "")]
     if missing:
         raise ValueError(f"Missing required payload keys: {', '.join(missing)}")
+
+
+def _as_bool(value: Any) -> bool:
+    if isinstance(value, bool):
+        return value
+    if value is None:
+        return False
+    if isinstance(value, str):
+        return value.strip().lower() in {"1", "true", "yes", "on"}
+    return bool(value)

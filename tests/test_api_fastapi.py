@@ -13,6 +13,10 @@ sys.path.insert(0, str(ROOT / "packages" / "schema"))
 sys.path.insert(0, str(ROOT / "tests"))
 
 from fixtures import create_payment_mini_codegraph_project  # noqa: E402
+from projectbrain_runtime.brain.models import KnowledgeUnit  # noqa: E402
+from projectbrain_runtime.repository import JsonProjectBrainRepository  # noqa: E402
+from projectbrain_runtime.service import ProjectBrainRuntime  # noqa: E402
+from projectbrain_runtime.models import ProjectRecord  # noqa: E402
 
 try:
     from fastapi.testclient import TestClient  # noqa: E402
@@ -159,6 +163,141 @@ class FastApiTest(unittest.TestCase):
                 else:
                     os.environ["PROJECTBRAIN_STORE_ROOT"] = previous
 
+
+
+    def test_brain_routes_exercise_knowledge_summary_and_candidates(self):
+        if TestClient is None or app is None:
+            self.skipTest("FastAPI is not installed in this interpreter")
+        with tempfile.TemporaryDirectory() as tmp:
+            store_root = Path(tmp) / "store"
+            project_path = Path(tmp) / "repo"
+            project_path.mkdir()
+            runtime = ProjectBrainRuntime(JsonProjectBrainRepository(store_root))
+            runtime.repository.save_project(ProjectRecord(
+                project_id="payment_brain_http_test",
+                name="Payment Brain HTTP Test",
+                source_path=str(project_path),
+                codegraph_db_path=str(project_path / ".codegraph/codegraph.db"),
+            ))
+
+            previous = os.environ.get("PROJECTBRAIN_STORE_ROOT")
+            os.environ["PROJECTBRAIN_STORE_ROOT"] = str(store_root)
+            try:
+                client = TestClient(app)
+
+                constraint_response = client.post(
+                    "/api/v1/projects/payment_brain_http_test/brain/knowledge",
+                    json={
+                        "type": "constraint",
+                        "statement": "Refund API must preserve settlement ordering.",
+                        "tags": ["refund"],
+                    },
+                )
+                self.assertEqual(constraint_response.status_code, 200)
+                constraint = constraint_response.json()["knowledge_unit"]
+
+                gotcha_response = client.post(
+                    "/api/v1/projects/payment_brain_http_test/brain/knowledge",
+                    json={
+                        "type": "gotcha",
+                        "statement": "Refund API has a gotcha around retry headers.",
+                        "tags": ["refund"],
+                    },
+                )
+                self.assertEqual(gotcha_response.status_code, 200)
+
+                search_response = client.get(
+                    "/api/v1/projects/payment_brain_http_test/brain/knowledge",
+                    params={"q": "refund", "type": "constraint"},
+                )
+                self.assertEqual(search_response.status_code, 200)
+                self.assertEqual(
+                    [match["id"] for match in search_response.json()["matches"]],
+                    [constraint["id"]],
+                )
+
+                brain_repo = runtime.brain_for_project("payment_brain_http_test").repository
+                brain_repo.save_knowledge_unit(KnowledgeUnit(
+                    id="ku_stale_refund_route",
+                    type="workflow",
+                    title="Stale refund workflow",
+                    statement="Refund stale route workflow.",
+                    tags=["refund"],
+                    staleness={"state": "stale", "reason": "old route test"},
+                ))
+                stale_response = client.get(
+                    "/api/v1/projects/payment_brain_http_test/brain/knowledge",
+                    params={"staleness": "stale"},
+                )
+                self.assertEqual(stale_response.status_code, 200)
+                self.assertEqual(
+                    [unit["id"] for unit in stale_response.json()["knowledge_units"]],
+                    ["ku_stale_refund_route"],
+                )
+
+                archived_response = client.post(
+                    "/api/v1/projects/payment_brain_http_test/brain/knowledge",
+                    json={
+                        "type": "risk",
+                        "statement": "Refund archived route risk.",
+                        "tags": ["refund"],
+                        "review_state": "archived",
+                    },
+                )
+                self.assertEqual(archived_response.status_code, 200)
+                archived_id = archived_response.json()["knowledge_unit"]["id"]
+                default_ids = [unit["id"] for unit in client.get(
+                    "/api/v1/projects/payment_brain_http_test/brain/knowledge"
+                ).json()["knowledge_units"]]
+                archived_ids = [unit["id"] for unit in client.get(
+                    "/api/v1/projects/payment_brain_http_test/brain/knowledge",
+                    params={"include_archived": "true"},
+                ).json()["knowledge_units"]]
+                self.assertNotIn(archived_id, default_ids)
+                self.assertIn(archived_id, archived_ids)
+
+                summary_response = client.get(
+                    "/api/v1/projects/payment_brain_http_test/brain/summary"
+                )
+                self.assertEqual(summary_response.status_code, 200)
+                self.assertGreaterEqual(summary_response.json()["knowledge_unit_count"], 4)
+
+                service = runtime.brain_for_project("payment_brain_http_test")
+                created_candidates = service.propose_memories(
+                    project_id="payment_brain_http_test",
+                    session_id="route-session",
+                    candidates=[
+                        {"type": "risk", "statement": "Confirm route candidate."},
+                        {"type": "gotcha", "statement": "Reject route candidate."},
+                    ],
+                )["candidates"]
+
+                candidates_response = client.get(
+                    "/api/v1/projects/payment_brain_http_test/brain/candidates",
+                    params={"review_state": "human_review_required"},
+                )
+                self.assertEqual(candidates_response.status_code, 200)
+                self.assertEqual(candidates_response.json()["candidate_count"], 2)
+
+                confirm_response = client.post(
+                    f"/api/v1/projects/payment_brain_http_test/brain/candidates/{created_candidates[0]['candidate_id']}/confirm"
+                )
+                self.assertEqual(confirm_response.status_code, 200)
+                self.assertEqual(
+                    confirm_response.json()["candidate"]["review_state"],
+                    "human_confirmed",
+                )
+
+                reject_response = client.post(
+                    f"/api/v1/projects/payment_brain_http_test/brain/candidates/{created_candidates[1]['candidate_id']}/reject"
+                )
+                self.assertEqual(reject_response.status_code, 200)
+                self.assertEqual(reject_response.json()["candidate"]["review_state"], "rejected")
+            finally:
+                if previous is None:
+                    os.environ.pop("PROJECTBRAIN_STORE_ROOT", None)
+                else:
+                    os.environ["PROJECTBRAIN_STORE_ROOT"] = previous
 
     def test_ui_scaffold_renders(self):
         if TestClient is None or app is None:

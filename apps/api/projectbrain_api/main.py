@@ -147,9 +147,30 @@ def brain_summary(project_id: str) -> dict[str, Any]:
 
 
 @app.get("/api/v1/projects/{project_id}/brain/knowledge")
-def brain_knowledge(project_id: str, q: str | None = None, type: str | None = None, review_state: str | None = None, tag: str | None = None, limit: int = 20) -> dict[str, Any]:
+def brain_knowledge(
+    project_id: str,
+    q: str | None = None,
+    type: str | None = None,
+    review_state: str | None = None,
+    staleness: str | None = None,
+    tag: str | None = None,
+    include_archived: bool = False,
+    limit: int = 20,
+) -> dict[str, Any]:
     try:
-        return brain_knowledge_list_handler(build_runtime(), project_id, {"q": q, "type": type, "review_state": review_state, "tag": tag, "limit": limit})
+        return brain_knowledge_list_handler(
+            build_runtime(),
+            project_id,
+            {
+                "q": q,
+                "type": type,
+                "review_state": review_state,
+                "staleness": staleness,
+                "tag": tag,
+                "include_archived": include_archived,
+                "limit": limit,
+            },
+        )
     except (FileNotFoundError, ValueError) as exc:
         raise HTTPException(status_code=400, detail=str(exc)) from exc
 
