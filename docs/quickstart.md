@@ -216,9 +216,10 @@ From a local project directory:
 codex-brain
 ```
 
-Review extracted memory candidates:
+In the current MVP, propose durable memory candidates through the CLI or MCP tools, then review them:
 
 ```bash
+projectbrain brain propose . --type constraint --statement "Refund fee must be booked separately."
 projectbrain brain candidates .
 projectbrain brain confirm-candidate . <candidate_id>
 ```

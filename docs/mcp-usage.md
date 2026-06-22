@@ -63,7 +63,7 @@ Use an absolute `--store-root` in editor or agent configs so the MCP process alw
 | `projectbrain_list_memory_candidates` | List memory candidates awaiting review. |
 | `projectbrain_review_memory_candidate` | Confirm or reject a memory candidate. |
 
-The three read tools accept `output_format`:
+`projectbrain_context_pack`, `projectbrain_impact_analysis`, and `projectbrain_review_git_diff` accept `output_format`:
 
 | Value | Behavior |
 | --- | --- |
@@ -74,7 +74,7 @@ The three read tools accept `output_format`:
 
 ### codex-brain Privacy Boundary
 
-`codex-brain` captures only the Codex CLI process it explicitly starts. It does not monitor ordinary `codex` sessions, other shells, system clipboard contents, or background applications. Full transcripts are not part of the durable Brain by default; durable Brain records store concise summaries, candidates, and reviewed knowledge units.
+`codex-brain` starts Codex CLI only as an explicit child process. It does not monitor ordinary `codex` sessions, other shells, system clipboard contents, or background applications. When managed-session capture or extraction is enabled, that boundary is limited to the child process started by `codex-brain`. Full transcripts are not part of the durable Brain by default; durable Brain records store concise summaries, candidates, and reviewed knowledge units.
 
 ## Experience Claim Tool
 

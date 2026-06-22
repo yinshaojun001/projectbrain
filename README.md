@@ -270,16 +270,16 @@ Inspect the policy that an imported project is using:
 
 ## codex-brain: Run Codex With Project Memory
 
-`codex-brain` starts a managed Codex CLI session for a local project. It initializes the project Brain store, opens the local Brain Explorer, runs Codex as a child process, and can save extracted memory candidates for human review.
+`codex-brain` starts Codex CLI as an explicit child process for a local project. In the current MVP it initializes the project Brain store, opens the local Brain Explorer URL when `--no-ui` is not set, and runs Codex from the detected project root. Start the local API/UI server separately if it is not already running.
 
 ```bash
 cd /path/to/my/project
 codex-brain
 ```
 
-The first MVP only captures sessions explicitly started by `codex-brain`. It does not monitor ordinary `codex` sessions, other terminals, the clipboard, or background activity.
+The first MVP does not monitor ordinary `codex` sessions, other terminals, the clipboard, or background activity. When managed-session capture or extraction is enabled, its boundary is limited to the Codex CLI child process explicitly started by `codex-brain`.
 
-Memory candidates are written under the project-local Brain store:
+Project-local Brain data is stored under:
 
 ```text
 <project>/.projectbrain/brain/
@@ -288,9 +288,10 @@ Memory candidates are written under the project-local Brain store:
   conversations.jsonl
 ```
 
-Use the Brain Explorer or CLI to review candidates:
+Use the Brain Explorer or CLI to review memory candidates proposed through `projectbrain brain propose` or the MCP memory tools:
 
 ```bash
+projectbrain brain propose /path/to/my/project --type constraint --statement "Refund fee must be booked separately."
 projectbrain brain candidates /path/to/my/project
 projectbrain brain confirm-candidate /path/to/my/project <candidate_id>
 ```
