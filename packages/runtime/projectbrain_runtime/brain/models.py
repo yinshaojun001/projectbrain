@@ -36,6 +36,8 @@ STALENESS_STATES = ("fresh", "maybe_stale", "stale", "source_missing")
 RISK_LEVELS = ("low", "normal", "medium", "high")
 
 
+# These wrappers prevent accidental public mutation of frozen dataclass fields.
+# They are not intended as a security boundary against deliberate base-class bypasses.
 class _ImmutableList(list):
     def _readonly(self, *args: Any, **kwargs: Any) -> None:
         raise TypeError("brain model containers are immutable")
@@ -180,7 +182,7 @@ class KnowledgeUnit:
         object.__setattr__(self, "confidence", _confidence(self.confidence))
         object.__setattr__(self, "staleness", _freeze(_dict(self.staleness) or {"state": "fresh", "reason": None}))
         _knowledge_type(self.type)
-        _review_state(self.review_state)
+        object.__setattr__(self, "review_state", _review_state(self.review_state))
         if self.risk_level not in RISK_LEVELS:
             raise ValueError(f"Unsupported risk_level: {self.risk_level}")
         state = self.staleness.get("state", "fresh")
@@ -245,7 +247,7 @@ class MemoryCandidate:
         object.__setattr__(self, "extraction", _freeze(_dict(self.extraction)))
         object.__setattr__(self, "possible_duplicates", _freeze(_dict_list(self.possible_duplicates)))
         object.__setattr__(self, "conflicts_with", _freeze(_dict_list(self.conflicts_with)))
-        _review_state(self.review_state)
+        object.__setattr__(self, "review_state", _review_state(self.review_state))
 
     def to_dict(self) -> dict[str, Any]:
         return _plain(asdict(self))

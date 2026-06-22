@@ -1,3 +1,4 @@
+import json
 import sys
 import unittest
 from pathlib import Path
@@ -127,9 +128,9 @@ class BrainModelsTest(unittest.TestCase):
             source={"file": "RefundService.java"},
         )
 
-        with self.assertRaises(Exception):
+        with self.assertRaises(TypeError):
             unit.tags.append("settlement")
-        with self.assertRaises(Exception):
+        with self.assertRaises(TypeError):
             unit.source["line"] = 42
 
         self.assertEqual(unit.tags, ["refund"])
@@ -150,9 +151,9 @@ class BrainModelsTest(unittest.TestCase):
             },
         )
 
-        with self.assertRaises(Exception):
+        with self.assertRaises(TypeError):
             candidate.proposed_unit["title"] = "Changed"
-        with self.assertRaises(Exception):
+        with self.assertRaises(TypeError):
             candidate.proposed_unit["tags"].append("settlement")
 
         self.assertEqual(candidate.proposed_unit["title"], "Immutable proposed unit")
@@ -166,11 +167,61 @@ class BrainModelsTest(unittest.TestCase):
             changed_files=["service/refund/RefundService.java"],
         )
 
-        with self.assertRaises(Exception):
+        with self.assertRaises(TypeError):
             session.changed_files.append("service/refund/Other.java")
 
         self.assertEqual(session.changed_files, ["service/refund/RefundService.java"])
         self.assertEqual(session.to_dict()["changed_files"], ["service/refund/RefundService.java"])
+
+    def test_to_dict_returns_builtin_json_serializable_containers(self):
+        candidate = MemoryCandidate(
+            candidate_id="mc_plain_to_dict",
+            project_id="payment",
+            session_id=None,
+            proposed_unit={
+                "type": "constraint",
+                "title": "Plain containers",
+                "statement": "Serialized data should use builtin containers.",
+                "tags": ["refund"],
+            },
+            evidence=[{"snippets": ["refund fee"]}],
+        )
+
+        data = candidate.to_dict()
+
+        self.assertIs(type(data), dict)
+        self.assertIs(type(data["proposed_unit"]), dict)
+        self.assertIs(type(data["proposed_unit"]["tags"]), list)
+        self.assertIs(type(data["evidence"]), list)
+        self.assertIs(type(data["evidence"][0]), dict)
+        self.assertIs(type(data["evidence"][0]["snippets"]), list)
+        json.dumps(data)
+
+    def test_knowledge_unit_normalizes_falsey_review_state(self):
+        unit = KnowledgeUnit(
+            id="ku_review_state_default",
+            type="constraint",
+            title="Review state default",
+            statement="Falsey review state should be normalized.",
+            review_state=None,
+        )
+
+        self.assertEqual(unit.to_dict()["review_state"], "human_review_required")
+
+    def test_memory_candidate_normalizes_falsey_review_state(self):
+        candidate = MemoryCandidate(
+            candidate_id="mc_review_state_default",
+            project_id="payment",
+            session_id=None,
+            proposed_unit={
+                "type": "constraint",
+                "title": "Review state default",
+                "statement": "Falsey review state should be normalized.",
+            },
+            review_state="",
+        )
+
+        self.assertEqual(candidate.to_dict()["review_state"], "human_review_required")
 
     def test_knowledge_unit_rejects_invalid_confidence(self):
         for value in (-0.1, 1.1, "nan"):
