@@ -57,6 +57,11 @@ Use an absolute `--store-root` in editor or agent configs so the MCP process alw
 | `projectbrain_context_pack` | Build a task-scoped Context Pack for an imported project. |
 | `projectbrain_impact_analysis` | Analyze likely impact for changed files or symbols. |
 | `projectbrain_review_git_diff` | Analyze likely impact for local staged, branch/range, or last-commit Git changes. |
+| `projectbrain_remember` | Write durable project knowledge into the local project Brain. |
+| `projectbrain_propose_memories` | Submit memory candidates extracted from a Codex session for review. |
+| `projectbrain_search_brain` | Search durable project Brain knowledge. |
+| `projectbrain_list_memory_candidates` | List memory candidates awaiting review. |
+| `projectbrain_review_memory_candidate` | Confirm or reject a memory candidate. |
 
 The three read tools accept `output_format`:
 
@@ -66,6 +71,10 @@ The three read tools accept `output_format`:
 | `agent` | Compact structured output for AI coding agents. |
 
 `agent` output keeps the most actionable fields: summary, must-read files, matched entities, affected relations, risk warnings, recommended tests, manual-review guidance, and omissions.
+
+### codex-brain Privacy Boundary
+
+`codex-brain` captures only the Codex CLI process it explicitly starts. It does not monitor ordinary `codex` sessions, other shells, system clipboard contents, or background applications. Full transcripts are not part of the durable Brain by default; durable Brain records store concise summaries, candidates, and reviewed knowledge units.
 
 ## Experience Claim Tool
 

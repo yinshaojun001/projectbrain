@@ -208,6 +208,21 @@ Archived claims remain in local storage for audit history, but Context Pack and 
 
 Runtime artifacts are stored under `.projectbrain/`, which is ignored by Git.
 
+## Run Codex With ProjectBrain Memory
+
+From a local project directory:
+
+```bash
+codex-brain
+```
+
+Review extracted memory candidates:
+
+```bash
+projectbrain brain candidates .
+projectbrain brain confirm-candidate . <candidate_id>
+```
+
 ## Privacy Boundary
 
 Do not publish private source code, private `.codegraph/codegraph.db` files, private `.projectbrain/` stores, or private exported facts.

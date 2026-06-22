@@ -268,6 +268,33 @@ Inspect the policy that an imported project is using:
 .venv/bin/projectbrain policy inspect my_project
 ```
 
+## codex-brain: Run Codex With Project Memory
+
+`codex-brain` starts a managed Codex CLI session for a local project. It initializes the project Brain store, opens the local Brain Explorer, runs Codex as a child process, and can save extracted memory candidates for human review.
+
+```bash
+cd /path/to/my/project
+codex-brain
+```
+
+The first MVP only captures sessions explicitly started by `codex-brain`. It does not monitor ordinary `codex` sessions, other terminals, the clipboard, or background activity.
+
+Memory candidates are written under the project-local Brain store:
+
+```text
+<project>/.projectbrain/brain/
+  knowledge_units.jsonl
+  memory_candidates.jsonl
+  conversations.jsonl
+```
+
+Use the Brain Explorer or CLI to review candidates:
+
+```bash
+projectbrain brain candidates /path/to/my/project
+projectbrain brain confirm-candidate /path/to/my/project <candidate_id>
+```
+
 ## Repository Layout
 
 ```text
