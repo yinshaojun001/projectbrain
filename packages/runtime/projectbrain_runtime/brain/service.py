@@ -31,8 +31,6 @@ class BrainService:
         unit_id: str | None = None,
     ) -> dict[str, Any]:
         generated_id = unit_id or make_brain_id("ku", title or statement)
-        if unit_id is None:
-            generated_id = self._available_knowledge_unit_id(generated_id)
         unit = KnowledgeUnit(
             id=generated_id,
             type=type,
@@ -47,7 +45,10 @@ class BrainService:
             source=source or {},
             evidence=evidence or [],
         )
-        self.repository.save_knowledge_unit(unit)
+        if unit_id is None:
+            unit = self.repository.create_knowledge_unit_with_available_id(unit)
+        else:
+            self.repository.save_knowledge_unit(unit)
         return {"knowledge_unit": unit.to_dict()}
 
     def list_knowledge(
@@ -70,9 +71,27 @@ class BrainService:
         )
         return {"knowledge_units": selected, "knowledge_unit_count": len(selected)}
 
-    def search(self, query: str, *, limit: int = 20) -> dict[str, Any]:
+    def search(
+        self,
+        query: str,
+        *,
+        limit: int = 20,
+        type: str | None = None,
+        review_state: str | None = None,
+        staleness: str | None = None,
+        tag: str | None = None,
+        include_archived: bool = False,
+    ) -> dict[str, Any]:
         units = [unit.to_dict() for unit in self.repository.list_knowledge_units()]
-        return {"query": query, "matches": search_knowledge(units, query, limit=limit)}
+        selected = filter_items(
+            units,
+            type=type,
+            review_state=review_state,
+            staleness=staleness,
+            tag=tag,
+            include_archived=include_archived,
+        )
+        return {"query": query, "matches": search_knowledge(selected, query, limit=limit)}
 
     def propose_memories(
         self,
@@ -84,16 +103,15 @@ class BrainService:
         saved = []
         for candidate_data in candidates:
             statement = candidate_data["statement"]
-            candidate_id = self._available_candidate_id(make_brain_id("mc", candidate_data.get("title") or statement))
             candidate = MemoryCandidate(
-                candidate_id=candidate_id,
+                candidate_id=make_brain_id("mc", candidate_data.get("title") or statement),
                 project_id=project_id,
                 session_id=session_id,
                 proposed_unit=dict(candidate_data),
                 evidence=candidate_data.get("evidence", []),
                 possible_duplicates=self._possible_duplicates(candidate_data),
             )
-            self.repository.save_memory_candidate(candidate)
+            candidate = self.repository.create_memory_candidate_with_available_id(candidate)
             saved.append(candidate.to_dict())
         return {"candidates": saved, "candidate_count": len(saved)}
 
@@ -105,9 +123,20 @@ class BrainService:
 
     def confirm_candidate(self, candidate_id: str) -> dict[str, Any]:
         candidate = self.repository.get_memory_candidate(candidate_id)
+        if candidate.review_state == "human_confirmed":
+            unit_id = candidate.extraction.get("confirmed_knowledge_unit_id")
+            if not unit_id:
+                raise ValueError(f"Confirmed candidate has no linked knowledge unit: {candidate_id}")
+            unit = self.repository.get_knowledge_unit(str(unit_id))
+            return {"candidate": candidate.to_dict(), "knowledge_unit": unit.to_dict()}
+        if candidate.review_state == "rejected":
+            raise ValueError(f"Cannot confirm rejected candidate: {candidate_id}")
+        if candidate.review_state != "human_review_required":
+            raise ValueError(f"Cannot confirm candidate in state {candidate.review_state}: {candidate_id}")
+
         proposed = candidate.proposed_unit
         unit = KnowledgeUnit(
-            id=self._available_knowledge_unit_id(make_brain_id("ku", proposed.get("title") or proposed["statement"])),
+            id=make_brain_id("ku", proposed.get("title") or proposed["statement"]),
             type=proposed["type"],
             title=proposed.get("title") or proposed["statement"][:80],
             statement=proposed["statement"],
@@ -120,13 +149,25 @@ class BrainService:
             source={"kind": "conversation", "session_id": candidate.session_id, "candidate_id": candidate.candidate_id, "client": "codex-brain"},
             evidence=candidate.evidence,
         )
-        updated_candidate = MemoryCandidate.from_dict({**candidate.to_dict(), "review_state": "human_confirmed", "updated_at": now_iso()})
+        unit = self.repository.create_knowledge_unit_with_available_id(unit)
+        extraction = {**candidate.to_dict().get("extraction", {}), "confirmed_knowledge_unit_id": unit.id}
+        updated_candidate = MemoryCandidate.from_dict({
+            **candidate.to_dict(),
+            "extraction": extraction,
+            "review_state": "human_confirmed",
+            "updated_at": now_iso(),
+        })
         self.repository.save_memory_candidate(updated_candidate)
-        self.repository.save_knowledge_unit(unit)
         return {"candidate": updated_candidate.to_dict(), "knowledge_unit": unit.to_dict()}
 
     def reject_candidate(self, candidate_id: str) -> dict[str, Any]:
         candidate = self.repository.get_memory_candidate(candidate_id)
+        if candidate.review_state == "human_confirmed":
+            raise ValueError(f"Cannot reject confirmed candidate: {candidate_id}")
+        if candidate.review_state == "rejected":
+            return {"candidate": candidate.to_dict()}
+        if candidate.review_state != "human_review_required":
+            raise ValueError(f"Cannot reject candidate in state {candidate.review_state}: {candidate_id}")
         updated_candidate = MemoryCandidate.from_dict({**candidate.to_dict(), "review_state": "rejected", "updated_at": now_iso()})
         self.repository.save_memory_candidate(updated_candidate)
         return {"candidate": updated_candidate.to_dict()}
@@ -167,21 +208,6 @@ class BrainService:
                 duplicates.append({"knowledge_unit_id": unit.id, "similarity": round(overlap, 2), "statement": unit.statement})
         return duplicates
 
-    def _available_knowledge_unit_id(self, desired_id: str) -> str:
-        return _available_id(desired_id, {unit.id for unit in self.repository.list_knowledge_units()})
-
-    def _available_candidate_id(self, desired_id: str) -> str:
-        return _available_id(desired_id, {candidate.candidate_id for candidate in self.repository.list_memory_candidates()})
-
 
 def _tokens(value: str) -> list[str]:
     return [token.lower() for token in value.replace(".", " ").replace(",", " ").split() if token.strip()]
-
-
-def _available_id(desired_id: str, existing_ids: set[str]) -> str:
-    if desired_id not in existing_ids:
-        return desired_id
-    suffix = 2
-    while f"{desired_id}_{suffix}" in existing_ids:
-        suffix += 1
-    return f"{desired_id}_{suffix}"

@@ -56,8 +56,9 @@ def _score_unit(unit: dict[str, Any], terms: list[str]) -> int:
         ]
     ).lower()
     score = 0
+    tags = [str(tag).lower() for tag in unit.get("tags", [])]
     for term in terms:
-        if term in unit.get("tags", []):
+        if term in tags:
             score += 8
         if term in " ".join(unit.get("applies_to", [])).lower():
             score += 6

@@ -57,6 +57,11 @@ class BrainRepository:
         self.ensure()
         _upsert_jsonl(self.knowledge_path, unit.to_dict(), key="id")
 
+    def create_knowledge_unit_with_available_id(self, unit: KnowledgeUnit) -> KnowledgeUnit:
+        self.ensure()
+        item = _create_jsonl_with_available_key(self.knowledge_path, unit.to_dict(), key="id")
+        return KnowledgeUnit.from_dict(item)
+
     def list_knowledge_units(self) -> list[KnowledgeUnit]:
         self.ensure()
         return [KnowledgeUnit.from_dict(item) for item in _read_jsonl(self.knowledge_path)]
@@ -67,6 +72,11 @@ class BrainRepository:
     def save_memory_candidate(self, candidate: MemoryCandidate) -> None:
         self.ensure()
         _upsert_jsonl(self.candidates_path, candidate.to_dict(), key="candidate_id")
+
+    def create_memory_candidate_with_available_id(self, candidate: MemoryCandidate) -> MemoryCandidate:
+        self.ensure()
+        item = _create_jsonl_with_available_key(self.candidates_path, candidate.to_dict(), key="candidate_id")
+        return MemoryCandidate.from_dict(item)
 
     def list_memory_candidates(self) -> list[MemoryCandidate]:
         self.ensure()
@@ -107,6 +117,15 @@ def _upsert_jsonl(path: Path, item: dict, *, key: str) -> None:
     with _locked_jsonl(path):
         items = _read_jsonl(path)
         _write_jsonl(path, _replace_by_key(items, item, key=key))
+
+
+def _create_jsonl_with_available_key(path: Path, item: dict, *, key: str) -> dict:
+    with _locked_jsonl(path):
+        items = _read_jsonl(path)
+        created = dict(item)
+        created[key] = _available_key(str(created[key]), {str(existing.get(key)) for existing in items})
+        _write_jsonl(path, [*items, created])
+        return created
 
 
 def _replace_by_key(items: list[dict], item: dict, *, key: str) -> list[dict]:
@@ -177,6 +196,15 @@ def _locked_jsonl(path: Path) -> Iterator[None]:
             yield
         finally:
             fcntl.flock(lock_file.fileno(), fcntl.LOCK_UN)
+
+
+def _available_key(desired_key: str, existing_keys: set[str]) -> str:
+    if desired_key not in existing_keys:
+        return desired_key
+    suffix = 2
+    while f"{desired_key}_{suffix}" in existing_keys:
+        suffix += 1
+    return f"{desired_key}_{suffix}"
 
 
 def _get_by_key(items: list[T], attr: str, value: str) -> T:
