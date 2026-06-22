@@ -46,6 +46,60 @@ class CodexBrainTest(unittest.TestCase):
             self.assertEqual(persisted["candidate_count"], 1)
             self.assertEqual(service.list_candidates()["candidates"][0]["proposed_unit"]["type"], "constraint")
 
+    def test_parse_extraction_output_defaults_invalid_confidence_and_keeps_valid_candidate(self):
+        parsed = parse_extraction_output(
+            '{"session_summary":"Confidence cleanup.",'
+            '"candidates":[{"type":"constraint","statement":"Use durable project-local storage.",'
+            '"confidence":"high"}]}'
+        )
+
+        self.assertEqual(len(parsed["candidates"]), 1)
+        self.assertEqual(parsed["candidates"][0]["statement"], "Use durable project-local storage.")
+        self.assertEqual(parsed["candidates"][0]["confidence"], 0.8)
+
+    def test_persist_session_result_skips_unsupported_type_without_partial_session_or_candidates(self):
+        with tempfile.TemporaryDirectory() as tmp:
+            service = BrainService(BrainRepository(Path(tmp)))
+            result = ManagedSessionResult(
+                session_id="session_bad_type",
+                project_id="payment",
+                task="Unsupported extraction type",
+                transcript_path=str(Path(tmp) / "session.log"),
+                extraction_output='{"session_summary":"Invalid candidate.","candidates":[{"type":"unsupported","statement":"This should be skipped."}]}',
+                changed_files=[],
+            )
+
+            persisted = persist_session_result(service, result)
+
+            self.assertEqual(persisted["candidate_count"], 0)
+            self.assertEqual(service.list_candidates()["candidate_count"], 0)
+            sessions = service.list_sessions()
+            self.assertEqual(sessions["session_count"], 1)
+            self.assertEqual(sessions["sessions"][0]["candidate_ids"], [])
+
+    def test_parse_extraction_output_rejects_non_object_json_with_clear_value_error(self):
+        with self.assertRaisesRegex(ValueError, "Extraction JSON must be an object"):
+            parse_extraction_output("[]")
+
+    def test_parse_extraction_output_skips_malformed_candidate_and_keeps_valid_candidate(self):
+        parsed = parse_extraction_output(
+            '{"session_summary":"Mixed candidates.",'
+            '"candidates":['
+            '{"type":"constraint","statement":["not","scalar"]},'
+            '{"type":"decision","statement":"Candidate normalization is defensive.",'
+            '"risk_level":"extreme","review_state":"maybe","tags":"parser","applies_to":null}'
+            ']}'
+        )
+
+        self.assertEqual(len(parsed["candidates"]), 1)
+        candidate = parsed["candidates"][0]
+        self.assertEqual(candidate["type"], "decision")
+        self.assertEqual(candidate["statement"], "Candidate normalization is defensive.")
+        self.assertEqual(candidate["risk_level"], "normal")
+        self.assertEqual(candidate["review_state"], "human_review_required")
+        self.assertEqual(candidate["tags"], ["parser"])
+        self.assertEqual(candidate["applies_to"], [])
+
 
 if __name__ == "__main__":
     unittest.main()

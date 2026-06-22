@@ -61,6 +61,11 @@ def run_codex_command(command: list[str], *, cwd: Path) -> int:
 
 def persist_session_result(service: BrainService, result: ManagedSessionResult) -> dict:
     parsed = parse_extraction_output(result.extraction_output)
+    proposed = service.propose_memories(
+        project_id=result.project_id,
+        session_id=result.session_id,
+        candidates=parsed.get("candidates", []),
+    )
     session = ConversationSession(
         session_id=result.session_id,
         project_id=result.project_id,
@@ -68,11 +73,7 @@ def persist_session_result(service: BrainService, result: ManagedSessionResult) 
         summary=parsed.get("session_summary", ""),
         ended_at=now_iso(),
         changed_files=result.changed_files,
+        candidate_ids=[candidate["candidate_id"] for candidate in proposed["candidates"]],
     )
     service.save_session(session)
-    proposed = service.propose_memories(
-        project_id=result.project_id,
-        session_id=result.session_id,
-        candidates=parsed.get("candidates", []),
-    )
     return {"session": session.to_dict(), "candidate_count": proposed["candidate_count"], "candidates": proposed["candidates"]}
