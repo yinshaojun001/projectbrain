@@ -3,12 +3,14 @@ import tempfile
 import unittest
 from concurrent.futures import ThreadPoolExecutor
 from pathlib import Path
-from threading import Barrier
+from threading import Barrier, Event, Thread, current_thread
+from unittest.mock import patch
 
 ROOT = Path(__file__).resolve().parents[1]
 sys.path.insert(0, str(ROOT / "packages" / "runtime"))
 
 from projectbrain_runtime.brain.models import ConversationSession, KnowledgeUnit  # noqa: E402
+import projectbrain_runtime.brain.repository as brain_repository  # noqa: E402
 from projectbrain_runtime.brain.repository import BrainRepository  # noqa: E402
 from projectbrain_runtime.brain.service import BrainService  # noqa: E402
 
@@ -135,27 +137,14 @@ class BrainServiceTest(unittest.TestCase):
 
 
     def test_concurrent_confirm_candidate_is_atomic_and_idempotent(self):
-        class RacingConfirmRepository(BrainRepository):
-            def __init__(self, project_path: Path) -> None:
-                super().__init__(project_path)
-                self.confirm_barrier = Barrier(2)
-                self.raced_candidate_id: str | None = None
-
-            def get_memory_candidate(self, candidate_id: str):  # type: ignore[no-untyped-def]
-                candidate = super().get_memory_candidate(candidate_id)
-                if candidate_id == self.raced_candidate_id and candidate.review_state == "human_review_required":
-                    self.confirm_barrier.wait(timeout=5)
-                return candidate
-
         with tempfile.TemporaryDirectory() as tmp:
-            repo = RacingConfirmRepository(Path(tmp))
+            repo = BrainRepository(Path(tmp))
             service = BrainService(repo)
             candidate = service.propose_memories(
                 project_id="payment",
                 session_id="session1",
                 candidates=[{"type": "decision", "statement": "Concurrent confirmation creates one unit."}],
             )["candidates"][0]
-            repo.raced_candidate_id = candidate["candidate_id"]
             start_barrier = Barrier(2)
 
             def confirm_after_both_threads_are_ready() -> dict:
@@ -173,6 +162,115 @@ class BrainServiceTest(unittest.TestCase):
             self.assertEqual(len(units), 1)
             self.assertEqual(linked_candidate["extraction"]["confirmed_knowledge_unit_id"], units[0]["id"])
             self.assertEqual(returned_unit_ids, {units[0]["id"]})
+
+    def test_concurrent_confirm_candidate_and_remember_keep_both_knowledge_units(self):
+        with tempfile.TemporaryDirectory() as tmp:
+            repo = BrainRepository(Path(tmp))
+            service = BrainService(repo)
+            candidate = service.propose_memories(
+                project_id="payment",
+                session_id="session1",
+                candidates=[{"type": "decision", "title": "Confirmed memory", "statement": "Confirmed candidate unit."}],
+            )["candidates"][0]
+            original_read_jsonl = brain_repository._read_jsonl
+            confirm_read_knowledge_snapshot = Event()
+            remember_finished = Event()
+            confirm_result: dict = {}
+            confirm_error: list[BaseException] = []
+
+            def racing_read_jsonl(path: Path) -> list[dict]:
+                items = original_read_jsonl(path)
+                if path == repo.knowledge_path and current_thread().name == "confirm-thread" and not confirm_read_knowledge_snapshot.is_set():
+                    confirm_read_knowledge_snapshot.set()
+                    remember_finished.wait(timeout=1)
+                return items
+
+            def confirm_candidate() -> None:
+                try:
+                    confirm_result.update(service.confirm_candidate(candidate["candidate_id"]))
+                except BaseException as exc:  # pragma: no cover - re-raised by main thread assertion
+                    confirm_error.append(exc)
+
+            with patch.object(brain_repository, "_read_jsonl", side_effect=racing_read_jsonl):
+                thread = Thread(target=confirm_candidate, name="confirm-thread")
+                thread.start()
+                self.assertTrue(confirm_read_knowledge_snapshot.wait(timeout=5), "confirm did not reach knowledge snapshot")
+                remembered = service.remember(
+                    type="constraint",
+                    title="Remembered memory",
+                    statement="Concurrent remembered unit.",
+                    review_state="human_confirmed",
+                )["knowledge_unit"]
+                remember_finished.set()
+                thread.join(timeout=5)
+
+            if confirm_error:
+                raise confirm_error[0]
+            self.assertFalse(thread.is_alive(), "confirm thread did not finish")
+
+            statements_by_id = {unit["id"]: unit["statement"] for unit in service.list_knowledge()["knowledge_units"]}
+            self.assertEqual(statements_by_id[remembered["id"]], "Concurrent remembered unit.")
+            self.assertEqual(statements_by_id[confirm_result["knowledge_unit"]["id"]], "Confirmed candidate unit.")
+            self.assertEqual(len(statements_by_id), 2)
+
+    def test_concurrent_confirm_candidate_and_reject_candidate_cannot_create_rejected_linked_unit(self):
+        with tempfile.TemporaryDirectory() as tmp:
+            repo = BrainRepository(Path(tmp))
+            service = BrainService(repo)
+            candidate = service.propose_memories(
+                project_id="payment",
+                session_id="session1",
+                candidates=[{"type": "risk", "title": "Raced candidate", "statement": "Race candidate unit."}],
+            )["candidates"][0]
+            original_read_jsonl = brain_repository._read_jsonl
+            confirm_read_candidate_snapshot = Event()
+            reject_finished = Event()
+            confirm_result: dict = {}
+            reject_result: dict = {}
+            confirm_error: list[BaseException] = []
+            reject_error: list[BaseException] = []
+
+            def racing_read_jsonl(path: Path) -> list[dict]:
+                items = original_read_jsonl(path)
+                if path == repo.candidates_path and current_thread().name == "confirm-thread" and not confirm_read_candidate_snapshot.is_set():
+                    confirm_read_candidate_snapshot.set()
+                    reject_finished.wait(timeout=1)
+                return items
+
+            def confirm_candidate() -> None:
+                try:
+                    confirm_result.update(service.confirm_candidate(candidate["candidate_id"]))
+                except BaseException as exc:  # pragma: no cover - re-raised by main thread assertion
+                    confirm_error.append(exc)
+
+            with patch.object(brain_repository, "_read_jsonl", side_effect=racing_read_jsonl):
+                thread = Thread(target=confirm_candidate, name="confirm-thread")
+                thread.start()
+                self.assertTrue(confirm_read_candidate_snapshot.wait(timeout=5), "confirm did not reach candidate snapshot")
+                try:
+                    reject_result.update(service.reject_candidate(candidate["candidate_id"]))
+                except BaseException as exc:
+                    reject_error.append(exc)
+                finally:
+                    reject_finished.set()
+                thread.join(timeout=5)
+
+            self.assertFalse(thread.is_alive(), "confirm thread did not finish")
+            final_candidate = service.list_candidates()["candidates"][0]
+            units = service.list_knowledge()["knowledge_units"]
+
+            if reject_result:
+                self.assertEqual(final_candidate["review_state"], "rejected")
+                self.assertEqual(units, [])
+                self.assertFalse(confirm_result)
+                self.assertTrue(confirm_error)
+                self.assertRegex(str(confirm_error[0]), "Cannot confirm rejected candidate")
+            else:
+                self.assertEqual(final_candidate["review_state"], "human_confirmed")
+                self.assertEqual(len(units), 1)
+                self.assertEqual(final_candidate["extraction"]["confirmed_knowledge_unit_id"], units[0]["id"])
+                self.assertTrue(reject_error)
+                self.assertRegex(str(reject_error[0]), "Cannot reject confirmed candidate")
 
     def test_confirm_candidate_twice_is_idempotent_and_does_not_duplicate_units(self):
         with tempfile.TemporaryDirectory() as tmp:

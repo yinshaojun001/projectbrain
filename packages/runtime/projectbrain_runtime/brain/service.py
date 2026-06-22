@@ -126,16 +126,8 @@ class BrainService:
         return {"candidate": candidate.to_dict(), "knowledge_unit": unit.to_dict()}
 
     def reject_candidate(self, candidate_id: str) -> dict[str, Any]:
-        candidate = self.repository.get_memory_candidate(candidate_id)
-        if candidate.review_state == "human_confirmed":
-            raise ValueError(f"Cannot reject confirmed candidate: {candidate_id}")
-        if candidate.review_state == "rejected":
-            return {"candidate": candidate.to_dict()}
-        if candidate.review_state != "human_review_required":
-            raise ValueError(f"Cannot reject candidate in state {candidate.review_state}: {candidate_id}")
-        updated_candidate = MemoryCandidate.from_dict({**candidate.to_dict(), "review_state": "rejected", "updated_at": now_iso()})
-        self.repository.save_memory_candidate(updated_candidate)
-        return {"candidate": updated_candidate.to_dict()}
+        candidate = self.repository.reject_memory_candidate(candidate_id)
+        return {"candidate": candidate.to_dict()}
 
     def save_session(self, session: ConversationSession) -> dict[str, Any]:
         self.repository.save_conversation_session(session)

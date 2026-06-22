@@ -5,6 +5,7 @@ from __future__ import annotations
 import json
 import os
 import tempfile
+import threading
 from contextlib import contextmanager
 from pathlib import Path
 from typing import Iterator
@@ -13,6 +14,9 @@ from typing import TypeVar
 from projectbrain_runtime.brain.models import ConversationSession, KnowledgeUnit, MemoryCandidate, make_brain_id, now_iso
 
 T = TypeVar("T")
+
+_REPOSITORY_LOCKS_GUARD = threading.Lock()
+_REPOSITORY_LOCKS: dict[str, threading.RLock] = {}
 
 
 class BrainRepository:
@@ -27,6 +31,7 @@ class BrainRepository:
         self.sessions_path = self.root / "conversations.jsonl"
         self.concepts_path = self.root / "concepts.jsonl"
         self.links_path = self.root / "links.jsonl"
+        self.mutation_lock_path = self.root / "transaction.jsonl.lock"
 
     def ensure(self) -> None:
         self.root.mkdir(parents=True, exist_ok=True)
@@ -55,11 +60,13 @@ class BrainRepository:
 
     def save_knowledge_unit(self, unit: KnowledgeUnit) -> None:
         self.ensure()
-        _upsert_jsonl(self.knowledge_path, unit.to_dict(), key="id")
+        with self._mutation_lock():
+            _upsert_jsonl_unlocked(self.knowledge_path, unit.to_dict(), key="id")
 
     def create_knowledge_unit_with_available_id(self, unit: KnowledgeUnit) -> KnowledgeUnit:
         self.ensure()
-        item = _create_jsonl_with_available_key(self.knowledge_path, unit.to_dict(), key="id")
+        with self._mutation_lock():
+            item = _create_jsonl_with_available_key_unlocked(self.knowledge_path, unit.to_dict(), key="id")
         return KnowledgeUnit.from_dict(item)
 
     def list_knowledge_units(self) -> list[KnowledgeUnit]:
@@ -71,11 +78,13 @@ class BrainRepository:
 
     def save_memory_candidate(self, candidate: MemoryCandidate) -> None:
         self.ensure()
-        _upsert_jsonl(self.candidates_path, candidate.to_dict(), key="candidate_id")
+        with self._mutation_lock():
+            _upsert_jsonl_unlocked(self.candidates_path, candidate.to_dict(), key="candidate_id")
 
     def create_memory_candidate_with_available_id(self, candidate: MemoryCandidate) -> MemoryCandidate:
         self.ensure()
-        item = _create_jsonl_with_available_key(self.candidates_path, candidate.to_dict(), key="candidate_id")
+        with self._mutation_lock():
+            item = _create_jsonl_with_available_key_unlocked(self.candidates_path, candidate.to_dict(), key="candidate_id")
         return MemoryCandidate.from_dict(item)
 
     def list_memory_candidates(self) -> list[MemoryCandidate]:
@@ -87,7 +96,7 @@ class BrainRepository:
 
     def confirm_memory_candidate(self, candidate_id: str) -> tuple[MemoryCandidate, KnowledgeUnit]:
         self.ensure()
-        with _locked_jsonl(self.root / "transaction.jsonl"):
+        with self._mutation_lock():
             candidate_items = _read_jsonl(self.candidates_path)
             candidate_data = _get_dict_by_key(candidate_items, "candidate_id", candidate_id)
             candidate = MemoryCandidate.from_dict(candidate_data)
@@ -140,9 +149,26 @@ class BrainRepository:
             _write_jsonl(self.candidates_path, _replace_by_key(candidate_items, updated_candidate.to_dict(), key="candidate_id"))
             return updated_candidate, KnowledgeUnit.from_dict(unit_data)
 
+    def reject_memory_candidate(self, candidate_id: str) -> MemoryCandidate:
+        self.ensure()
+        with self._mutation_lock():
+            candidate_items = _read_jsonl(self.candidates_path)
+            candidate_data = _get_dict_by_key(candidate_items, "candidate_id", candidate_id)
+            candidate = MemoryCandidate.from_dict(candidate_data)
+            if candidate.review_state == "human_confirmed":
+                raise ValueError(f"Cannot reject confirmed candidate: {candidate_id}")
+            if candidate.review_state == "rejected":
+                return candidate
+            if candidate.review_state != "human_review_required":
+                raise ValueError(f"Cannot reject candidate in state {candidate.review_state}: {candidate_id}")
+            updated_candidate = MemoryCandidate.from_dict({**candidate.to_dict(), "review_state": "rejected", "updated_at": now_iso()})
+            _write_jsonl(self.candidates_path, _replace_by_key(candidate_items, updated_candidate.to_dict(), key="candidate_id"))
+            return updated_candidate
+
     def save_conversation_session(self, session: ConversationSession) -> None:
         self.ensure()
-        _upsert_jsonl(self.sessions_path, session.to_dict(), key="session_id")
+        with self._mutation_lock():
+            _upsert_jsonl_unlocked(self.sessions_path, session.to_dict(), key="session_id")
 
     def list_conversation_sessions(self) -> list[ConversationSession]:
         self.ensure()
@@ -150,6 +176,11 @@ class BrainRepository:
 
     def get_conversation_session(self, session_id: str) -> ConversationSession:
         return _get_by_key(self.list_conversation_sessions(), "session_id", session_id)
+
+    @contextmanager
+    def _mutation_lock(self) -> Iterator[None]:
+        with _locked_path(self.mutation_lock_path):
+            yield
 
 
 def _read_jsonl(path: Path) -> list[dict]:
@@ -170,17 +201,25 @@ def _write_jsonl(path: Path, items: list[dict]) -> None:
 
 def _upsert_jsonl(path: Path, item: dict, *, key: str) -> None:
     with _locked_jsonl(path):
-        items = _read_jsonl(path)
-        _write_jsonl(path, _replace_by_key(items, item, key=key))
+        _upsert_jsonl_unlocked(path, item, key=key)
+
+
+def _upsert_jsonl_unlocked(path: Path, item: dict, *, key: str) -> None:
+    items = _read_jsonl(path)
+    _write_jsonl(path, _replace_by_key(items, item, key=key))
 
 
 def _create_jsonl_with_available_key(path: Path, item: dict, *, key: str) -> dict:
     with _locked_jsonl(path):
-        items = _read_jsonl(path)
-        created = dict(item)
-        created[key] = _available_key(str(created[key]), {str(existing.get(key)) for existing in items})
-        _write_jsonl(path, [*items, created])
-        return created
+        return _create_jsonl_with_available_key_unlocked(path, item, key=key)
+
+
+def _create_jsonl_with_available_key_unlocked(path: Path, item: dict, *, key: str) -> dict:
+    items = _read_jsonl(path)
+    created = dict(item)
+    created[key] = _available_key(str(created[key]), {str(existing.get(key)) for existing in items})
+    _write_jsonl(path, [*items, created])
+    return created
 
 
 def _replace_by_key(items: list[dict], item: dict, *, key: str) -> list[dict]:
@@ -241,16 +280,33 @@ def _fsync_directory(path: Path) -> None:
 
 @contextmanager
 def _locked_jsonl(path: Path) -> Iterator[None]:
-    path.parent.mkdir(parents=True, exist_ok=True)
-    lock_path = path.with_suffix(path.suffix + ".lock")
-    with lock_path.open("a", encoding="utf-8") as lock_file:
-        import fcntl
+    with _locked_path(path.with_suffix(path.suffix + ".lock")):
+        yield
 
-        fcntl.flock(lock_file.fileno(), fcntl.LOCK_EX)
-        try:
-            yield
-        finally:
-            fcntl.flock(lock_file.fileno(), fcntl.LOCK_UN)
+
+@contextmanager
+def _locked_path(lock_path: Path) -> Iterator[None]:
+    lock_path.parent.mkdir(parents=True, exist_ok=True)
+    process_lock = _process_lock_for(lock_path)
+    with process_lock:
+        with lock_path.open("a", encoding="utf-8") as lock_file:
+            import fcntl
+
+            fcntl.flock(lock_file.fileno(), fcntl.LOCK_EX)
+            try:
+                yield
+            finally:
+                fcntl.flock(lock_file.fileno(), fcntl.LOCK_UN)
+
+
+def _process_lock_for(lock_path: Path) -> threading.RLock:
+    lock_key = str(lock_path.expanduser().resolve())
+    with _REPOSITORY_LOCKS_GUARD:
+        lock = _REPOSITORY_LOCKS.get(lock_key)
+        if lock is None:
+            lock = threading.RLock()
+            _REPOSITORY_LOCKS[lock_key] = lock
+        return lock
 
 
 def _available_key(desired_key: str, existing_keys: set[str]) -> str:
