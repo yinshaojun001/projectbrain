@@ -36,6 +36,38 @@ STALENESS_STATES = ("fresh", "maybe_stale", "stale", "source_missing")
 RISK_LEVELS = ("low", "normal", "medium", "high")
 
 
+class _ImmutableList(list):
+    def _readonly(self, *args: Any, **kwargs: Any) -> None:
+        raise TypeError("brain model containers are immutable")
+
+    append = _readonly
+    clear = _readonly
+    extend = _readonly
+    insert = _readonly
+    pop = _readonly
+    remove = _readonly
+    reverse = _readonly
+    sort = _readonly
+    __delitem__ = _readonly
+    __iadd__ = _readonly
+    __imul__ = _readonly
+    __setitem__ = _readonly
+
+
+class _ImmutableDict(dict):
+    def _readonly(self, *args: Any, **kwargs: Any) -> None:
+        raise TypeError("brain model containers are immutable")
+
+    clear = _readonly
+    pop = _readonly
+    popitem = _readonly
+    setdefault = _readonly
+    update = _readonly
+    __delitem__ = _readonly
+    __ior__ = _readonly
+    __setitem__ = _readonly
+
+
 def make_brain_id(prefix: str, text: str, *, max_slug_length: int = 64) -> str:
     safe_prefix = re.sub(r"[^a-zA-Z0-9]+", "_", str(prefix).strip().lower()).strip("_")
     safe_prefix = re.sub(r"_+", "_", safe_prefix) or "memory"
@@ -86,6 +118,22 @@ def _dict(value: Any) -> dict[str, Any]:
     return deepcopy(value)
 
 
+def _freeze(value: Any) -> Any:
+    if isinstance(value, dict):
+        return _ImmutableDict({key: _freeze(item) for key, item in value.items()})
+    if isinstance(value, list):
+        return _ImmutableList(_freeze(item) for item in value)
+    return deepcopy(value)
+
+
+def _plain(value: Any) -> Any:
+    if isinstance(value, dict):
+        return {key: _plain(item) for key, item in value.items()}
+    if isinstance(value, list):
+        return [_plain(item) for item in value]
+    return deepcopy(value)
+
+
 def _review_state(value: str | None) -> str:
     normalized = value or "human_review_required"
     if normalized not in REVIEW_STATES:
@@ -124,13 +172,13 @@ class KnowledgeUnit:
         object.__setattr__(self, "title", _required_string("title", self.title))
         object.__setattr__(self, "statement", _required_string("statement", self.statement))
         object.__setattr__(self, "summary", str(self.summary or ""))
-        object.__setattr__(self, "tags", _string_list(self.tags))
-        object.__setattr__(self, "applies_to", _string_list(self.applies_to))
-        object.__setattr__(self, "related_code", _dict_list(self.related_code))
-        object.__setattr__(self, "source", _dict(self.source))
-        object.__setattr__(self, "evidence", _dict_list(self.evidence))
+        object.__setattr__(self, "tags", _freeze(_string_list(self.tags)))
+        object.__setattr__(self, "applies_to", _freeze(_string_list(self.applies_to)))
+        object.__setattr__(self, "related_code", _freeze(_dict_list(self.related_code)))
+        object.__setattr__(self, "source", _freeze(_dict(self.source)))
+        object.__setattr__(self, "evidence", _freeze(_dict_list(self.evidence)))
         object.__setattr__(self, "confidence", _confidence(self.confidence))
-        object.__setattr__(self, "staleness", _dict(self.staleness) or {"state": "fresh", "reason": None})
+        object.__setattr__(self, "staleness", _freeze(_dict(self.staleness) or {"state": "fresh", "reason": None}))
         _knowledge_type(self.type)
         _review_state(self.review_state)
         if self.risk_level not in RISK_LEVELS:
@@ -140,7 +188,7 @@ class KnowledgeUnit:
             raise ValueError(f"Unsupported staleness state: {state}")
 
     def to_dict(self) -> dict[str, Any]:
-        return asdict(self)
+        return _plain(asdict(self))
 
     @classmethod
     def from_dict(cls, data: dict[str, Any]) -> "KnowledgeUnit":
@@ -192,15 +240,15 @@ class MemoryCandidate:
         proposed_unit = deepcopy(self.proposed_unit)
         if "confidence" in proposed_unit:
             proposed_unit["confidence"] = _confidence(proposed_unit["confidence"])
-        object.__setattr__(self, "proposed_unit", proposed_unit)
-        object.__setattr__(self, "evidence", _dict_list(self.evidence))
-        object.__setattr__(self, "extraction", _dict(self.extraction))
-        object.__setattr__(self, "possible_duplicates", _dict_list(self.possible_duplicates))
-        object.__setattr__(self, "conflicts_with", _dict_list(self.conflicts_with))
+        object.__setattr__(self, "proposed_unit", _freeze(proposed_unit))
+        object.__setattr__(self, "evidence", _freeze(_dict_list(self.evidence)))
+        object.__setattr__(self, "extraction", _freeze(_dict(self.extraction)))
+        object.__setattr__(self, "possible_duplicates", _freeze(_dict_list(self.possible_duplicates)))
+        object.__setattr__(self, "conflicts_with", _freeze(_dict_list(self.conflicts_with)))
         _review_state(self.review_state)
 
     def to_dict(self) -> dict[str, Any]:
-        return asdict(self)
+        return _plain(asdict(self))
 
     @classmethod
     def from_dict(cls, data: dict[str, Any]) -> "MemoryCandidate":
@@ -246,16 +294,16 @@ class ConversationSession:
         object.__setattr__(self, "task", str(self.task or ""))
         object.__setattr__(self, "summary", str(self.summary or ""))
         object.__setattr__(self, "client", str(self.client or "codex-brain"))
-        object.__setattr__(self, "changed_files", _string_list(self.changed_files))
-        object.__setattr__(self, "candidate_ids", _string_list(self.candidate_ids))
-        object.__setattr__(self, "knowledge_unit_ids", _string_list(self.knowledge_unit_ids))
-        object.__setattr__(self, "privacy", _dict(self.privacy) or {
+        object.__setattr__(self, "changed_files", _freeze(_string_list(self.changed_files)))
+        object.__setattr__(self, "candidate_ids", _freeze(_string_list(self.candidate_ids)))
+        object.__setattr__(self, "knowledge_unit_ids", _freeze(_string_list(self.knowledge_unit_ids)))
+        object.__setattr__(self, "privacy", _freeze(_dict(self.privacy) or {
             "stores_full_transcript": False,
             "stores_excerpts": True,
-        })
+        }))
 
     def to_dict(self) -> dict[str, Any]:
-        return asdict(self)
+        return _plain(asdict(self))
 
     @classmethod
     def from_dict(cls, data: dict[str, Any]) -> "ConversationSession":

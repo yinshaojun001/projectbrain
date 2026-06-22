@@ -117,6 +117,61 @@ class BrainModelsTest(unittest.TestCase):
         self.assertEqual(unit.source, {"file": "RefundService.java"})
         self.assertEqual(unit.evidence, [{"kind": "test"}])
 
+    def test_knowledge_unit_rejects_direct_container_mutation(self):
+        unit = KnowledgeUnit(
+            id="ku_immutable",
+            type="constraint",
+            title="Immutable containers",
+            statement="Public containers should not be directly mutable.",
+            tags=["refund"],
+            source={"file": "RefundService.java"},
+        )
+
+        with self.assertRaises(Exception):
+            unit.tags.append("settlement")
+        with self.assertRaises(Exception):
+            unit.source["line"] = 42
+
+        self.assertEqual(unit.tags, ["refund"])
+        self.assertEqual(unit.source, {"file": "RefundService.java"})
+        self.assertEqual(unit.to_dict()["tags"], ["refund"])
+        self.assertEqual(unit.to_dict()["source"], {"file": "RefundService.java"})
+
+    def test_memory_candidate_rejects_direct_proposed_unit_mutation(self):
+        candidate = MemoryCandidate(
+            candidate_id="mc_immutable",
+            project_id="payment",
+            session_id=None,
+            proposed_unit={
+                "type": "constraint",
+                "title": "Immutable proposed unit",
+                "statement": "Proposed units should not be directly mutable.",
+                "tags": ["refund"],
+            },
+        )
+
+        with self.assertRaises(Exception):
+            candidate.proposed_unit["title"] = "Changed"
+        with self.assertRaises(Exception):
+            candidate.proposed_unit["tags"].append("settlement")
+
+        self.assertEqual(candidate.proposed_unit["title"], "Immutable proposed unit")
+        self.assertEqual(candidate.proposed_unit["tags"], ["refund"])
+        self.assertEqual(candidate.to_dict()["proposed_unit"]["tags"], ["refund"])
+
+    def test_conversation_session_rejects_direct_changed_files_mutation(self):
+        session = ConversationSession(
+            session_id="session_immutable",
+            project_id="payment",
+            changed_files=["service/refund/RefundService.java"],
+        )
+
+        with self.assertRaises(Exception):
+            session.changed_files.append("service/refund/Other.java")
+
+        self.assertEqual(session.changed_files, ["service/refund/RefundService.java"])
+        self.assertEqual(session.to_dict()["changed_files"], ["service/refund/RefundService.java"])
+
     def test_knowledge_unit_rejects_invalid_confidence(self):
         for value in (-0.1, 1.1, "nan"):
             with self.subTest(value=value):
