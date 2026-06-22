@@ -77,6 +77,106 @@ class BrainModelsTest(unittest.TestCase):
             "ku_refund_fee_must_not_change_settlement_principal",
         )
 
+    def test_make_brain_id_disambiguates_cjk_only_text(self):
+        first = make_brain_id("ku", "退款手续费不能影响结算本金")
+        second = make_brain_id("ku", "订单状态必须同步")
+
+        self.assertNotEqual(first, "ku_memory")
+        self.assertNotEqual(second, "ku_memory")
+        self.assertNotEqual(first, second)
+
+    def test_make_brain_id_disambiguates_truncated_long_text(self):
+        shared_prefix = " ".join(["refund"] * 20)
+        first = make_brain_id("ku", f"{shared_prefix} settlement")
+        second = make_brain_id("ku", f"{shared_prefix} principal")
+
+        self.assertNotEqual(first, second)
+        self.assertLessEqual(len(first.removeprefix("ku_")), 64 + 1 + 12)
+        self.assertLessEqual(len(second.removeprefix("ku_")), 64 + 1 + 12)
+
+    def test_knowledge_unit_defensively_copies_mutable_inputs(self):
+        tags = ["refund"]
+        source = {"file": "RefundService.java"}
+        evidence = [{"kind": "test"}]
+
+        unit = KnowledgeUnit(
+            id="ku_defensive_copy",
+            type="constraint",
+            title="Defensive copy",
+            statement="Mutable constructor inputs must not mutate the model.",
+            tags=tags,
+            source=source,
+            evidence=evidence,
+        )
+
+        tags.append("settlement")
+        source["file"] = "Other.java"
+        evidence[0]["kind"] = "review"
+
+        self.assertEqual(unit.tags, ["refund"])
+        self.assertEqual(unit.source, {"file": "RefundService.java"})
+        self.assertEqual(unit.evidence, [{"kind": "test"}])
+
+    def test_knowledge_unit_rejects_invalid_confidence(self):
+        for value in (-0.1, 1.1, "nan"):
+            with self.subTest(value=value):
+                with self.assertRaises(ValueError):
+                    KnowledgeUnit(
+                        id="ku_invalid_confidence",
+                        type="constraint",
+                        title="Invalid confidence",
+                        statement="Confidence must be finite and between zero and one.",
+                        confidence=value,
+                    )
+
+    def test_memory_candidate_validates_proposed_unit_confidence(self):
+        with self.assertRaises(ValueError):
+            MemoryCandidate(
+                candidate_id="mc_invalid_confidence",
+                project_id="payment",
+                session_id=None,
+                proposed_unit={
+                    "type": "constraint",
+                    "title": "Invalid confidence",
+                    "statement": "Candidate confidence must be validated.",
+                    "confidence": 2,
+                },
+            )
+
+        candidate = MemoryCandidate(
+            candidate_id="mc_confidence_normalized",
+            project_id="payment",
+            session_id=None,
+            proposed_unit={
+                "type": "constraint",
+                "title": "Confidence normalized",
+                "statement": "Candidate confidence should be normalized to float.",
+                "confidence": "0.7",
+            },
+        )
+        self.assertEqual(candidate.proposed_unit["confidence"], 0.7)
+
+    def test_required_knowledge_unit_fields_reject_empty_strings(self):
+        with self.assertRaises(ValueError):
+            KnowledgeUnit(
+                id=" ",
+                type="constraint",
+                title="Invalid id",
+                statement="Statement is present.",
+            )
+
+        with self.assertRaises(ValueError):
+            KnowledgeUnit(
+                id="ku_empty_statement",
+                type="constraint",
+                title="Invalid statement",
+                statement=" ",
+            )
+
+    def test_conversation_session_rejects_empty_project_id(self):
+        with self.assertRaises(ValueError):
+            ConversationSession(session_id="session_1", project_id=" ")
+
 
 if __name__ == "__main__":
     unittest.main()

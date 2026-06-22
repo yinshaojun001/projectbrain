@@ -3,7 +3,10 @@
 from __future__ import annotations
 
 import re
+from copy import deepcopy
 from dataclasses import asdict, dataclass, field
+from hashlib import sha256
+from math import isfinite
 from typing import Any
 
 from projectbrain_runtime.models import now_iso
@@ -34,9 +37,32 @@ RISK_LEVELS = ("low", "normal", "medium", "high")
 
 
 def make_brain_id(prefix: str, text: str, *, max_slug_length: int = 64) -> str:
-    slug = re.sub(r"[^a-zA-Z0-9]+", "_", text.strip().lower()).strip("_")
-    slug = re.sub(r"_+", "_", slug)[:max_slug_length].strip("_")
-    return f"{prefix}_{slug or 'memory'}"
+    safe_prefix = re.sub(r"[^a-zA-Z0-9]+", "_", str(prefix).strip().lower()).strip("_")
+    safe_prefix = re.sub(r"_+", "_", safe_prefix) or "memory"
+    slug = re.sub(r"[^a-zA-Z0-9]+", "_", str(text).strip().lower()).strip("_")
+    slug = re.sub(r"_+", "_", slug)
+    if slug and len(slug) <= max_slug_length:
+        return f"{safe_prefix}_{slug}"
+    base_slug = slug[:max_slug_length].strip("_") or "memory"
+    digest = sha256(str(text).encode("utf-8")).hexdigest()[:12]
+    return f"{safe_prefix}_{base_slug}_{digest}"
+
+
+def _required_string(name: str, value: Any) -> str:
+    normalized = str(value).strip() if value is not None else ""
+    if not normalized:
+        raise ValueError(f"{name} is required")
+    return normalized
+
+
+def _confidence(value: Any) -> float:
+    try:
+        normalized = float(value)
+    except (TypeError, ValueError) as exc:
+        raise ValueError("confidence must be between 0 and 1") from exc
+    if not isfinite(normalized) or normalized < 0 or normalized > 1:
+        raise ValueError("confidence must be between 0 and 1")
+    return normalized
 
 
 def _string_list(value: Any) -> list[str]:
@@ -49,7 +75,15 @@ def _string_list(value: Any) -> list[str]:
 def _dict_list(value: Any) -> list[dict[str, Any]]:
     if not isinstance(value, list):
         return []
-    return [dict(item) for item in value if isinstance(item, dict)]
+    return [deepcopy(item) for item in value if isinstance(item, dict)]
+
+
+def _dict(value: Any) -> dict[str, Any]:
+    if value is None:
+        return {}
+    if not isinstance(value, dict):
+        return {}
+    return deepcopy(value)
 
 
 def _review_state(value: str | None) -> str:
@@ -85,6 +119,18 @@ class KnowledgeUnit:
     updated_at: str = field(default_factory=now_iso)
 
     def __post_init__(self) -> None:
+        object.__setattr__(self, "id", _required_string("id", self.id))
+        object.__setattr__(self, "type", _required_string("type", self.type))
+        object.__setattr__(self, "title", _required_string("title", self.title))
+        object.__setattr__(self, "statement", _required_string("statement", self.statement))
+        object.__setattr__(self, "summary", str(self.summary or ""))
+        object.__setattr__(self, "tags", _string_list(self.tags))
+        object.__setattr__(self, "applies_to", _string_list(self.applies_to))
+        object.__setattr__(self, "related_code", _dict_list(self.related_code))
+        object.__setattr__(self, "source", _dict(self.source))
+        object.__setattr__(self, "evidence", _dict_list(self.evidence))
+        object.__setattr__(self, "confidence", _confidence(self.confidence))
+        object.__setattr__(self, "staleness", _dict(self.staleness) or {"state": "fresh", "reason": None})
         _knowledge_type(self.type)
         _review_state(self.review_state)
         if self.risk_level not in RISK_LEVELS:
@@ -107,14 +153,14 @@ class KnowledgeUnit:
             tags=_string_list(data.get("tags", [])),
             applies_to=_string_list(data.get("applies_to", [])),
             related_code=_dict_list(data.get("related_code", [])),
-            source=dict(data.get("source", {})),
+            source=_dict(data.get("source")),
             evidence=_dict_list(data.get("evidence", [])),
-            confidence=float(data.get("confidence", 0.8)),
+            confidence=_confidence(data.get("confidence", 0.8)),
             risk_level=data.get("risk_level", "normal"),
             review_state=data.get("review_state", "human_review_required"),
-            staleness=dict(data.get("staleness", {"state": "fresh", "reason": None})),
-            created_at=data.get("created_at", now_iso()),
-            updated_at=data.get("updated_at", now_iso()),
+            staleness=_dict(data.get("staleness")) or {"state": "fresh", "reason": None},
+            created_at=data.get("created_at") or now_iso(),
+            updated_at=data.get("updated_at") or now_iso(),
         )
 
 
@@ -137,6 +183,20 @@ class MemoryCandidate:
     updated_at: str = field(default_factory=now_iso)
 
     def __post_init__(self) -> None:
+        object.__setattr__(self, "candidate_id", _required_string("candidate_id", self.candidate_id))
+        object.__setattr__(self, "project_id", _required_string("project_id", self.project_id))
+        if self.session_id is not None:
+            object.__setattr__(self, "session_id", _required_string("session_id", self.session_id))
+        if not isinstance(self.proposed_unit, dict) or not self.proposed_unit:
+            raise ValueError("proposed_unit must be a non-empty dict")
+        proposed_unit = deepcopy(self.proposed_unit)
+        if "confidence" in proposed_unit:
+            proposed_unit["confidence"] = _confidence(proposed_unit["confidence"])
+        object.__setattr__(self, "proposed_unit", proposed_unit)
+        object.__setattr__(self, "evidence", _dict_list(self.evidence))
+        object.__setattr__(self, "extraction", _dict(self.extraction))
+        object.__setattr__(self, "possible_duplicates", _dict_list(self.possible_duplicates))
+        object.__setattr__(self, "conflicts_with", _dict_list(self.conflicts_with))
         _review_state(self.review_state)
 
     def to_dict(self) -> dict[str, Any]:
@@ -148,18 +208,18 @@ class MemoryCandidate:
             candidate_id=data["candidate_id"],
             project_id=data["project_id"],
             session_id=data.get("session_id"),
-            proposed_unit=dict(data["proposed_unit"]),
+            proposed_unit=_dict(data.get("proposed_unit")),
             evidence=_dict_list(data.get("evidence", [])),
-            extraction=dict(data.get("extraction", {
+            extraction=dict(data.get("extraction") or {
                 "method": "codex_brain_exit_extraction",
                 "client": "codex-brain",
                 "created_at": now_iso(),
-            })),
+            }),
             review_state=data.get("review_state", "human_review_required"),
             possible_duplicates=_dict_list(data.get("possible_duplicates", [])),
             conflicts_with=_dict_list(data.get("conflicts_with", [])),
-            created_at=data.get("created_at", now_iso()),
-            updated_at=data.get("updated_at", now_iso()),
+            created_at=data.get("created_at") or now_iso(),
+            updated_at=data.get("updated_at") or now_iso(),
         )
 
 
@@ -180,6 +240,20 @@ class ConversationSession:
         "stores_excerpts": True,
     })
 
+    def __post_init__(self) -> None:
+        object.__setattr__(self, "session_id", _required_string("session_id", self.session_id))
+        object.__setattr__(self, "project_id", _required_string("project_id", self.project_id))
+        object.__setattr__(self, "task", str(self.task or ""))
+        object.__setattr__(self, "summary", str(self.summary or ""))
+        object.__setattr__(self, "client", str(self.client or "codex-brain"))
+        object.__setattr__(self, "changed_files", _string_list(self.changed_files))
+        object.__setattr__(self, "candidate_ids", _string_list(self.candidate_ids))
+        object.__setattr__(self, "knowledge_unit_ids", _string_list(self.knowledge_unit_ids))
+        object.__setattr__(self, "privacy", _dict(self.privacy) or {
+            "stores_full_transcript": False,
+            "stores_excerpts": True,
+        })
+
     def to_dict(self) -> dict[str, Any]:
         return asdict(self)
 
@@ -191,10 +265,10 @@ class ConversationSession:
             task=data.get("task", ""),
             summary=data.get("summary", ""),
             client=data.get("client", "codex-brain"),
-            started_at=data.get("started_at", now_iso()),
+            started_at=data.get("started_at") or now_iso(),
             ended_at=data.get("ended_at"),
             changed_files=_string_list(data.get("changed_files", [])),
             candidate_ids=_string_list(data.get("candidate_ids", [])),
             knowledge_unit_ids=_string_list(data.get("knowledge_unit_ids", [])),
-            privacy=dict(data.get("privacy", {"stores_full_transcript": False, "stores_excerpts": True})),
+            privacy=dict(data.get("privacy") or {"stores_full_transcript": False, "stores_excerpts": True}),
         )
