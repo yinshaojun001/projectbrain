@@ -123,6 +123,54 @@ class CodexBrainMainTest(unittest.TestCase):
             self.assertEqual(calls[0][0], ["codex", "--version"])
             self.assertEqual(calls[0][1], Path(tmp).resolve())
 
+    def test_codex_brain_invalid_project_raises_clear_system_exit(self):
+        with tempfile.TemporaryDirectory() as tmp:
+            missing_project = Path(tmp) / "misspelled-subdir"
+
+            with self.assertRaises(SystemExit) as caught:
+                codex_brain_main(
+                    ["--project", str(missing_project), "--no-ui", "--no-extract", "--codex-command", "codex --version"],
+                    command_runner=lambda command, *, cwd: 0,
+                    browser_opener=lambda url: None,
+                )
+
+            self.assertEqual(str(caught.exception), f"Project path does not exist: {missing_project.resolve()}")
+
+    def test_codex_brain_invalid_project_does_not_invoke_command_runner(self):
+        with tempfile.TemporaryDirectory() as tmp:
+            missing_project = Path(tmp) / "misspelled-subdir"
+            calls = []
+
+            def fake_runner(command, *, cwd):
+                calls.append((command, cwd))
+                return 0
+
+            with self.assertRaises(SystemExit):
+                codex_brain_main(
+                    ["--project", str(missing_project), "--no-ui", "--no-extract", "--codex-command", "codex --version"],
+                    command_runner=fake_runner,
+                    browser_opener=lambda url: None,
+                )
+
+            self.assertEqual(calls, [])
+
+    def test_codex_brain_empty_codex_command_raises_clear_system_exit(self):
+        with tempfile.TemporaryDirectory() as tmp:
+            calls = []
+
+            def fake_runner(command, *, cwd):
+                calls.append((command, cwd))
+                return 0
+
+            with self.assertRaisesRegex(SystemExit, "--codex-command must not be empty"):
+                codex_brain_main(
+                    ["--project", tmp, "--no-ui", "--no-extract", "--codex-command", ""],
+                    command_runner=fake_runner,
+                    browser_opener=lambda url: None,
+                )
+
+            self.assertEqual(calls, [])
+
 
 if __name__ == "__main__":
     unittest.main()

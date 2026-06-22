@@ -29,11 +29,16 @@ def main(
     browser_opener: Callable[[str], Any] | None = None,
 ) -> int:
     args = build_parser().parse_args(argv)
-    project_path = _project_root(Path(args.project).expanduser().resolve())
+    requested_path = Path(args.project).expanduser().resolve()
+    if not requested_path.exists():
+        raise SystemExit(f"Project path does not exist: {requested_path}")
+    project_path = _project_root(requested_path)
     BrainService(BrainRepository(project_path))
     if not args.no_ui:
         (browser_opener or webbrowser.open)(_brain_url(project_path))
     command = shlex.split(args.codex_command)
+    if not command:
+        raise SystemExit("--codex-command must not be empty")
     runner = command_runner or run_codex_command
     return runner(command, cwd=project_path)
 
