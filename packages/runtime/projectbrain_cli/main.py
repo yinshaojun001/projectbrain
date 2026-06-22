@@ -114,6 +114,66 @@ def build_parser() -> argparse.ArgumentParser:
     claim_archive.add_argument("claim_id")
     claim_archive.add_argument("--reason")
 
+    brain = subcommands.add_parser("brain", help="Work with project-local Brain memory")
+    brain_subcommands = brain.add_subparsers(dest="brain_command", required=True)
+
+    brain_remember = brain_subcommands.add_parser("remember", help="Remember a durable project knowledge unit")
+    brain_remember.add_argument("project_path")
+    brain_remember.add_argument("--id", dest="project_id", default="local_project")
+    brain_remember.add_argument("--type", required=True)
+    brain_remember.add_argument("--statement", required=True)
+    brain_remember.add_argument("--title")
+    brain_remember.add_argument("--summary", default="")
+    brain_remember.add_argument("--tag", action="append", default=[])
+    brain_remember.add_argument("--applies-to", action="append", default=[])
+    brain_remember.add_argument("--review-state", default="human_review_required")
+    brain_remember.add_argument("--confidence", type=float, default=0.8)
+    brain_remember.add_argument("--risk-level", default="normal")
+    brain_remember.add_argument("--unit-id")
+
+    brain_list = brain_subcommands.add_parser("list", help="List project Brain knowledge units")
+    brain_list.add_argument("project_path")
+    brain_list.add_argument("--type")
+    brain_list.add_argument("--review-state")
+    brain_list.add_argument("--staleness")
+    brain_list.add_argument("--tag")
+    brain_list.add_argument("--include-archived", action="store_true")
+
+    brain_search = brain_subcommands.add_parser("search", help="Search project Brain knowledge units")
+    brain_search.add_argument("project_path")
+    brain_search.add_argument("query")
+    brain_search.add_argument("--limit", type=int, default=20)
+    brain_search.add_argument("--type")
+    brain_search.add_argument("--review-state")
+    brain_search.add_argument("--staleness")
+    brain_search.add_argument("--tag")
+    brain_search.add_argument("--include-archived", action="store_true")
+
+    brain_propose = brain_subcommands.add_parser("propose", help="Propose a Brain memory candidate")
+    brain_propose.add_argument("project_path")
+    brain_propose.add_argument("--id", dest="project_id", default="local_project")
+    brain_propose.add_argument("--session-id")
+    brain_propose.add_argument("--type", required=True)
+    brain_propose.add_argument("--statement", required=True)
+    brain_propose.add_argument("--title")
+    brain_propose.add_argument("--summary", default="")
+    brain_propose.add_argument("--tag", action="append", default=[])
+    brain_propose.add_argument("--applies-to", action="append", default=[])
+    brain_propose.add_argument("--confidence", type=float, default=0.8)
+    brain_propose.add_argument("--risk-level", default="normal")
+
+    brain_candidates = brain_subcommands.add_parser("candidates", help="List Brain memory candidates")
+    brain_candidates.add_argument("project_path")
+    brain_candidates.add_argument("--review-state")
+
+    brain_confirm = brain_subcommands.add_parser("confirm-candidate", help="Confirm a Brain memory candidate")
+    brain_confirm.add_argument("project_path")
+    brain_confirm.add_argument("candidate_id")
+
+    brain_reject = brain_subcommands.add_parser("reject-candidate", help="Reject a Brain memory candidate")
+    brain_reject.add_argument("project_path")
+    brain_reject.add_argument("candidate_id")
+
     context = subcommands.add_parser("context", help="Build context pack from imported facts")
     context.add_argument("project_id")
     context.add_argument("task")
@@ -198,6 +258,80 @@ def main(
 
     repository = JsonProjectBrainRepository(args.store_root)
     runtime = ProjectBrainRuntime(repository)
+
+    if args.command == "brain":
+        brain_service = runtime.brain_for_path(args.project_path)
+        if args.brain_command == "remember":
+            data = brain_service.remember(
+                type=args.type,
+                statement=args.statement,
+                title=args.title,
+                summary=args.summary,
+                tags=args.tag,
+                applies_to=args.applies_to,
+                review_state=args.review_state,
+                confidence=args.confidence,
+                risk_level=args.risk_level,
+                source={"project_id": args.project_id, "client": "projectbrain-cli"},
+                unit_id=args.unit_id,
+            )
+            print_json(data)
+            return 0
+        if args.brain_command == "list":
+            data = brain_service.list_knowledge(
+                type=args.type,
+                review_state=args.review_state,
+                staleness=args.staleness,
+                tag=args.tag,
+                include_archived=args.include_archived,
+            )
+            print_json(data)
+            return 0
+        if args.brain_command == "search":
+            data = brain_service.search(
+                args.query,
+                limit=args.limit,
+                type=args.type,
+                review_state=args.review_state,
+                staleness=args.staleness,
+                tag=args.tag,
+                include_archived=args.include_archived,
+            )
+            print_json(data)
+            return 0
+        if args.brain_command == "propose":
+            data = brain_service.propose_memories(
+                project_id=args.project_id,
+                session_id=args.session_id,
+                candidates=[
+                    {
+                        key: value
+                        for key, value in {
+                            "type": args.type,
+                            "statement": args.statement,
+                            "title": args.title,
+                            "summary": args.summary,
+                            "tags": args.tag,
+                            "applies_to": args.applies_to,
+                            "confidence": args.confidence,
+                            "risk_level": args.risk_level,
+                        }.items()
+                        if value is not None
+                    }
+                ],
+            )
+            print_json(data)
+            return 0
+        if args.brain_command == "candidates":
+            print_json(brain_service.list_candidates(review_state=args.review_state))
+            return 0
+        if args.brain_command == "confirm-candidate":
+            print_json(brain_service.confirm_candidate(args.candidate_id))
+            return 0
+        if args.brain_command == "reject-candidate":
+            print_json(brain_service.reject_candidate(args.candidate_id))
+            return 0
+        raise ValueError(f"Unsupported brain command: {args.brain_command}")
 
     if args.command == "setup":
         data = _setup_project(

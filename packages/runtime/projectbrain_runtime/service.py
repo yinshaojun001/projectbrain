@@ -10,6 +10,8 @@ from projectbrain_adapters.context_pack import ContextPackBuilder
 from projectbrain_adapters.experience import load_experience_seed
 from projectbrain_adapters.impact_analysis import ImpactAnalysisBuilder
 from projectbrain_schema.validation import validate_context_pack, validate_facts_export, validate_impact_analysis
+from projectbrain_runtime.brain.repository import BrainRepository
+from projectbrain_runtime.brain.service import BrainService
 from projectbrain_runtime.claims import active_claims, archive_experience_claim, build_experience_claim, update_experience_claim
 from projectbrain_runtime.git_diff import GitDiffSelection, changed_files_for_selection
 from projectbrain_runtime.models import ImportOptions, ProjectRecord, now_iso
@@ -23,6 +25,13 @@ class ProjectBrainRuntime:
     def __init__(self, repository: ProjectBrainRepository) -> None:
         self.repository = repository
         self.repository.ensure()
+
+    def brain_for_path(self, project_path: str | Path) -> BrainService:
+        return BrainService(BrainRepository(project_path))
+
+    def brain_for_project(self, project_id: str) -> BrainService:
+        project = self.repository.get_project(project_id)
+        return self.brain_for_path(project.source_path)
 
     def import_project(
         self,
