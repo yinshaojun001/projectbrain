@@ -163,6 +163,139 @@ class ProjectBrainMcpServerTest(unittest.TestCase):
             search_data = json.loads(search["result"]["content"][0]["text"])
             self.assertEqual(search_data["matches"][0]["type"], "constraint")
 
+    def test_review_memory_candidate_requires_action_without_confirming_candidate(self):
+        with tempfile.TemporaryDirectory() as tmp:
+            server = _server_with_project(tmp)
+            candidate_id = _propose_memory_candidate(server)
+
+            missing_action = server.handle_message({
+                "jsonrpc": "2.0",
+                "id": 2,
+                "method": "tools/call",
+                "params": {
+                    "name": "projectbrain_review_memory_candidate",
+                    "arguments": {"project_id": "payment", "candidate_id": candidate_id},
+                },
+            })
+
+            self.assertTrue(missing_action["result"]["isError"])
+            self.assertIn("Missing required argument: action", missing_action["result"]["content"][0]["text"])
+            candidates = _call_tool(server, "projectbrain_list_memory_candidates", {"project_id": "payment"})
+            self.assertEqual(candidates["candidates"][0]["review_state"], "human_review_required")
+            search = _call_tool(server, "projectbrain_search_brain", {"project_id": "payment", "query": "refund"})
+            self.assertEqual(search["matches"], [])
+
+    def test_review_memory_candidate_rejects_invalid_action(self):
+        with tempfile.TemporaryDirectory() as tmp:
+            server = _server_with_project(tmp)
+            candidate_id = _propose_memory_candidate(server)
+
+            invalid_action = server.handle_message({
+                "jsonrpc": "2.0",
+                "id": 2,
+                "method": "tools/call",
+                "params": {
+                    "name": "projectbrain_review_memory_candidate",
+                    "arguments": {"project_id": "payment", "candidate_id": candidate_id, "action": "approve"},
+                },
+            })
+
+            self.assertTrue(invalid_action["result"]["isError"])
+            self.assertIn("action must be confirm or reject", invalid_action["result"]["content"][0]["text"])
+
+    def test_review_memory_candidate_reject_marks_candidate_without_creating_searchable_unit(self):
+        with tempfile.TemporaryDirectory() as tmp:
+            server = _server_with_project(tmp)
+            candidate_id = _propose_memory_candidate(server)
+
+            rejected = _call_tool(
+                server,
+                "projectbrain_review_memory_candidate",
+                {"project_id": "payment", "candidate_id": candidate_id, "action": "reject"},
+            )
+
+            self.assertEqual(rejected["candidate"]["review_state"], "rejected")
+            search = _call_tool(server, "projectbrain_search_brain", {"project_id": "payment", "query": "refund"})
+            self.assertEqual(search["matches"], [])
+
+    def test_propose_memories_requires_candidates(self):
+        with tempfile.TemporaryDirectory() as tmp:
+            server = _server_with_project(tmp)
+
+            missing_candidates = server.handle_message({
+                "jsonrpc": "2.0",
+                "id": 1,
+                "method": "tools/call",
+                "params": {
+                    "name": "projectbrain_propose_memories",
+                    "arguments": {"project_id": "payment"},
+                },
+            })
+
+            self.assertTrue(missing_candidates["result"]["isError"])
+            self.assertIn("Missing required argument: candidates", missing_candidates["result"]["content"][0]["text"])
+
+    def test_propose_memories_rejects_privacy_unsafe_candidate_fields(self):
+        with tempfile.TemporaryDirectory() as tmp:
+            server = _server_with_project(tmp)
+
+            unsafe = server.handle_message({
+                "jsonrpc": "2.0",
+                "id": 1,
+                "method": "tools/call",
+                "params": {
+                    "name": "projectbrain_propose_memories",
+                    "arguments": {
+                        "project_id": "payment",
+                        "candidates": [
+                            {
+                                "type": "constraint",
+                                "statement": "Refund fee must be booked separately.",
+                                "transcript": "raw private session transcript",
+                            }
+                        ],
+                    },
+                },
+            })
+
+            self.assertTrue(unsafe["result"]["isError"])
+            self.assertIn("Unsupported candidate field: transcript", unsafe["result"]["content"][0]["text"])
+
+    def test_propose_memories_rejects_candidate_missing_required_type(self):
+        with tempfile.TemporaryDirectory() as tmp:
+            server = _server_with_project(tmp)
+
+            missing_type = server.handle_message({
+                "jsonrpc": "2.0",
+                "id": 1,
+                "method": "tools/call",
+                "params": {
+                    "name": "projectbrain_propose_memories",
+                    "arguments": {
+                        "project_id": "payment",
+                        "candidates": [{"statement": "Refund fee must be booked separately."}],
+                    },
+                },
+            })
+
+            self.assertTrue(missing_type["result"]["isError"])
+            self.assertIn("Missing required candidate field: type", missing_type["result"]["content"][0]["text"])
+
+    def test_propose_memories_schema_restricts_candidate_shape(self):
+        with tempfile.TemporaryDirectory() as tmp:
+            server = ProjectBrainMcpServer(store_root=tmp)
+
+            tools = server.handle_message({"jsonrpc": "2.0", "id": 1, "method": "tools/list"})
+
+            propose = next(
+                tool for tool in tools["result"]["tools"] if tool["name"] == "projectbrain_propose_memories"
+            )
+            candidate_schema = propose["inputSchema"]["properties"]["candidates"]["items"]
+            self.assertEqual(candidate_schema["required"], ["type", "statement"])
+            self.assertFalse(candidate_schema["additionalProperties"])
+            self.assertIn("evidence_summary", candidate_schema["properties"])
+            self.assertNotIn("transcript", candidate_schema["properties"])
+
 
 def _call_tool(server: ProjectBrainMcpServer, name: str, arguments: dict) -> dict:
     response = server.handle_message(
@@ -176,6 +309,34 @@ def _call_tool(server: ProjectBrainMcpServer, name: str, arguments: dict) -> dic
     if response["result"].get("isError"):
         raise AssertionError(response["result"]["content"][0]["text"])
     return json.loads(response["result"]["content"][0]["text"])
+
+
+def _server_with_project(tmp: str) -> ProjectBrainMcpServer:
+    project_path = Path(tmp) / "repo"
+    project_path.mkdir()
+    server = ProjectBrainMcpServer(store_root=str(Path(tmp) / "store"))
+    server.repository.save_project(ProjectRecord(
+        project_id="payment",
+        name="Payment",
+        source_path=str(project_path),
+        codegraph_db_path=str(project_path / ".codegraph/codegraph.db"),
+    ))
+    return server
+
+
+def _propose_memory_candidate(server: ProjectBrainMcpServer) -> str:
+    proposed = _call_tool(
+        server,
+        "projectbrain_propose_memories",
+        {
+            "project_id": "payment",
+            "session_id": "session1",
+            "candidates": [
+                {"type": "constraint", "statement": "Refund fee must be booked separately.", "tags": ["refund"]}
+            ],
+        },
+    )
+    return proposed["candidates"][0]["candidate_id"]
 
 
 if __name__ == "__main__":

@@ -13,6 +13,11 @@ from dataclasses import dataclass
 from typing import Any, TextIO
 
 from projectbrain_runtime.agent_output import OUTPUT_FORMATS, format_output
+from projectbrain_runtime.brain.models import (
+    KNOWLEDGE_TYPES,
+    REVIEW_STATES as BRAIN_REVIEW_STATES,
+    RISK_LEVELS as BRAIN_RISK_LEVELS,
+)
 from projectbrain_runtime.claims import CLAIM_TYPES, REVIEW_STATES, RISK_LEVELS
 from projectbrain_runtime.git_diff import GitDiffSelection
 from projectbrain_runtime.models import ImportOptions
@@ -155,7 +160,7 @@ class ProjectBrainMcpServer:
                 data = self.runtime.brain_for_project(_required(arguments, "project_id")).propose_memories(
                     project_id=_required(arguments, "project_id"),
                     session_id=arguments.get("session_id"),
-                    candidates=arguments.get("candidates", []),
+                    candidates=_validate_memory_candidates(_required(arguments, "candidates")),
                 )
                 return self._tool_result(request_id, data)
 
@@ -174,7 +179,7 @@ class ProjectBrainMcpServer:
 
             if name == "projectbrain_review_memory_candidate":
                 service = self.runtime.brain_for_project(_required(arguments, "project_id"))
-                action = arguments.get("action", "confirm")
+                action = _required(arguments, "action")
                 if action == "confirm":
                     data = service.confirm_candidate(_required(arguments, "candidate_id"))
                 elif action == "reject":
@@ -354,7 +359,26 @@ class ProjectBrainMcpServer:
                     "properties": {
                         "project_id": {"type": "string"},
                         "session_id": {"type": "string"},
-                        "candidates": {"type": "array", "items": {"type": "object"}},
+                        "candidates": {
+                            "type": "array",
+                            "items": {
+                                "type": "object",
+                                "required": ["type", "statement"],
+                                "additionalProperties": False,
+                                "properties": {
+                                    "type": {"type": "string", "enum": list(KNOWLEDGE_TYPES)},
+                                    "title": {"type": "string"},
+                                    "statement": {"type": "string"},
+                                    "summary": {"type": "string"},
+                                    "tags": {"type": "array", "items": {"type": "string"}},
+                                    "applies_to": {"type": "array", "items": {"type": "string"}},
+                                    "confidence": {"type": "number"},
+                                    "risk_level": {"type": "string", "enum": list(BRAIN_RISK_LEVELS)},
+                                    "evidence_summary": {"type": "string"},
+                                    "review_state": {"type": "string", "enum": list(BRAIN_REVIEW_STATES)},
+                                },
+                            },
+                        },
                     },
                 },
             },
@@ -509,6 +533,37 @@ def _required(arguments: dict[str, Any], key: str) -> Any:
     if value in (None, ""):
         raise ValueError(f"Missing required argument: {key}")
     return value
+
+
+MEMORY_CANDIDATE_ALLOWED_FIELDS = {
+    "type",
+    "title",
+    "statement",
+    "summary",
+    "tags",
+    "applies_to",
+    "confidence",
+    "risk_level",
+    "evidence_summary",
+    "review_state",
+}
+
+
+def _validate_memory_candidates(value: Any) -> list[dict[str, Any]]:
+    if not isinstance(value, list):
+        raise ValueError("candidates must be an array")
+    validated = []
+    for index, candidate in enumerate(value):
+        if not isinstance(candidate, dict):
+            raise ValueError(f"candidates[{index}] must be an object")
+        extra_fields = sorted(set(candidate) - MEMORY_CANDIDATE_ALLOWED_FIELDS)
+        if extra_fields:
+            raise ValueError(f"Unsupported candidate field: {extra_fields[0]}")
+        for field in ("type", "statement"):
+            if candidate.get(field) in (None, ""):
+                raise ValueError(f"Missing required candidate field: {field}")
+        validated.append(dict(candidate))
+    return validated
 
 
 def _format_tool_output(data: dict[str, Any], arguments: dict[str, Any]) -> dict[str, Any]:
