@@ -101,7 +101,7 @@ class CodexBrainTest(unittest.TestCase):
         self.assertEqual(candidate["applies_to"], [])
 
 
-from projectbrain_cli.codex_brain import main as codex_brain_main  # noqa: E402
+from projectbrain_cli.codex_brain import _open_url, main as codex_brain_main  # noqa: E402
 
 
 class CodexBrainMainTest(unittest.TestCase):
@@ -153,6 +153,36 @@ class CodexBrainMainTest(unittest.TestCase):
                 )
 
             self.assertEqual(calls, [])
+
+    def test_codex_brain_opens_existing_brain_explorer_projects_route(self):
+        with tempfile.TemporaryDirectory() as tmp:
+            opened = []
+
+            return_code = codex_brain_main(
+                ["--project", tmp, "--no-extract", "--codex-command", "true"],
+                command_runner=lambda command, *, cwd: 0,
+                browser_opener=opened.append,
+            )
+
+            self.assertEqual(return_code, 0)
+            self.assertEqual(len(opened), 1)
+            self.assertIn("/ui/projects", opened[0])
+            self.assertNotIn("/ui/app/projects", opened[0])
+            self.assertIn("project_path=", opened[0])
+
+    def test_open_url_uses_macos_open_command_without_shell(self):
+        calls = []
+
+        _open_url(
+            "http://127.0.0.1:8000/ui/projects?project_path=%2Ftmp%2Frepo",
+            platform="darwin",
+            command_runner=lambda command, **kwargs: calls.append((command, kwargs)),
+        )
+
+        self.assertEqual(
+            calls,
+            [(["open", "http://127.0.0.1:8000/ui/projects?project_path=%2Ftmp%2Frepo"], {"check": False})],
+        )
 
     def test_codex_brain_empty_codex_command_raises_clear_system_exit(self):
         with tempfile.TemporaryDirectory() as tmp:

@@ -4,8 +4,11 @@ from __future__ import annotations
 
 import argparse
 import shlex
+import subprocess
+import sys
 import webbrowser
 from pathlib import Path
+from urllib.parse import quote
 from typing import Any, Callable
 
 from projectbrain_cli.codex_session import run_codex_command
@@ -35,12 +38,27 @@ def main(
     project_path = _project_root(requested_path)
     BrainService(BrainRepository(project_path))
     if not args.no_ui:
-        (browser_opener or webbrowser.open)(_brain_url(project_path))
+        opener = browser_opener or _open_url
+        opener(_brain_url(project_path))
     command = shlex.split(args.codex_command)
     if not command:
         raise SystemExit("--codex-command must not be empty")
     runner = command_runner or run_codex_command
     return runner(command, cwd=project_path)
+
+
+def _open_url(
+    url: str,
+    *,
+    platform: str | None = None,
+    command_runner: Callable[..., Any] | None = None,
+) -> None:
+    current_platform = platform or sys.platform
+    if current_platform == "darwin":
+        runner = command_runner or subprocess.run
+        runner(["open", url], check=False)
+        return
+    webbrowser.open(url)
 
 
 def _project_root(path: Path) -> Path:
@@ -52,7 +70,8 @@ def _project_root(path: Path) -> Path:
 
 
 def _brain_url(project_path: Path) -> str:
-    return f"http://127.0.0.1:8000/ui/app/projects?project_path={project_path}"
+    encoded_project_path = quote(str(project_path), safe="")
+    return f"http://127.0.0.1:8000/ui/projects?project_path={encoded_project_path}"
 
 
 if __name__ == "__main__":
