@@ -9,14 +9,20 @@ sys.path.insert(0, str(ROOT / "packages" / "runtime"))
 sys.path.insert(0, str(ROOT / "packages" / "schema"))
 sys.path.insert(0, str(ROOT / "apps" / "api"))
 
-from projectbrain_api.ui.router import brain_page_context  # noqa: E402
 from projectbrain_runtime.models import ProjectRecord  # noqa: E402
 from projectbrain_runtime.repository import JsonProjectBrainRepository  # noqa: E402
 from projectbrain_runtime.service import ProjectBrainRuntime  # noqa: E402
 
+try:
+    from projectbrain_api.ui.router import brain_page_context  # noqa: E402
+except ModuleNotFoundError:  # pragma: no cover - tested in .venv with api extra installed.
+    brain_page_context = None
+
 
 class BrainUiTest(unittest.TestCase):
     def test_brain_page_context_contains_summary_candidates_and_knowledge(self):
+        if brain_page_context is None:
+            self.skipTest("FastAPI is not installed in this interpreter")
         with tempfile.TemporaryDirectory() as tmp:
             project_path = Path(tmp) / "repo"
             project_path.mkdir()
