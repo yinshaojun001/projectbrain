@@ -15,12 +15,15 @@ import tempfile
 import unittest
 from pathlib import Path
 
-
 ROOT = Path(__file__).resolve().parents[1]
 sys.path.insert(0, str(ROOT / "apps" / "api"))
 sys.path.insert(0, str(ROOT / "packages" / "adapters"))
 sys.path.insert(0, str(ROOT / "packages" / "runtime"))
 sys.path.insert(0, str(ROOT / "packages" / "schema"))
+
+from projectbrain_runtime.models import ProjectRecord  # noqa: E402
+from projectbrain_runtime.repository import JsonProjectBrainRepository  # noqa: E402
+from projectbrain_runtime.service import ProjectBrainRuntime  # noqa: E402
 
 
 try:
@@ -86,6 +89,76 @@ class UiSmokeTest(unittest.TestCase):
         self.assertEqual(brain_response.status_code, 200)
         self.assertIn("Project Brain", brain_response.text)
         self.assertNotIn("导入项目", brain_response.text)
+
+    def _create_brain_candidate(self, *, project_id: str = "ui_candidate_project", statement: str = "UI candidate should be confirmable.") -> str:
+        project_path = Path(self._tmp.name) / f"{project_id}_repo"
+        project_path.mkdir()
+        runtime = ProjectBrainRuntime(JsonProjectBrainRepository(Path(self._tmp.name)))
+        runtime.repository.save_project(ProjectRecord(
+            project_id=project_id,
+            name="UI Candidate Project",
+            source_path=str(project_path),
+            codegraph_db_path=str(project_path / ".codegraph/codegraph.db"),
+        ))
+        created = runtime.brain_for_project(project_id).propose_memories(
+            project_id=project_id,
+            session_id="ui-session",
+            candidates=[{"type": "decision", "statement": statement}],
+        )["candidates"]
+        return created[0]["candidate_id"]
+
+    def test_brain_page_renders_candidate_confirm_and_reject_buttons(self) -> None:
+        candidate_id = self._create_brain_candidate()
+
+        response = self.client.get("/ui/projects/ui_candidate_project/brain")
+
+        self.assertEqual(response.status_code, 200)
+        self.assertIn("确认加入知识库", response.text)
+        self.assertIn("拒绝", response.text)
+        self.assertIn(
+            f'action="/ui/projects/ui_candidate_project/brain/candidates/{candidate_id}/confirm"',
+            response.text,
+        )
+        self.assertIn(
+            f'action="/ui/projects/ui_candidate_project/brain/candidates/{candidate_id}/reject"',
+            response.text,
+        )
+
+    def test_brain_candidate_confirm_button_promotes_candidate_and_returns_to_brain_page(self) -> None:
+        candidate_id = self._create_brain_candidate(
+            project_id="ui_confirm_project",
+            statement="Confirmed UI candidate becomes knowledge.",
+        )
+
+        response = self.client.post(
+            f"/ui/projects/ui_confirm_project/brain/candidates/{candidate_id}/confirm",
+            follow_redirects=False,
+        )
+
+        self.assertEqual(response.status_code, 303)
+        self.assertEqual(response.headers["location"], "/ui/projects/ui_confirm_project/brain")
+        refreshed = self.client.get(response.headers["location"])
+        self.assertEqual(refreshed.status_code, 200)
+        self.assertIn("Confirmed UI candidate becomes knowledge.", refreshed.text)
+        self.assertIn("暂无待确认知识。", refreshed.text)
+
+    def test_brain_candidate_reject_button_removes_candidate_from_pending_list(self) -> None:
+        candidate_id = self._create_brain_candidate(
+            project_id="ui_reject_project",
+            statement="Rejected UI candidate leaves pending list.",
+        )
+
+        response = self.client.post(
+            f"/ui/projects/ui_reject_project/brain/candidates/{candidate_id}/reject",
+            follow_redirects=False,
+        )
+
+        self.assertEqual(response.status_code, 303)
+        self.assertEqual(response.headers["location"], "/ui/projects/ui_reject_project/brain")
+        refreshed = self.client.get(response.headers["location"])
+        self.assertEqual(refreshed.status_code, 200)
+        self.assertIn("暂无待确认知识。", refreshed.text)
+        self.assertNotIn("Rejected UI candidate leaves pending list.", refreshed.text)
 
     def test_empty_project_list_renders(self) -> None:
         response = self.client.get("/ui/projects")

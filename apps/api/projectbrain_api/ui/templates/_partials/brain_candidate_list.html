@@ -11,6 +11,14 @@
       candidate_id：<code>{{ candidate.candidate_id }}</code>
       {% if candidate.session_id %}· session：<code>{{ candidate.session_id }}</code>{% endif %}
     </p>
+    <div class="pb-actions pb-candidate-actions" aria-label="候选知识操作">
+      <form method="post" action="/ui/projects/{{ project.project_id }}/brain/candidates/{{ candidate.candidate_id }}/confirm" class="pb-inline-form">
+        <button type="submit" class="pb-btn pb-btn-primary">确认加入知识库</button>
+      </form>
+      <form method="post" action="/ui/projects/{{ project.project_id }}/brain/candidates/{{ candidate.candidate_id }}/reject" class="pb-inline-form">
+        <button type="submit" class="pb-btn pb-btn-danger">拒绝</button>
+      </form>
+    </div>
     {% if candidate.possible_duplicates %}
     <details>
       <summary>可能重复：{{ candidate.possible_duplicates | length }}</summary>

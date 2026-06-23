@@ -191,6 +191,8 @@ code {
 }
 .pb-actions { display: flex; gap: 10px; }
 .pb-actions a { font-size: 13px; }
+.pb-candidate-actions { margin: 8px 0; flex-wrap: wrap; }
+.pb-inline-form { display: inline; margin: 0; }
 
 .pb-mono {
   font-family: ui-monospace, SFMono-Regular, "SF Mono", Menlo, Consolas, monospace;
@@ -248,6 +250,8 @@ code {
   cursor: pointer;
 }
 .pb-btn { background: #fff; color: var(--accent); }
+.pb-btn-primary { background: var(--accent); color: #fff; }
+.pb-btn-danger { border-color: #ff3b30; color: #ff3b30; background: #fff; }
 .pb-form button[type="submit"]:hover, .pb-btn:hover { filter: brightness(0.95); }
 
 /* Tabs */

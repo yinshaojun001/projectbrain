@@ -14,6 +14,8 @@ Routes (all local-only, mounted under /ui):
 * GET  /ui/projects/{id}/impact/last-run         — HTMX partial: last run
 * GET  /ui/projects/{id}/policy                  — Policy details page
 * GET  /ui/projects/{id}/brain                   — Brain Explorer page
+* POST /ui/projects/{id}/brain/candidates/{id}/confirm — confirm memory candidate
+* POST /ui/projects/{id}/brain/candidates/{id}/reject  — reject memory candidate
 
 This module renders HTML only. JSON API consumers continue to use /api/v1/*.
 """
@@ -276,6 +278,40 @@ def project_brain(
         "projects/brain.html",
         _base_context(**context),
     )
+
+
+@router.post(
+    "/projects/{project_id}/brain/candidates/{candidate_id}/confirm",
+    include_in_schema=False,
+)
+def ui_confirm_brain_candidate(
+    request: Request,
+    project_id: str,
+    candidate_id: str,
+) -> Response:
+    runtime = _runtime()
+    try:
+        runtime.brain_for_project(project_id).confirm_candidate(candidate_id)
+    except (FileNotFoundError, ValueError) as exc:
+        return _error_partial(request, f"确认候选知识失败：{exc}", status_code=400)
+    return RedirectResponse(url=f"/ui/projects/{project_id}/brain", status_code=303)
+
+
+@router.post(
+    "/projects/{project_id}/brain/candidates/{candidate_id}/reject",
+    include_in_schema=False,
+)
+def ui_reject_brain_candidate(
+    request: Request,
+    project_id: str,
+    candidate_id: str,
+) -> Response:
+    runtime = _runtime()
+    try:
+        runtime.brain_for_project(project_id).reject_candidate(candidate_id)
+    except (FileNotFoundError, ValueError) as exc:
+        return _error_partial(request, f"拒绝候选知识失败：{exc}", status_code=400)
+    return RedirectResponse(url=f"/ui/projects/{project_id}/brain", status_code=303)
 
 
 # ---------- Context Pack ---------- #
