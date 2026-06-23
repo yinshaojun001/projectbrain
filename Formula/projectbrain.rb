@@ -3,9 +3,9 @@ class Projectbrain < Formula
 
   desc "Local-first project cognition and impact analysis layer for AI coding agents"
   homepage "https://github.com/yinshaojun001/projectbrain"
-  url "https://github.com/yinshaojun001/projectbrain/archive/3be0f56de1fa10bf5fe0a2479f6f95da14c3f96a.tar.gz"
+  url "https://github.com/yinshaojun001/projectbrain/archive/7fc38464f6285d76a96d07b6e9010c7564bcc4ca.tar.gz"
   version "0.2.2"
-  sha256 "d77344ae09b3c8bbca83ffa7ca84e769f87c4cdad8d09a2c8a521b8b45c4da5c"
+  sha256 "d3f869b874d00901f8ed5bd0433e7b852920cbfb9c0dba684551e499adea33f4"
   license "MIT"
   head "https://github.com/yinshaojun001/projectbrain.git", branch: "main"
 
