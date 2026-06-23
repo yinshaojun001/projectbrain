@@ -8,12 +8,64 @@ import subprocess
 import sys
 import webbrowser
 from pathlib import Path
-from urllib.parse import quote
 from typing import Any, Callable
+from urllib.parse import quote
+from uuid import uuid4
 
-from projectbrain_cli.codex_session import run_codex_command
+from projectbrain_cli.codex_session import (
+    ManagedSessionResult,
+    conversation_transcript,
+    extract_session_memories,
+    persist_session_result,
+    run_codex_command,
+    run_codex_command_captured,
+    write_transcript,
+)
 from projectbrain_runtime.brain.repository import BrainRepository
 from projectbrain_runtime.brain.service import BrainService
+
+_EMPTY_EXTRACTION_OUTPUT = '{"session_summary":"","candidates":[]}'
+_CODEX_PROMPTLESS_SUBCOMMANDS = {
+    "app",
+    "app-server",
+    "apply",
+    "archive",
+    "cloud",
+    "completion",
+    "debug",
+    "delete",
+    "doctor",
+    "exec-server",
+    "features",
+    "fork",
+    "help",
+    "login",
+    "logout",
+    "mcp",
+    "mcp-server",
+    "plugin",
+    "remote-control",
+    "review",
+    "resume",
+    "sandbox",
+    "unarchive",
+    "update",
+}
+_CODEX_EXEC_PROMPTLESS_SUBCOMMANDS = {"help", "resume", "review"}
+_CODEX_EXEC_OPTIONS_WITH_VALUE = {
+    "-C",
+    "-c",
+    "-m",
+    "-o",
+    "--ask-for-approval",
+    "--cd",
+    "--config",
+    "--config-profile",
+    "--model",
+    "--output-last-message",
+    "--profile",
+    "--sandbox",
+}
 
 
 def build_parser() -> argparse.ArgumentParser:
@@ -28,23 +80,157 @@ def build_parser() -> argparse.ArgumentParser:
 def main(
     argv: list[str] | None = None,
     *,
-    command_runner: Callable[..., int] | None = None,
+    command_runner: Callable[..., Any] | None = None,
     browser_opener: Callable[[str], Any] | None = None,
+    extraction_runner: Callable[..., str] | None = None,
+    session_id_factory: Callable[[], str] | None = None,
 ) -> int:
     args = build_parser().parse_args(argv)
     requested_path = Path(args.project).expanduser().resolve()
     if not requested_path.exists():
         raise SystemExit(f"Project path does not exist: {requested_path}")
     project_path = _project_root(requested_path)
-    BrainService(BrainRepository(project_path))
     if not args.no_ui:
         opener = browser_opener or _open_url
         opener(_brain_url(project_path))
     command = shlex.split(args.codex_command)
     if not command:
         raise SystemExit("--codex-command must not be empty")
-    runner = command_runner or run_codex_command
-    return runner(command, cwd=project_path)
+    if args.no_extract:
+        runner = command_runner or run_codex_command
+        result = runner(command, cwd=project_path)
+        return result[0] if isinstance(result, tuple) else result
+
+    runner = command_runner or run_codex_command_captured
+    result = runner(command, cwd=project_path)
+    if isinstance(result, tuple):
+        return_code, transcript = result
+    else:
+        return_code, transcript = result, ""
+    turns = _conversation_turns(command, transcript)
+    if not _has_memory_pair(turns):
+        return return_code
+    session_id = (session_id_factory or _session_id)()
+    paired_transcript = conversation_transcript(turns)
+    transcript_path = write_transcript(project_path, session_id, paired_transcript)
+    if paired_transcript.strip():
+        brain_service = BrainService(BrainRepository(project_path))
+        extraction_output = _extract_or_empty(paired_transcript, project_path, extraction_runner)
+        _persist_session_result(
+            brain_service,
+            session_result=ManagedSessionResult(
+                session_id=session_id,
+                project_id=project_path.name or "local_project",
+                task="codex-brain session",
+                transcript_path=str(transcript_path),
+                extraction_output=extraction_output,
+                changed_files=[],
+                turns=turns,
+                stores_full_transcript=True,
+            ),
+        )
+    return return_code
+
+
+def _extract_or_empty(
+    transcript: str,
+    project_path: Path,
+    extraction_runner: Callable[..., str] | None,
+) -> str:
+    try:
+        return extract_session_memories(transcript, cwd=project_path, extractor_runner=extraction_runner)
+    except Exception as exc:
+        print(f"ProjectBrain memory extraction failed: {exc}", file=sys.stderr)
+        return _EMPTY_EXTRACTION_OUTPUT
+
+
+def _persist_session_result(
+    brain_service: BrainService,
+    *,
+    session_result: ManagedSessionResult,
+) -> None:
+    try:
+        persist_session_result(brain_service, session_result)
+    except Exception as exc:
+        print(f"ProjectBrain memory persistence failed: {exc}", file=sys.stderr)
+        if session_result.extraction_output == _EMPTY_EXTRACTION_OUTPUT:
+            return
+        try:
+            persist_session_result(
+                brain_service,
+                ManagedSessionResult(
+                    session_id=session_result.session_id,
+                    project_id=session_result.project_id,
+                    task=session_result.task,
+                    transcript_path=session_result.transcript_path,
+                    extraction_output=_EMPTY_EXTRACTION_OUTPUT,
+                    changed_files=session_result.changed_files,
+                    turns=session_result.turns,
+                    stores_full_transcript=session_result.stores_full_transcript,
+                ),
+            )
+        except Exception as fallback_exc:
+            print(f"ProjectBrain memory fallback persistence failed: {fallback_exc}", file=sys.stderr)
+
+
+def _conversation_turns(command: list[str], transcript: str) -> list[dict[str, str]]:
+    prompt = _user_prompt_from_command(command)
+    assistant = transcript.strip()
+    turns: list[dict[str, str]] = []
+    if prompt:
+        turns.append({"role": "user", "content": prompt})
+    if assistant:
+        turns.append({"role": "assistant", "content": assistant})
+    return turns
+
+
+def _has_memory_pair(turns: list[dict[str, str]]) -> bool:
+    roles = {turn.get("role") for turn in turns if turn.get("content")}
+    return "user" in roles and "assistant" in roles
+
+
+def _user_prompt_from_command(command: list[str]) -> str:
+    if command == ["codex"]:
+        return ""
+    if len(command) >= 2 and command[0] == "codex" and command[1] == "exec":
+        return _user_prompt_from_codex_exec(command[2:])
+    if len(command) >= 2 and command[0] == "codex" and command[1].startswith("-"):
+        return ""
+    if len(command) >= 2 and command[0] == "codex" and command[1] in _CODEX_PROMPTLESS_SUBCOMMANDS:
+        return ""
+    if len(command) >= 2 and command[0] == "codex":
+        return " ".join(command[1:]).strip()
+    return " ".join(command).strip()
+
+
+def _user_prompt_from_codex_exec(args: list[str]) -> str:
+    prompt_tokens = _strip_codex_exec_options(args)
+    if not prompt_tokens or prompt_tokens[0] in _CODEX_EXEC_PROMPTLESS_SUBCOMMANDS:
+        return ""
+    return " ".join(prompt_tokens).strip()
+
+
+def _strip_codex_exec_options(args: list[str]) -> list[str]:
+    index = 0
+    while index < len(args):
+        token = args[index]
+        if token == "--":
+            return args[index + 1 :]
+        if token.startswith("--") and "=" in token:
+            index += 1
+            continue
+        if token in _CODEX_EXEC_OPTIONS_WITH_VALUE:
+            index += 2
+            continue
+        if token.startswith("-"):
+            index += 1
+            continue
+        return args[index:]
+    return []
+
+
+def _session_id() -> str:
+    return "session_" + uuid4().hex
 
 
 def _open_url(

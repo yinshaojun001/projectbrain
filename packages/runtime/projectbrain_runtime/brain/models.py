@@ -137,6 +137,19 @@ def _plain(value: Any) -> Any:
     return deepcopy(value)
 
 
+def _conversation_turns(value: Any) -> list[dict[str, str]]:
+    if not isinstance(value, list):
+        return []
+    turns: list[dict[str, str]] = []
+    for item in value:
+        if not isinstance(item, dict):
+            continue
+        role = str(item.get("role", "")).strip()
+        content = str(item.get("content", "")).strip()
+        if role in {"user", "assistant"} and content:
+            turns.append({"role": role, "content": content})
+    return turns
+
 def _review_state(value: str | None) -> str:
     normalized = str(value).strip() if value is not None else ""
     normalized = normalized or "human_review_required"
@@ -300,6 +313,7 @@ class ConversationSession:
     changed_files: list[str] = field(default_factory=list)
     candidate_ids: list[str] = field(default_factory=list)
     knowledge_unit_ids: list[str] = field(default_factory=list)
+    turns: list[dict[str, Any]] = field(default_factory=list)
     privacy: dict[str, Any] = field(default_factory=lambda: {
         "stores_full_transcript": False,
         "stores_excerpts": True,
@@ -314,6 +328,7 @@ class ConversationSession:
         object.__setattr__(self, "changed_files", _freeze(_string_list(self.changed_files)))
         object.__setattr__(self, "candidate_ids", _freeze(_string_list(self.candidate_ids)))
         object.__setattr__(self, "knowledge_unit_ids", _freeze(_string_list(self.knowledge_unit_ids)))
+        object.__setattr__(self, "turns", _freeze(_conversation_turns(self.turns)))
         object.__setattr__(self, "privacy", _freeze(_dict(self.privacy) or {
             "stores_full_transcript": False,
             "stores_excerpts": True,
@@ -335,5 +350,6 @@ class ConversationSession:
             changed_files=_string_list(data.get("changed_files", [])),
             candidate_ids=_string_list(data.get("candidate_ids", [])),
             knowledge_unit_ids=_string_list(data.get("knowledge_unit_ids", [])),
+            turns=_conversation_turns(data.get("turns", [])),
             privacy=dict(data.get("privacy") or {"stores_full_transcript": False, "stores_excerpts": True}),
         )

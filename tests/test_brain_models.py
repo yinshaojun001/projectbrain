@@ -72,6 +72,99 @@ class BrainModelsTest(unittest.TestCase):
         self.assertFalse(restored.privacy["stores_full_transcript"])
         self.assertEqual(restored.changed_files, ["service/refund/RefundService.java"])
 
+    def test_conversation_session_round_trip_preserves_paired_turns(self):
+        session = ConversationSession(
+            session_id="session_20260622_capture",
+            project_id="payment",
+            turns=[
+                {"role": "user", "content": "Add refund fee handling."},
+                {"role": "assistant", "content": "Implemented refund fee handling in RefundService."},
+            ],
+        )
+
+        restored = ConversationSession.from_dict(session.to_dict())
+
+        self.assertEqual(
+            restored.turns,
+            [
+                {"role": "user", "content": "Add refund fee handling."},
+                {"role": "assistant", "content": "Implemented refund fee handling in RefundService."},
+            ],
+        )
+
+    def test_conversation_session_normalizes_turns_to_valid_non_empty_user_and_assistant_entries(self):
+        session = ConversationSession(
+            session_id="session_20260622_normalized_turns",
+            project_id="payment",
+            turns=[
+                {"role": " user ", "content": " Add refund fee handling. "},
+                {"role": "assistant", "content": " Implemented refund fee handling. "},
+                {"role": "system", "content": "hidden"},
+                {"role": "tool", "content": "hidden"},
+                {"role": "user", "content": "   "},
+                {"role": "assistant", "content": ""},
+                {"role": "", "content": "missing role"},
+                {"content": "missing role key"},
+                {"role": "assistant"},
+                {"role": None, "content": "missing role value"},
+                "not-a-dict",
+                42,
+                None,
+            ],
+        )
+
+        self.assertEqual(
+            session.turns,
+            [
+                {"role": "user", "content": "Add refund fee handling."},
+                {"role": "assistant", "content": "Implemented refund fee handling."},
+            ],
+        )
+        self.assertEqual(
+            session.to_dict()["turns"],
+            [
+                {"role": "user", "content": "Add refund fee handling."},
+                {"role": "assistant", "content": "Implemented refund fee handling."},
+            ],
+        )
+
+    def test_conversation_session_round_trip_preserves_captured_session_privacy_with_full_transcript(self):
+        session = ConversationSession(
+            session_id="session_20260622_captured",
+            project_id="payment",
+            turns=[
+                {"role": "user", "content": "test"},
+                {
+                    "role": "assistant",
+                    "content": "Assistant: Homebrew package is projectbrain but startup command is codex-brain.",
+                },
+            ],
+            privacy={
+                "stores_full_transcript": True,
+                "stores_excerpts": False,
+                "transcript_path": ".projectbrain/brain/transcripts/session_20260622_captured.txt",
+            },
+        )
+
+        restored = ConversationSession.from_dict(session.to_dict())
+
+        self.assertEqual(
+            restored.turns,
+            [
+                {"role": "user", "content": "test"},
+                {
+                    "role": "assistant",
+                    "content": "Assistant: Homebrew package is projectbrain but startup command is codex-brain.",
+                },
+            ],
+        )
+        self.assertTrue(restored.privacy["stores_full_transcript"])
+        self.assertFalse(restored.privacy["stores_excerpts"])
+        self.assertEqual(
+            restored.privacy["transcript_path"],
+            ".projectbrain/brain/transcripts/session_20260622_captured.txt",
+        )
+
     def test_make_brain_id_is_stable_and_safe(self):
         self.assertEqual(
             make_brain_id("ku", "Refund fee must not change settlement principal!"),
