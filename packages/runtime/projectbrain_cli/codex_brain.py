@@ -4,8 +4,10 @@ from __future__ import annotations
 
 import argparse
 import shlex
+import shutil
 import subprocess
 import sys
+import time
 import webbrowser
 from pathlib import Path
 from typing import Any, Callable
@@ -84,6 +86,7 @@ def main(
     browser_opener: Callable[[str], Any] | None = None,
     extraction_runner: Callable[..., str] | None = None,
     session_id_factory: Callable[[], str] | None = None,
+    ui_server_starter: Callable[..., Any] | None = None,
 ) -> int:
     args = build_parser().parse_args(argv)
     requested_path = Path(args.project).expanduser().resolve()
@@ -91,9 +94,11 @@ def main(
         raise SystemExit(f"Project path does not exist: {requested_path}")
     project_path = _project_root(requested_path)
     if not args.no_ui:
+        starter = ui_server_starter or _ensure_ui_server
+        starter(cwd=project_path)
         opener = browser_opener or _open_url
         opener(_brain_url(project_path))
-    command = shlex.split(args.codex_command)
+    command = _codex_command_from_arg(args.codex_command)
     if not command:
         raise SystemExit("--codex-command must not be empty")
     if args.no_extract:
@@ -130,6 +135,21 @@ def main(
             ),
         )
     return return_code
+
+
+def _codex_command_from_arg(value: str) -> list[str]:
+    command = shlex.split(value)
+    if not command:
+        return []
+    if command[0] == "codex":
+        return command
+    if len(command) == 1 and _looks_like_shell_command(command[0]):
+        return command
+    return ["codex", "exec", value.strip()]
+
+
+def _looks_like_shell_command(value: str) -> bool:
+    return value in {"true", "false"} or shutil.which(value) is not None
 
 
 def _extract_or_empty(
@@ -245,6 +265,49 @@ def _open_url(
         runner(["open", url], check=False)
         return
     webbrowser.open(url)
+
+
+def _ensure_ui_server(
+    *,
+    cwd: Path,
+    host: str = "127.0.0.1",
+    port: int = 8000,
+    process_starter: Callable[..., Any] | None = None,
+) -> None:
+    if _ui_server_is_ready(host=host, port=port):
+        return
+    starter = process_starter or subprocess.Popen
+    starter(
+        [
+            sys.executable,
+            "-m",
+            "uvicorn",
+            "projectbrain_api.main:app",
+            "--host",
+            host,
+            "--port",
+            str(port),
+        ],
+        cwd=cwd,
+        start_new_session=True,
+        stdout=subprocess.DEVNULL,
+        stderr=subprocess.DEVNULL,
+    )
+    for _ in range(20):
+        if _ui_server_is_ready(host=host, port=port):
+            return
+        time.sleep(0.1)
+
+
+def _ui_server_is_ready(*, host: str, port: int) -> bool:
+    import urllib.error
+    import urllib.request
+
+    try:
+        with urllib.request.urlopen(f"http://{host}:{port}/health", timeout=0.2) as response:
+            return response.status == 200
+    except (OSError, urllib.error.URLError):
+        return False
 
 
 def _project_root(path: Path) -> Path:

@@ -159,10 +159,58 @@ class CodexBrainTest(unittest.TestCase):
         self.assertEqual(candidate["applies_to"], [])
 
 
-from projectbrain_cli.codex_brain import _open_url, main as codex_brain_main  # noqa: E402
+from projectbrain_cli.codex_brain import _codex_command_from_arg, _open_url, main as codex_brain_main  # noqa: E402
 
 
 class CodexBrainMainTest(unittest.TestCase):
+    def test_plain_codex_command_text_is_wrapped_as_codex_exec_prompt(self):
+        self.assertEqual(
+            _codex_command_from_arg("这个项目是怎么工作的"),
+            ["codex", "exec", "这个项目是怎么工作的"],
+        )
+
+    def test_codex_brain_runs_plain_prompt_as_codex_exec(self):
+        with tempfile.TemporaryDirectory() as tmp:
+            calls = []
+
+            def fake_runner(command, *, cwd):
+                calls.append((command, cwd))
+                return (0, "Assistant: This project is ProjectBrain.\n")
+
+            return_code = codex_brain_main(
+                ["--project", tmp, "--no-ui", "--codex-command", "这个项目是怎么工作的"],
+                command_runner=fake_runner,
+                extraction_runner=lambda prompt, *, cwd: '{"session_summary":"","candidates":[]}',
+                session_id_factory=lambda: "session_plain_prompt",
+            )
+
+            self.assertEqual(return_code, 0)
+            self.assertEqual(calls[0][0], ["codex", "exec", "这个项目是怎么工作的"])
+            service = BrainService(BrainRepository(Path(tmp)))
+            self.assertEqual(
+                service.list_sessions()["sessions"][0]["turns"],
+                [
+                    {"role": "user", "content": "这个项目是怎么工作的"},
+                    {"role": "assistant", "content": "Assistant: This project is ProjectBrain."},
+                ],
+            )
+
+    def test_codex_brain_starts_ui_server_before_opening_browser(self):
+        with tempfile.TemporaryDirectory() as tmp:
+            calls = []
+
+            return_code = codex_brain_main(
+                ["--project", tmp, "--codex-command", "true", "--no-extract"],
+                command_runner=lambda command, *, cwd: 0,
+                browser_opener=lambda url: calls.append(("open", url)),
+                ui_server_starter=lambda *, cwd: calls.append(("server", cwd)),
+            )
+
+            self.assertEqual(return_code, 0)
+            self.assertEqual(calls[0], ("server", Path(tmp).resolve()))
+            self.assertEqual(calls[1][0], "open")
+            self.assertIn("/ui/projects", calls[1][1])
+
     def test_codex_brain_extracts_child_output_into_memory_candidates(self):
         with tempfile.TemporaryDirectory() as tmp:
             calls = []
@@ -417,6 +465,7 @@ class CodexBrainMainTest(unittest.TestCase):
                 ["--project", tmp, "--no-extract", "--codex-command", "true"],
                 command_runner=lambda command, *, cwd: 0,
                 browser_opener=opened.append,
+                ui_server_starter=lambda *, cwd: None,
             )
 
             self.assertEqual(return_code, 0)
