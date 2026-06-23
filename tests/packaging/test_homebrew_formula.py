@@ -14,21 +14,23 @@ class HomebrewFormulaPackagingTest(unittest.TestCase):
         self.assertIn('shell_output("#{bin}/projectbrain --help")', formula)
         self.assertIn('shell_output("#{bin}/codex-brain --help")', formula)
         self.assertIn('shell_output("#{bin}/projectbrain brain --help")', formula)
+        self.assertIn('import fastapi, uvicorn, jinja2, projectbrain_api', formula)
         self.assertRegex(
             formula,
             re.compile(
                 r'shell_output\("#\{bin\}/codex-brain --project #\{testpath\}/repo --no-ui --no-extract --codex-command true"\)'
             ),
         )
+        self.assertIn('refute_path_exists testpath/"repo"/".projectbrain"/"brain"/"conversations.jsonl"', formula)
 
     def test_formula_stable_archive_points_to_codex_brain_commit(self):
         formula = FORMULA.read_text()
 
         self.assertIn(
-            'url "https://github.com/yinshaojun001/projectbrain/archive/f1817cf.tar.gz"',
+            'url "https://github.com/yinshaojun001/projectbrain/archive/08410e1bc1d25eec0a183168134e53caba41eaa1.tar.gz"',
             formula,
         )
-        self.assertIn('sha256 "001bccdbe747daaf768e83754c9e8fcf5a73f58c56c28abeabd13149b20a8f68"', formula)
+        self.assertIn('sha256 "056e23135f3e258a9752f4d13a9b91190081e6a79134137f1fb63f2d3dab4f22"', formula)
 
     def test_formula_has_local_head_for_checkout_smoke(self):
         formula = FORMULA.read_text()

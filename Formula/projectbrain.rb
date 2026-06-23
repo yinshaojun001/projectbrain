@@ -3,16 +3,17 @@ class Projectbrain < Formula
 
   desc "Local-first project cognition and impact analysis layer for AI coding agents"
   homepage "https://github.com/yinshaojun001/projectbrain"
-  url "https://github.com/yinshaojun001/projectbrain/archive/f1817cf.tar.gz"
+  url "https://github.com/yinshaojun001/projectbrain/archive/08410e1bc1d25eec0a183168134e53caba41eaa1.tar.gz"
   version "0.2.2"
-  sha256 "001bccdbe747daaf768e83754c9e8fcf5a73f58c56c28abeabd13149b20a8f68"
+  sha256 "056e23135f3e258a9752f4d13a9b91190081e6a79134137f1fb63f2d3dab4f22"
   license "MIT"
   head "https://github.com/yinshaojun001/projectbrain.git", branch: "main"
 
   depends_on "python@3.14"
 
   def install
-    virtualenv_install_with_resources
+    venv = virtualenv_install_with_resources
+    venv.pip_install "#{buildpath}[api]"
   end
 
   test do
@@ -24,8 +25,10 @@ class Projectbrain < Formula
     assert_match "status", doctor_output
     assert_match "ok", doctor_output
 
+    system libexec/"bin/python", "-c", "import fastapi, uvicorn, jinja2, projectbrain_api"
+
     (testpath/"repo").mkpath
     shell_output("#{bin}/codex-brain --project #{testpath}/repo --no-ui --no-extract --codex-command true")
-    assert_path_exists testpath/"repo"/".projectbrain"/"brain"
+    refute_path_exists testpath/"repo"/".projectbrain"/"brain"/"conversations.jsonl"
   end
 end
