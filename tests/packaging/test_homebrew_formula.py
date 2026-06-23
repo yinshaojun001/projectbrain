@@ -25,10 +25,10 @@ class HomebrewFormulaPackagingTest(unittest.TestCase):
         formula = FORMULA.read_text()
 
         self.assertIn(
-            'url "https://github.com/yinshaojun001/projectbrain/archive/77c48930a107f86194dc303c5e1b7d0bd0c052df.tar.gz"',
+            'url "https://github.com/yinshaojun001/projectbrain/archive/3be0f56de1fa10bf5fe0a2479f6f95da14c3f96a.tar.gz"',
             formula,
         )
-        self.assertIn('sha256 "25766f5166ad38e7f67f25fb6dc0b0319f7a0a2df5028540d63eea86f02494a1"', formula)
+        self.assertIn('sha256 "d77344ae09b3c8bbca83ffa7ca84e769f87c4cdad8d09a2c8a521b8b45c4da5c"', formula)
 
     def test_formula_has_local_head_for_checkout_smoke(self):
         formula = FORMULA.read_text()
