@@ -20,6 +20,9 @@ v0.2 includes:
 - policy inspection through CLI and MCP
 - local-only stdio MCP server
 - optional local-only Observability UI (`/ui/*`, 127.0.0.1)
+- Homebrew-installed `projectbrain` and `codex-brain` entrypoints
+- project-local Brain memory CLI commands under `projectbrain brain`
+- explicit `codex-brain` child-process launcher for project-local Brain initialization
 
 v0.2 does not include:
 
@@ -29,6 +32,9 @@ v0.2 does not include:
 - automatic code modification
 - stale claim detection
 - symbol-level Git hunk parsing
+- transcript capture or extraction in `codex-brain`
+- monitoring ordinary `codex` sessions, other shells, clipboard contents, desktop apps, or background activity
+- desktop/Claude/vector/graph/background-listening integrations
 
 ## Required Local Checks
 
@@ -38,6 +44,13 @@ Run these from the repository root:
 .venv/bin/python -m unittest discover -s tests
 
 .venv/bin/projectbrain doctor
+.venv/bin/projectbrain --help
+.venv/bin/codex-brain --help
+.venv/bin/projectbrain brain --help
+
+repo=$(mktemp -d)
+.venv/bin/codex-brain --project "$repo" --no-ui --no-extract --codex-command "true"
+test -d "$repo/.projectbrain/brain"
 
 printf '{"jsonrpc":"2.0","id":1,"method":"tools/list"}\n' | .venv/bin/projectbrain mcp serve
 ```
@@ -46,6 +59,8 @@ Expected result:
 
 - tests complete with `OK`
 - `doctor` returns `status: ok`
+- help output is available for `projectbrain`, `codex-brain`, and `projectbrain brain`
+- the non-interactive `codex-brain` smoke exits successfully and creates the project-local `.projectbrain/brain` store
 - MCP `tools/list` includes:
   - `projectbrain_import_project`
   - `projectbrain_list_projects`
@@ -84,6 +99,31 @@ Expected result:
 - output is valid JSON
 - output references only synthetic `examples/payment-mini` facts
 - no source file bodies are returned
+
+## Homebrew Packaging Smoke
+
+Before publishing the formula, verify that the Homebrew install exposes both entrypoints and the project-local Brain workflow:
+
+```bash
+brew tap yinshaojun001/projectbrain /path/to/projectbrain
+brew trust yinshaojun001/projectbrain
+brew reinstall --build-from-source projectbrain
+brew test projectbrain
+projectbrain --help
+codex-brain --help
+projectbrain brain --help
+
+repo=$(mktemp -d)
+codex-brain --project "$repo" --no-ui --no-extract --codex-command "true"
+test -d "$repo/.projectbrain/brain"
+```
+
+Expected result:
+
+- `brew test projectbrain` passes the formula smoke test.
+- `projectbrain` and `codex-brain` are both installed on `PATH`.
+- `projectbrain brain --help` exposes the Brain memory commands.
+- `codex-brain` does not listen to ordinary shells, clipboard, desktop apps, or background activity; this smoke only verifies the explicit child-process path.
 
 ## Runtime Smoke
 

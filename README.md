@@ -39,6 +39,7 @@ brew tap yinshaojun001/projectbrain https://github.com/yinshaojun001/projectbrai
 brew trust yinshaojun001/projectbrain
 brew install projectbrain
 projectbrain doctor
+codex-brain --help
 ```
 
 For local formula testing from a checkout:
@@ -48,7 +49,10 @@ brew tap yinshaojun001/projectbrain /path/to/projectbrain
 brew trust yinshaojun001/projectbrain
 brew install --build-from-source projectbrain
 projectbrain doctor
+codex-brain --help
 ```
+
+Homebrew package/formula name is `projectbrain`, but it installs both `projectbrain` and `codex-brain`. After `brew install projectbrain`, start the memory-enabled Codex workflow with `codex-brain`. Use `projectbrain` for project setup, MCP, facts, and Brain memory commands; use `codex-brain` when you explicitly want to launch a Codex CLI child process with project-local Brain initialization.
 
 Or install from source:
 
@@ -275,9 +279,12 @@ Inspect the policy that an imported project is using:
 ```bash
 cd /path/to/my/project
 codex-brain
+
+# Non-interactive smoke test, also useful after Homebrew install:
+codex-brain --project . --no-ui --no-extract --codex-command "true"
 ```
 
-The first MVP does not monitor ordinary `codex` sessions, other terminals, the clipboard, or background activity. When managed-session capture or extraction is enabled, its boundary is limited to the Codex CLI child process explicitly started by `codex-brain`.
+The current MVP does not implement transcript capture/extraction, desktop integration, Claude/vector/graph ingestion, or background listening. It does not monitor ordinary `codex` sessions, other terminals, the clipboard, or background activity; it only initializes project-local Brain storage and launches the Codex CLI child process explicitly started by `codex-brain`.
 
 Project-local Brain data is stored under:
 

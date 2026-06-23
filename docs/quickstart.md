@@ -13,6 +13,7 @@ brew tap yinshaojun001/projectbrain https://github.com/yinshaojun001/projectbrai
 brew trust yinshaojun001/projectbrain
 brew install projectbrain
 projectbrain doctor
+codex-brain --help
 ```
 
 For local formula testing from this checkout:
@@ -22,7 +23,13 @@ brew tap yinshaojun001/projectbrain /path/to/projectbrain
 brew trust yinshaojun001/projectbrain
 brew install --build-from-source projectbrain
 projectbrain doctor
+codex-brain --help
 ```
+
+Homebrew package/formula name is `projectbrain`, but after `brew install projectbrain` the command you start for the memory-enabled Codex workflow is `codex-brain`. Homebrew installs both command-line entrypoints:
+
+- `projectbrain` for setup, MCP, facts, impact analysis, and Brain memory commands.
+- `codex-brain` for explicitly launching a Codex CLI child process with project-local Brain initialization.
 
 Or install an editable development checkout:
 
@@ -214,7 +221,12 @@ From a local project directory:
 
 ```bash
 codex-brain
+
+# Non-interactive smoke test, also useful after Homebrew install:
+codex-brain --project . --no-ui --no-extract --codex-command "true"
 ```
+
+The current MVP does not implement transcript capture/extraction, desktop integration, Claude/vector/graph ingestion, or background listening. It does not monitor ordinary `codex` sessions, other terminals, the clipboard, or background activity; it only initializes project-local Brain storage and launches the Codex CLI child process explicitly started by `codex-brain`.
 
 In the current MVP, propose durable memory candidates through the CLI or MCP tools, then review them:
 
