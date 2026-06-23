@@ -21,6 +21,7 @@ This module renders HTML only. JSON API consumers continue to use /api/v1/*.
 from __future__ import annotations
 
 import json
+import re
 from pathlib import Path
 from typing import Any
 
@@ -35,7 +36,7 @@ except ModuleNotFoundError as exc:  # pragma: no cover - exercised only without 
 
 from projectbrain_api.dependencies import build_runtime
 from projectbrain_api.handlers import _parse_git_diff_selection
-from projectbrain_runtime.models import ImportOptions
+from projectbrain_runtime.models import ImportOptions, ProjectRecord
 from projectbrain_runtime.service import ProjectBrainRuntime
 
 
@@ -77,6 +78,37 @@ def _base_context(**extra: Any) -> dict[str, Any]:
 
 def _runtime() -> ProjectBrainRuntime:
     return build_runtime()
+
+
+def _ensure_brain_project(runtime: ProjectBrainRuntime, project_path: str) -> ProjectRecord:
+    requested = Path(project_path).expanduser().resolve()
+    if not requested.exists():
+        raise FileNotFoundError(f"Project path does not exist: {requested}")
+    root = _project_root(requested)
+    project_id = _default_project_id(root)
+    project = ProjectRecord(
+        project_id=project_id,
+        name=root.name or project_id,
+        source_path=str(root),
+        codegraph_db_path=str(root / ".codegraph" / "codegraph.db"),
+        metadata={"brain_only": True, "opened_from": "codex-brain"},
+    )
+    runtime.repository.save_project(project)
+    runtime.brain_for_path(root)
+    return project
+
+
+def _project_root(path: Path) -> Path:
+    current = path if path.is_dir() else path.parent
+    for candidate in (current, *current.parents):
+        if (candidate / ".git").exists():
+            return candidate
+    return current
+
+
+def _default_project_id(project_path: Path) -> str:
+    value = re.sub(r"[^a-zA-Z0-9_]+", "_", project_path.name.strip()).strip("_").lower()
+    return value or "local_project"
 
 
 def _split_lines(value: str) -> list[str]:
@@ -141,8 +173,15 @@ def ui_index(request: Request) -> HTMLResponse:
 
 
 @router.get("/projects", response_class=HTMLResponse, include_in_schema=False)
-def ui_projects_list(request: Request) -> HTMLResponse:
+def ui_projects_list(request: Request, project_path: str | None = None) -> Response:
     runtime = _runtime()
+    if project_path:
+        try:
+            project = _ensure_brain_project(runtime, project_path)
+        except (FileNotFoundError, ValueError) as exc:
+            return _error_partial(request, f"无法打开项目 Brain：{exc}", status_code=400)
+        return RedirectResponse(url=f"/ui/projects/{project.project_id}/brain", status_code=303)
+
     projects = [project.to_dict() for project in runtime.repository.list_projects()]
     return templates.TemplateResponse(
         request,

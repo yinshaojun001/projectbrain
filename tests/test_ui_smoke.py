@@ -67,6 +67,26 @@ class UiSmokeTest(unittest.TestCase):
         self.assertIn("pb-tabs", response.text)
         self.assertIn("pb-callout", response.text)
 
+    def test_projects_with_project_path_auto_opens_brain_for_git_project(self) -> None:
+        project_path = Path(self._tmp.name) / "My Project"
+        project_path.mkdir()
+        (project_path / ".git").mkdir()
+
+        response = self.client.get(
+            "/ui/projects",
+            params={"project_path": str(project_path)},
+            follow_redirects=False,
+        )
+
+        self.assertEqual(response.status_code, 303)
+        self.assertEqual(response.headers["location"], "/ui/projects/my_project/brain")
+        self.assertTrue((project_path / ".projectbrain" / "brain" / "manifest.json").exists())
+
+        brain_response = self.client.get(response.headers["location"])
+        self.assertEqual(brain_response.status_code, 200)
+        self.assertIn("Project Brain", brain_response.text)
+        self.assertNotIn("导入项目", brain_response.text)
+
     def test_empty_project_list_renders(self) -> None:
         response = self.client.get("/ui/projects")
         self.assertEqual(response.status_code, 200)
