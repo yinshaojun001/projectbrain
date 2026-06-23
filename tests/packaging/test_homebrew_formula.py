@@ -42,3 +42,9 @@ class HomebrewFormulaPackagingTest(unittest.TestCase):
 
         self.assertIn('projectbrain = "projectbrain_cli.main:main"', pyproject)
         self.assertIn('codex-brain = "projectbrain_cli.codex_brain:main"', pyproject)
+
+    def test_pyproject_packages_ui_templates_and_static_assets(self):
+        pyproject = PYPROJECT.read_text()
+
+        self.assertIn("[tool.setuptools.package-data]", pyproject)
+        self.assertIn('"projectbrain_api.ui" = ["templates/**/*.html", "static/**/*.css"', pyproject)

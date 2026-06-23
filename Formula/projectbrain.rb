@@ -12,8 +12,8 @@ class Projectbrain < Formula
   depends_on "python@3.14"
 
   def install
-    venv = virtualenv_install_with_resources
-    venv.pip_install "#{buildpath}[api]"
+    virtualenv_install_with_resources
+    system libexec/"bin/python", "-m", "pip", "install", "#{buildpath}[api]"
   end
 
   test do
