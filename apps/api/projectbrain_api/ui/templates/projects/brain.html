@@ -15,75 +15,83 @@
     </nav>
   </div>
 
-  <div class="pb-stats">
-    <div class="pb-stat">
-      <span class="pb-stat-value">{{ summary.knowledge_unit_count }}</span>
-      <span class="pb-stat-label">条知识</span>
-    </div>
-    <div class="pb-stat">
-      <span class="pb-stat-value" style="color:var(--warn)">{{ summary.candidate_count }}</span>
-      <span class="pb-stat-label">待确认</span>
-    </div>
-  </div>
+  <div class="pb-brain-layout">
+    <!-- Main: search + knowledge -->
+    <div class="pb-brain-main">
+      <form class="pb-form" method="get" action="/ui/projects/{{ project.project_id }}/brain" style="margin-bottom:16px">
+        <div style="display:flex;gap:8px;align-items:flex-end">
+          <label style="flex:1;gap:0">
+            <input type="text" name="q" value="{{ query }}" aria-label="搜索项目大脑" placeholder="搜索知识库…" />
+          </label>
+          <button type="submit" class="pb-search-btn">搜索</button>
+        </div>
+      </form>
 
-  <form class="pb-form" method="get" action="/ui/projects/{{ project.project_id }}/brain" style="margin-bottom:8px">
-    <div style="display:flex;gap:8px;align-items:flex-end">
-      <label style="flex:1;gap:0">
-        <input type="text" name="q" value="{{ query }}" aria-label="搜索项目大脑" placeholder="搜索知识库…" />
-      </label>
-      <button type="submit" style="height:36px;padding:0 16px;background:var(--card-2);border:1px solid var(--border);border-radius:7px;color:var(--fg-2);font:inherit;font-size:13px;font-weight:500;cursor:pointer;transition:all .15s;white-space:nowrap" onmouseover="this.style.borderColor='var(--accent)'" onmouseout="this.style.borderColor='var(--border)'">搜索</button>
+      <h2>知识库</h2>
+      {% if knowledge.matches is defined %}
+        {% with units = knowledge.matches, links_by_unit = links_by_unit %}
+          {% include "_partials/brain_knowledge_list.html" %}
+        {% endwith %}
+      {% else %}
+        {% with units = knowledge.knowledge_units, links_by_unit = links_by_unit %}
+          {% include "_partials/brain_knowledge_list.html" %}
+        {% endwith %}
+      {% endif %}
     </div>
-  </form>
 
-  <details>
-    <summary>+ 手动添加知识</summary>
-    <form class="pb-form" method="post" action="/ui/projects/{{ project.project_id }}/brain/knowledge" style="margin-top:12px">
-      <div class="pb-form-row">
-        <label>
-          <span>类型</span>
-          <select name="type">
-            <option value="concept_note">concept_note</option>
-            <option value="decision">decision</option>
-            <option value="constraint">constraint</option>
-            <option value="gotcha">gotcha</option>
-            <option value="workflow">workflow</option>
-            <option value="risk">risk</option>
-            <option value="test_guidance">test_guidance</option>
-            <option value="open_question">open_question</option>
-            <option value="incident">incident</option>
-          </select>
-        </label>
-        <label>
-          <span>标题（可选）</span>
-          <input type="text" name="title" />
-        </label>
+    <!-- Sidebar: stats + candidates + add form -->
+    <aside class="pb-brain-sidebar">
+      <div class="pb-stats" style="margin-top:0">
+        <div class="pb-stat">
+          <span class="pb-stat-value">{{ summary.knowledge_unit_count }}</span>
+          <span class="pb-stat-label">条知识</span>
+        </div>
+        <div class="pb-stat">
+          <span class="pb-stat-value" style="color:var(--warn);text-shadow:0 0 20px rgba(251,191,36,0.5)">{{ summary.candidate_count }}</span>
+          <span class="pb-stat-label">待确认</span>
+        </div>
       </div>
-      <label>
-        <span>陈述 <em>*</em></span>
-        <textarea name="statement" required rows="3"></textarea>
-      </label>
-      <label>
-        <span>标签（逗号分隔）</span>
-        <input type="text" name="tags" placeholder="auth, api, database" />
-      </label>
-      <div class="pb-form-actions"><button type="submit">添加到知识库</button></div>
-    </form>
-  </details>
 
-  <h2>待确认{% if candidates.candidates %} <span style="color:var(--warn);font-style:normal">({{ candidates.candidates | length }})</span>{% endif %}</h2>
-  {% with candidates = candidates.candidates %}
-    {% include "_partials/brain_candidate_list.html" %}
-  {% endwith %}
+      <h2>待确认{% if candidates.candidates %} <span style="color:var(--warn);font-style:normal">({{ candidates.candidates | length }})</span>{% endif %}</h2>
+      {% with candidates = candidates.candidates %}
+        {% include "_partials/brain_candidate_list.html" %}
+      {% endwith %}
 
-  <h2>知识库</h2>
-  {% if knowledge.matches is defined %}
-    {% with units = knowledge.matches, links_by_unit = links_by_unit %}
-      {% include "_partials/brain_knowledge_list.html" %}
-    {% endwith %}
-  {% else %}
-    {% with units = knowledge.knowledge_units, links_by_unit = links_by_unit %}
-      {% include "_partials/brain_knowledge_list.html" %}
-    {% endwith %}
-  {% endif %}
+      <details style="margin-top:16px">
+        <summary>+ 手动添加知识</summary>
+        <form class="pb-form" method="post" action="/ui/projects/{{ project.project_id }}/brain/knowledge" style="margin-top:12px">
+          <div class="pb-form-row">
+            <label>
+              <span>类型</span>
+              <select name="type">
+                <option value="concept_note">concept_note</option>
+                <option value="decision">decision</option>
+                <option value="constraint">constraint</option>
+                <option value="gotcha">gotcha</option>
+                <option value="workflow">workflow</option>
+                <option value="risk">risk</option>
+                <option value="test_guidance">test_guidance</option>
+                <option value="open_question">open_question</option>
+                <option value="incident">incident</option>
+              </select>
+            </label>
+            <label>
+              <span>标题（可选）</span>
+              <input type="text" name="title" />
+            </label>
+          </div>
+          <label>
+            <span>陈述 <em>*</em></span>
+            <textarea name="statement" required rows="3"></textarea>
+          </label>
+          <label>
+            <span>标签（逗号分隔）</span>
+            <input type="text" name="tags" placeholder="auth, api, database" />
+          </label>
+          <div class="pb-form-actions"><button type="submit">添加到知识库</button></div>
+        </form>
+      </details>
+    </aside>
+  </div>
 </div>
 {% endblock %}

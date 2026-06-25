@@ -23,7 +23,7 @@
     <span class="pb-muted">{{ type_units | length }} 条</span>
   </div>
   {% for unit in type_units %}
-  <div class="pb-ku">
+  <div class="pb-ku" data-ku-type="{{ type_key }}">
     <div class="pb-ku-head">
       <span class="pb-ku-title">{{ unit.title or unit.statement[:80] }}</span>
       <span class="pb-confidence" data-level="{{ (unit.confidence * 100) | int }}">{{ "%.0f"|format(unit.confidence * 100) }}%</span>

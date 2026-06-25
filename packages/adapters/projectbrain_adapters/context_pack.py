@@ -310,10 +310,10 @@ class ContextPackBuilder:
         return {
             "type": "unknowns_for_human_review",
             "items": [
-                "Which payment-domain invariants are human-confirmed, such as amount units, immutable records, or callback compatibility?",
-                "Which external consumers depend on the selected service contracts?",
-                "Which integration or regression tests are authoritative for the selected business flow?",
-                "Which configuration values are sensitive and must remain excluded from memory chunks?",
+                "Which domain-specific constraints or invariants are human-confirmed for this scope?",
+                "Which external systems or consumers depend on the selected components?",
+                "Which tests provide authoritative coverage for this functionality?",
+                "Which configuration values are sensitive and should remain excluded from context?",
             ],
         }
 
