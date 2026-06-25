@@ -1,41 +1,35 @@
 {% if candidates %}
-<ul class="pb-list">
-  {% for candidate in candidates %}
-  <li>
-    <div class="pb-list-head">
-      <strong>{{ candidate.proposed_unit.title or candidate.proposed_unit.type or "候选知识" }}</strong>
-      <code>{{ candidate.review_state }}</code>
-    </div>
-    <p>{{ candidate.proposed_unit.statement }}</p>
-    <p class="pb-muted">
-      candidate_id：<code>{{ candidate.candidate_id }}</code>
-      {% if candidate.session_id %}· session：<code>{{ candidate.session_id }}</code>{% endif %}
-    </p>
-    <div class="pb-actions pb-candidate-actions" aria-label="候选知识操作">
-      <form method="post" action="/ui/projects/{{ project.project_id }}/brain/candidates/{{ candidate.candidate_id }}/confirm" class="pb-inline-form">
-        <button type="submit" class="pb-btn pb-btn-primary">确认加入知识库</button>
-      </form>
-      <form method="post" action="/ui/projects/{{ project.project_id }}/brain/candidates/{{ candidate.candidate_id }}/reject" class="pb-inline-form">
-        <button type="submit" class="pb-btn pb-btn-danger">拒绝</button>
-      </form>
-    </div>
-    {% if candidate.possible_duplicates %}
-    <details>
-      <summary>可能重复：{{ candidate.possible_duplicates | length }}</summary>
-      <ul>
-        {% for duplicate in candidate.possible_duplicates %}
-        <li>
-          <code>{{ duplicate.knowledge_unit_id }}</code>
-          similarity=<code>{{ duplicate.similarity }}</code>
-          — {{ duplicate.statement }}
-        </li>
-        {% endfor %}
-      </ul>
-    </details>
-    {% endif %}
-  </li>
-  {% endfor %}
-</ul>
+{% for candidate in candidates %}
+<div class="pb-candidate">
+  <div style="display:flex;align-items:baseline;justify-content:space-between;gap:12px;margin-bottom:6px">
+    <span class="pb-candidate-title">{{ candidate.proposed_unit.title or candidate.proposed_unit.type or "候选知识" }}</span>
+    <span class="pb-candidate-state">{{ candidate.review_state }}</span>
+  </div>
+  <p style="margin:0 0 8px;font-size:13px;color:var(--fg-2)">{{ candidate.proposed_unit.statement }}</p>
+  <p class="pb-muted" style="margin:0 0 10px;font-size:11.5px">
+    <code>{{ candidate.candidate_id }}</code>
+    {% if candidate.session_id %} · session <code>{{ candidate.session_id }}</code>{% endif %}
+  </p>
+  <div class="pb-actions pb-candidate-actions" aria-label="候选知识操作">
+    <form method="post" action="/ui/projects/{{ project.project_id }}/brain/candidates/{{ candidate.candidate_id }}/confirm" class="pb-inline-form">
+      <button type="submit" class="pb-btn pb-btn-primary">✓ 确认加入知识库</button>
+    </form>
+    <form method="post" action="/ui/projects/{{ project.project_id }}/brain/candidates/{{ candidate.candidate_id }}/reject" class="pb-inline-form">
+      <button type="submit" class="pb-btn pb-btn-danger">✕ 拒绝</button>
+    </form>
+  </div>
+  {% if candidate.possible_duplicates %}
+  <details style="margin-top:8px">
+    <summary>可能重复：{{ candidate.possible_duplicates | length }} 条</summary>
+    <ul style="margin:6px 0 0;padding-left:16px;font-size:12px;color:var(--fg-2)">
+      {% for dup in candidate.possible_duplicates %}
+      <li><code>{{ dup.knowledge_unit_id }}</code> <span class="pb-muted">{{ "%.0f"|format(dup.similarity * 100) }}%</span> — {{ dup.statement }}</li>
+      {% endfor %}
+    </ul>
+  </details>
+  {% endif %}
+</div>
+{% endfor %}
 {% else %}
-<p class="pb-muted">暂无待确认知识。</p>
+<p class="pb-muted pb-empty">暂无待确认知识。</p>
 {% endif %}

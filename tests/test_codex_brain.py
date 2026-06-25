@@ -82,9 +82,9 @@ class CodexBrainTest(unittest.TestCase):
     def test_build_extraction_prompt_contains_safety_rules(self):
         prompt = build_extraction_prompt()
 
-        self.assertIn("Return ONLY JSON", prompt)
-        self.assertIn("Do NOT include", prompt)
-        self.assertIn("secrets or credentials", prompt)
+        self.assertIn("只返回 JSON", prompt)
+        self.assertIn("不要包含", prompt)
+        self.assertIn("密钥或凭证", prompt)
 
     def test_persist_session_result_writes_session_and_candidates(self):
         with tempfile.TemporaryDirectory() as tmp:
