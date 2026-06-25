@@ -42,6 +42,9 @@ class _ImmutableList(list):
     def _readonly(self, *args: Any, **kwargs: Any) -> None:
         raise TypeError("brain model containers are immutable")
 
+    def __deepcopy__(self, memo: dict) -> list:
+        return [deepcopy(item, memo) for item in self]
+
     append = _readonly
     clear = _readonly
     extend = _readonly
@@ -59,6 +62,9 @@ class _ImmutableList(list):
 class _ImmutableDict(dict):
     def _readonly(self, *args: Any, **kwargs: Any) -> None:
         raise TypeError("brain model containers are immutable")
+
+    def __deepcopy__(self, memo: dict) -> dict:
+        return {k: deepcopy(v, memo) for k, v in self.items()}
 
     clear = _readonly
     pop = _readonly

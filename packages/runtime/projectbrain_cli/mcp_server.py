@@ -40,6 +40,14 @@ class ProjectBrainMcpServer:
         object.__setattr__(self, "repository", repository)
         object.__setattr__(self, "runtime", ProjectBrainRuntime(repository))
 
+    def _resolve_project_id(self, arguments: dict[str, Any]) -> str:
+        if arguments.get("project_id"):
+            return arguments["project_id"]
+        from pathlib import Path
+        import re
+        name = Path.cwd().name.strip()
+        return re.sub(r"[^a-zA-Z0-9_]+", "_", name).strip("_").lower() or "local_project"
+
     def handle_message(self, message: dict[str, Any]) -> dict[str, Any] | None:
         method = message.get("method")
         request_id = message.get("id")
@@ -165,10 +173,9 @@ class ProjectBrainMcpServer:
                 return self._tool_result(request_id, data)
 
             if name == "projectbrain_search_brain":
-                data = self.runtime.brain_for_project(_required(arguments, "project_id")).search(
-                    _required(arguments, "query"),
-                    limit=int(arguments.get("limit", 20)),
-                )
+                brain = self.runtime.brain_for_project(_required(arguments, "project_id"))
+                query = arguments.get("query")
+                data = brain.search(query, limit=int(arguments.get("limit", 20))) if query else brain.list_knowledge()
                 return self._tool_result(request_id, data)
 
             if name == "projectbrain_list_memory_candidates":
@@ -384,12 +391,12 @@ class ProjectBrainMcpServer:
             },
             {
                 "name": "projectbrain_search_brain",
-                "description": "Search durable local project Brain knowledge.",
+                "description": "Search or list durable local project Brain knowledge. Omit query to return all knowledge units. Omit project_id to use the current project.",
                 "inputSchema": {
                     "type": "object",
-                    "required": ["project_id", "query"],
+                    "required": [],
                     "properties": {
-                        "project_id": {"type": "string"},
+                        "project_id": {"type": "string", "description": "Defaults to the current project if omitted."},
                         "query": {"type": "string"},
                         "limit": {"type": "integer", "default": 20},
                     },

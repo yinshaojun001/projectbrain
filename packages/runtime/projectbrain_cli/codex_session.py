@@ -28,35 +28,35 @@ class ManagedSessionResult:
 
 
 def build_extraction_prompt() -> str:
-    return """You are helping ProjectBrain extract durable project knowledge from this coding session.
+    return """你是 ProjectBrain 的知识提炼助手，负责从本次编程会话中提取对项目长期有价值的知识。
 
-Return ONLY JSON.
+只返回 JSON，不要有其他内容。
 
-Extract facts that will remain useful in future work on this project:
-- business constraints
-- architecture decisions
-- gotchas
-- workflows
-- risks
-- test guidance
-- domain concepts
-- incident/root-cause lessons
+提取以下类型的知识（title、statement、summary、tags 等字段请使用中文）：
+- 业务约束（constraint）
+- 架构决策（decision）
+- 坑与陷阱（gotcha）
+- 工作流程（workflow）
+- 风险（risk）
+- 测试指引（test_guidance）
+- 领域概念（concept_note）
+- 事故/根因分析（incident）
 
-Do NOT include:
-- secrets or credentials
-- temporary task steps
-- unverified speculation as confirmed fact
-- source code bodies
-- private URLs
-- generic programming advice
+不要包含：
+- 密钥或凭证
+- 临时步骤
+- 未经验证的推测
+- 源码正文
+- 私有 URL
+- 通用编程建议
 
-For each candidate include:
-type, title, statement, summary, tags, applies_to, confidence, evidence_summary, review_state.
+每个候选知识包含字段：
+type, title, statement, summary, tags, applies_to, confidence, evidence_summary, review_state
 
-Rules:
-- If the user explicitly confirmed it, review_state can be human_confirmed.
-- If it is inferred by the assistant, review_state must be human_review_required.
-- Prefer concise, durable statements.
+规则：
+- 用户明确确认的事实，review_state 可为 human_confirmed
+- 助手推断的内容，review_state 必须为 human_review_required
+- 优先使用简洁、持久有效的陈述语句
 """
 
 

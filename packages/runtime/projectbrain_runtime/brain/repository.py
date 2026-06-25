@@ -113,6 +113,10 @@ class BrainRepository:
                 raise ValueError(f"Cannot confirm candidate in state {candidate.review_state}: {candidate_id}")
 
             proposed = candidate.proposed_unit
+            if not proposed.get("type") or not proposed.get("statement"):
+                raise ValueError(
+                    f"Candidate {candidate_id} proposed_unit is missing required fields: type and statement"
+                )
             unit = KnowledgeUnit(
                 id=make_brain_id("ku", proposed.get("title") or proposed["statement"]),
                 type=proposed["type"],
@@ -164,6 +168,17 @@ class BrainRepository:
             updated_candidate = MemoryCandidate.from_dict({**candidate.to_dict(), "review_state": "rejected", "updated_at": now_iso()})
             _write_jsonl(self.candidates_path, _replace_by_key(candidate_items, updated_candidate.to_dict(), key="candidate_id"))
             return updated_candidate
+
+    def save_link(self, from_id: str, to_id: str, similarity: float) -> None:
+        self.ensure()
+        link_id = make_brain_id("lk", f"{from_id}_{to_id}")
+        item = {"link_id": link_id, "from_id": from_id, "to_id": to_id, "similarity": similarity, "created_at": now_iso()}
+        with self._mutation_lock():
+            _upsert_jsonl_unlocked(self.links_path, item, key="link_id")
+
+    def list_links(self) -> list[dict]:
+        self.ensure()
+        return _read_jsonl(self.links_path)
 
     def save_conversation_session(self, session: ConversationSession) -> None:
         self.ensure()

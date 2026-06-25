@@ -123,6 +123,8 @@ class BrainService:
 
     def confirm_candidate(self, candidate_id: str) -> dict[str, Any]:
         candidate, unit = self.repository.confirm_memory_candidate(candidate_id)
+        for dup in candidate.possible_duplicates:
+            self.repository.save_link(unit.id, dup["knowledge_unit_id"], dup["similarity"])
         return {"candidate": candidate.to_dict(), "knowledge_unit": unit.to_dict()}
 
     def reject_candidate(self, candidate_id: str) -> dict[str, Any]:
