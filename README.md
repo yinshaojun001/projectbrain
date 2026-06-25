@@ -1,38 +1,48 @@
-# ProjectBrain
+<div align="center">
+  <img src="docs/logo.svg" width="100" height="100" alt="ProjectBrain Logo"/>
+  <h1>ProjectBrain</h1>
+  <p>为 AI 编程智能体提供本地项目认知层</p>
+  <p>
+    <a href="docs/quickstart.md">English Quickstart</a> ·
+    <a href="docs/zh/quickstart.md">中文快速上手</a>
+  </p>
+</div>
 
-[中文文档](docs/zh/quickstart.md) | [English Quickstart](docs/quickstart.md)
+---
 
-ProjectBrain is a local project cognition layer for AI coding agents.
+ProjectBrain 是一个本地项目认知层，帮助 AI 编程智能体在修改代码前理解项目背景。
 
-It turns code-structure facts and human project experience into task-scoped artifacts that an AI agent can use before changing code:
+它将代码结构事实与人工经验转化为任务范围的制品，供 AI 智能体使用：
 
-- **Context Pack**: the files, symbols, flows, risks, and human notes relevant to a task.
-- **Impact Analysis**: the files, symbols, callers, dependencies, tests, and review risks likely affected by a change.
-- **Git Diff Impact**: a local review of staged, branch, or last-commit changes based on changed file names from Git.
+- **Context Pack**：与当前任务相关的文件、符号、流程、风险和人工注释。
+- **Impact Analysis**：某次变更可能影响的文件、符号、调用链、依赖、测试和审查风险。
+- **Git Diff Impact**：基于 Git 变更文件的本地变更影响分析。
+- **Project Brain**：从 Codex 会话中自动提取知识单元，支持人工确认与检索。
 
-ProjectBrain is not a code search UI, a generic RAG chatbot, or an automatic code modifier. The first public version is a small local prototype that is useful for experimenting with project memory and impact analysis workflows.
+ProjectBrain 不是代码搜索 UI，不是通用 RAG 聊天机器人，也不会自动修改代码。
 
-## Status
+## 状态
 
-Prototype / local MVP.
+原型 / 本地 MVP。
 
-Current capabilities:
+当前能力：
 
-- CodeGraph SQLite adapter.
-- ProjectBrain JSON schema models and validation.
-- Context Pack builder.
-- Impact Analysis builder.
-- Git diff Impact Analysis from local Git changed files.
-- Agent-friendly compact output for Context Pack and Impact Analysis.
-- Local experience claim authoring.
-- JSON-file local runtime.
-- Local-only stdio MCP server.
-- Optional FastAPI API skeleton.
-- Synthetic public demo under `examples/payment-mini/`.
+- CodeGraph SQLite 适配器
+- ProjectBrain JSON Schema 模型与校验
+- Context Pack 构建器
+- Impact Analysis 构建器
+- 基于 Git 变更文件的 Git diff 影响分析
+- 智能体友好的紧凑输出格式
+- 本地经验声明（claim）创作
+- JSON 文件本地运行时
+- 本地 stdio MCP 服务器
+- Project Brain 知识单元存储与管理
+- 可选 FastAPI API 与暗色系 Brain Explorer UI
+- 合成公开演示数据 `examples/payment-mini/`
 
-## Quickstart
+## 快速上手
 
-Install with Homebrew:
+使用 Homebrew 安装：
 
 ```bash
 brew tap yinshaojun001/projectbrain https://github.com/yinshaojun001/projectbrain
@@ -42,19 +52,7 @@ projectbrain doctor
 codex-brain --help
 ```
 
-For local formula testing from a checkout:
-
-```bash
-brew tap yinshaojun001/projectbrain /path/to/projectbrain
-brew trust yinshaojun001/projectbrain
-brew install --build-from-source projectbrain
-projectbrain doctor
-codex-brain --help
-```
-
-Homebrew package/formula name is `projectbrain`, but it installs both `projectbrain` and `codex-brain`. After `brew install projectbrain`, start the memory-enabled Codex workflow with `codex-brain`. Use `projectbrain` for project setup, MCP, facts, and Brain memory commands; use `codex-brain` when you explicitly want to launch a Codex CLI child process with project-local Brain initialization.
-
-Or install from source:
+或从源码安装：
 
 ```bash
 python3 -m venv .venv
@@ -62,138 +60,95 @@ python3 -m venv .venv
 .venv/bin/projectbrain doctor
 ```
 
-Run the tests:
+运行测试：
 
 ```bash
 python3 -m unittest discover -s tests
 ```
 
-Generate a Context Pack from the synthetic public demo:
+## 与自己的项目配合使用
 
-```bash
-.venv/bin/projectbrain facts context \
-  --export-json examples/payment-mini/projectbrain-codegraph-export.json \
-  --experience-seed examples/payment-mini/experience-seed.md \
-  --task "Explain the settlement entrypoint"
-```
-
-Generate an Impact Analysis:
-
-```bash
-.venv/bin/projectbrain facts impact \
-  --export-json examples/payment-mini/projectbrain-codegraph-export.json \
-  --experience-seed examples/payment-mini/experience-seed.md \
-  --task "Change the settlement contract" \
-  --changed-file contract/src/main/java/example/payment/settlement/SettlementService.java
-```
-
-See [Quickstart](docs/quickstart.md) for a fuller walkthrough. A Chinese walkthrough is available at [中文快速上手](docs/zh/quickstart.md).
-
-## Use With Your Own Repository
-
-One command sets up a local repository for agent use:
+一条命令初始化项目：
 
 ```bash
 projectbrain --store-root ~/.projectbrain-work setup /path/to/my/project \
   --id my_project
 ```
 
-`setup` runs CodeGraph init/index, imports ProjectBrain facts, runs a Context Pack smoke test, detects local agents, and prompts you to install the MCP server into supported agents such as Codex CLI, Claude Code, Cursor, and Trae. It also prints an MCP config for manual setup:
+`setup` 会运行 CodeGraph 索引、导入 ProjectBrain 事实、执行 Context Pack 冒烟测试，并提示安装 MCP 服务器到 Codex CLI、Claude Code、Cursor、Trae 等支持的智能体。
+
+生成 Context Pack：
 
 ```bash
-projectbrain --store-root /absolute/path/to/.projectbrain-work mcp serve
+projectbrain context my_project "解释结算入口" --format agent
 ```
 
-Ask the agent to call `projectbrain_context_pack` before editing and `projectbrain_review_git_diff` after editing, both with `output_format: "agent"`.
-
-For non-interactive setup, pass one or more agents:
+生成 Impact Analysis：
 
 ```bash
-projectbrain --store-root ~/.projectbrain-work setup /path/to/my/project \
-  --id my_project \
-  --agent codex
+projectbrain impact my_project "修改结算合约" \
+  --changed-file src/settlement/SettlementService.java
+
+projectbrain impact-diff my_project "审查暂存变更" --staged --format agent
 ```
 
-For manual or advanced setup, ProjectBrain expects CodeGraph facts at:
-
-```text
-<your-project>/.codegraph/codegraph.db
-```
-
-Import a local project into the JSON runtime:
+添加人工经验声明：
 
 ```bash
-.venv/bin/projectbrain import /path/to/my/project \
-  --id my_project \
-  --name "My Project" \
-  --path-prefix src/ \
-  --kind class \
-  --kind interface \
-  --kind method
-```
-
-If installed with Homebrew, run the same commands from any directory without the `.venv/bin/` prefix:
-
-```bash
-projectbrain --store-root ~/.projectbrain-work import /path/to/my/project \
-  --id my_project \
-  --path-prefix src/ \
-  --kind class \
-  --kind interface \
-  --kind method
-
-projectbrain --store-root ~/.projectbrain-work context my_project "Explain the checkout flow" --format agent
-```
-
-Then generate artifacts from the stored facts:
-
-```bash
-.venv/bin/projectbrain context my_project "Explain the checkout flow"
-
-.venv/bin/projectbrain impact my_project "Change checkout validation" \
-  --changed-file src/checkout/CheckoutService.java
-
-.venv/bin/projectbrain impact-diff my_project "Review staged checkout changes" --staged
-
-.venv/bin/projectbrain impact-diff my_project "Review branch impact" --from main --to HEAD
-```
-
-Use compact output when an AI coding agent needs the next actions without the full artifact:
-
-```bash
-.venv/bin/projectbrain context my_project "Explain the checkout flow" --format agent
-
-.venv/bin/projectbrain impact-diff my_project "Review staged checkout changes" --staged --format agent
-```
-
-Add local project experience so future context and impact results include human constraints:
-
-```bash
-.venv/bin/projectbrain claim add my_project \
-  --id exp_checkout_validation \
+projectbrain claim add my_project \
+  --id exp_checkout \
   --applies-to checkout \
   --risk high \
   --review-state approved \
   --claim-type HUMAN_CONFIRMED \
-  --statement "Checkout validation changes require compatibility review."
+  --statement "结账校验变更需要兼容性审查。"
 ```
 
-Review and archive local claims without deleting their history:
+## Brain Explorer（知识管理）
+
+启动本地 API 服务后，在浏览器打开：
+
+```
+http://127.0.0.1:8000/ui/projects/<project_id>/brain
+```
+
+可以：
+
+- 浏览已确认的知识单元（按类型分组）
+- 审核待确认的 AI 提取候选知识
+- 手动添加知识
+- 搜索项目知识库
+
+通过 CLI 管理知识：
 
 ```bash
-.venv/bin/projectbrain claim list my_project
-
-.venv/bin/projectbrain claim review my_project exp_checkout_validation \
-  --review-state needs_review \
-  --risk medium
-
-.venv/bin/projectbrain claim archive my_project exp_checkout_validation \
-  --reason "Superseded by newer checkout guidance."
+projectbrain brain propose /path/to/my/project --type constraint --statement "退款手续费需单独入账。"
+projectbrain brain candidates /path/to/my/project
+projectbrain brain confirm-candidate /path/to/my/project <candidate_id>
 ```
 
-Runtime artifacts are written under `.projectbrain/`, which is ignored by Git.
+## codex-brain：带项目记忆的 Codex
 
-## Optional FastAPI Server
+`codex-brain` 以显式子进程方式启动 Codex CLI，并初始化项目本地 Brain 存储：
+
+```bash
+cd /path/to/my/project
+codex-brain
+
+# 冒烟测试：
+codex-brain --project . --no-ui --no-extract --codex-command "true"
+```
+
+项目本地 Brain 数据存储在：
+
+```text
+<project>/.projectbrain/brain/
+  knowledge_units.jsonl
+  memory_candidates.jsonl
+  conversations.jsonl
+```
+
+## 可选 FastAPI 服务器
 
 ```bash
 python3 -m venv .venv
@@ -203,7 +158,9 @@ PYTHONPATH=apps/api:packages/adapters:packages/runtime:packages/schema \
 .venv/bin/uvicorn projectbrain_api.main:app --reload
 ```
 
-JSON routes:
+访问 [http://127.0.0.1:8000/ui/projects](http://127.0.0.1:8000/ui/projects) 打开暗色系 Brain Explorer UI。
+
+JSON API 路由：
 
 ```text
 GET    /health
@@ -213,154 +170,60 @@ POST   /api/v1/projects/{project_id}/context-pack
 POST   /api/v1/projects/{project_id}/impact-analysis
 POST   /api/v1/projects/{project_id}/impact-analysis/git-diff
 GET    /api/v1/projects/{project_id}/policy
-GET    /api/v1/projects/{project_id}/claims
-POST   /api/v1/projects/{project_id}/claims
-PATCH  /api/v1/projects/{project_id}/claims/{claim_id}
-DELETE /api/v1/projects/{project_id}/claims/{claim_id}
 ```
 
-### Optional Observability UI
-
-With the same `--reload` server running, open the local-only HTMX UI at
-[http://127.0.0.1:8000/ui/projects](http://127.0.0.1:8000/ui/projects) to:
-
-- import a project through a form (same runtime path as the JSON API),
-- inspect the Context Pack a coding agent would receive,
-- run Impact Analysis from manual changes, a `git diff`, or the cached
-  `impact-analysis-latest.json`,
-- view the effective `.projectbrain-policy` (deny paths, output limits,
-  source-snippet flag).
-
-The UI is an observability layer for AI-agent context, not a code editor or
-code-search tool. It binds to `127.0.0.1` only, ships no third-party CDN by
-default when `apps/api/projectbrain_api/ui/static/vendor/htmx.min.js` is
-present, and re-uses the same policy enforcement as the CLI/MCP surfaces.
-
-## Local MCP Server
-
-ProjectBrain can run as a local stdio MCP server for AI coding agents:
+## 本地 MCP 服务器
 
 ```bash
-.venv/bin/projectbrain --store-root /absolute/path/to/.projectbrain mcp serve
+projectbrain --store-root /absolute/path/to/.projectbrain mcp serve
 ```
 
-It is a local child process. It does not open network sockets or upload source code. See [Local MCP Usage](docs/mcp-usage.md).
+本地 stdio 子进程，不开放网络端口，不上传源码。详见 [MCP 使用说明](docs/mcp-usage.md)。
 
-MCP tools include project import, project listing, experience claim authoring, Context Packs, Impact Analysis, and Git diff review through `projectbrain_review_git_diff`. The read tools accept `output_format: "agent"` for compact agent-oriented results.
+在 MCP 工具调用中使用 `output_format: "agent"` 获取紧凑的智能体友好输出。
 
-Privacy note: ProjectBrain controls the tool side, not the AI client side. MCP results may contain file paths, symbol names, and inferred risk notes. Whether those results are sent to a model provider depends on your AI client and model settings. For strict private-code environments, use a local model or an approved enterprise endpoint.
-
-For additional local output controls, add `.projectbrain-policy.json` or `.projectbrain-policy.yml` to the imported project root:
+本地输出控制，在项目根目录添加 `.projectbrain-policy.json`：
 
 ```json
 {
-  "deny_paths": ["private/**", "src/main/resources/config/**"],
-  "output_limits": {
-    "max_items_per_section": 8,
-    "max_recommended_files": 8,
-    "max_recommended_tests": 5
-  },
+  "deny_paths": ["private/**"],
+  "output_limits": { "max_items_per_section": 8 },
   "include_source_snippets": false
 }
 ```
 
-Context Pack, Impact Analysis, Git diff review, API, and MCP read outputs apply the policy. Source snippets remain disabled by default.
-
-Inspect the policy that an imported project is using:
-
-```bash
-.venv/bin/projectbrain policy inspect my_project
-```
-
-## codex-brain: Run Codex With Project Memory
-
-`codex-brain` starts Codex CLI as an explicit child process for a local project. In the current MVP it initializes the project Brain store, opens the local Brain Explorer URL when `--no-ui` is not set, and runs Codex from the detected project root. Start the local API/UI server separately if it is not already running.
-
-```bash
-cd /path/to/my/project
-codex-brain
-
-# Non-interactive smoke test, also useful after Homebrew install:
-codex-brain --project . --no-ui --no-extract --codex-command "true"
-```
-
-The current MVP does not implement transcript capture/extraction, desktop integration, Claude/vector/graph ingestion, or background listening. It does not monitor ordinary `codex` sessions, other terminals, the clipboard, or background activity; it only initializes project-local Brain storage and launches the Codex CLI child process explicitly started by `codex-brain`.
-
-Project-local Brain data is stored under:
-
-```text
-<project>/.projectbrain/brain/
-  knowledge_units.jsonl
-  memory_candidates.jsonl
-  conversations.jsonl
-```
-
-Use the Brain Explorer or CLI to review memory candidates proposed through `projectbrain brain propose` or the MCP memory tools:
-
-```bash
-projectbrain brain propose /path/to/my/project --type constraint --statement "Refund fee must be booked separately."
-projectbrain brain candidates /path/to/my/project
-projectbrain brain confirm-candidate /path/to/my/project <candidate_id>
-```
-
-## Repository Layout
+## 仓库结构
 
 ```text
 apps/
-  tools/                 CLI tools
-  api/projectbrain_api/  optional FastAPI API
+  api/projectbrain_api/   可选 FastAPI API 与 UI
 packages/
-  adapters/              CodeGraph adapter and artifact builders
-  runtime/               local JSON runtime and repository abstraction
-  schema/                dataclass schemas and validation
-examples/payment-mini/   synthetic public demo data
-tests/                   unit and API tests
-docs/                    design and implementation notes
+  adapters/               CodeGraph 适配器与制品构建器
+  runtime/                本地 JSON 运行时与仓库抽象
+  schema/                 数据类 Schema 与校验
+examples/payment-mini/    合成公开演示数据
+tests/                    单元与 API 测试
+docs/                     设计与实现文档
 ```
 
-## Public Data Boundary
+## 设计文档
 
-This repository intentionally does not include real project source code, real CodeGraph databases, private configs, or production runtime stores.
-
-The public demo is synthetic. If you use ProjectBrain on a private repository, keep these paths out of Git:
-
-- `docs/payment/`
-- `.projectbrain/`
-- `.codegraph/` generated from private code
-- private experience seeds
-- private exported facts
-
-See [Open Source Checklist](docs/open-source-checklist.md).
-
-## Design Docs
-
-| Document | Purpose |
+| 文档 | 说明 |
 | --- | --- |
-| [Design Document](docs/projectbrain/design-document.md) | Product positioning, architecture, components, APIs, and roadmap. |
-| [Domain Model](docs/projectbrain/domain-model.md) | Project cognition domain model and bounded contexts. |
-| [Knowledge Schema](docs/projectbrain/knowledge-schema.md) | Knowledge graph, source refs, claims, confidence, and lifecycle. |
-| [MVP Architecture](docs/projectbrain/mvp-architecture.md) | Local MVP architecture, service boundaries, storage, and acceptance criteria. |
-| [Implementation Plan](docs/projectbrain/implementation-plan.md) | Engineering phases, tests, operations, and open-source setup. |
-| [Agent Skills](docs/projectbrain/agent-skills.md) | Agent-facing skills for project understanding and impact analysis. |
-| [API Contract](docs/projectbrain/api-contract.md) | REST and MCP contract draft. |
-| [CodeGraph Integration](docs/projectbrain/codegraph-integration.md) | CodeGraph as the first code-fact provider. |
-| [Local Runtime](docs/projectbrain/local-runtime.md) | CLI/runtime/API usage for the current local prototype. |
-| [MCP Usage](docs/mcp-usage.md) | Local-only stdio MCP server usage and privacy boundary. |
-| [v0.2 Release Readiness](docs/release-readiness.md) | Release gate checks for tests, CLI/MCP smoke, policy, and privacy boundary. |
-| [中文快速上手](docs/zh/quickstart.md) | Chinese quickstart for local install, demo, MCP, claims, and privacy policy. |
-| [Delivery Gap Analysis](docs/projectbrain/delivery-gap-analysis.md) | Remaining gaps between design and implementation. |
-| [Evaluation Plan](docs/projectbrain/evaluation-plan.md) | How to evaluate context quality, impact quality, and agent outcomes. |
+| [设计文档](docs/projectbrain/design-document.md) | 产品定位、架构、组件、API 与路线图 |
+| [域模型](docs/projectbrain/domain-model.md) | 项目认知域模型与界限上下文 |
+| [MVP 架构](docs/projectbrain/mvp-architecture.md) | 本地 MVP 架构、服务边界与验收标准 |
+| [MCP 使用说明](docs/mcp-usage.md) | 本地 stdio MCP 服务器使用与隐私边界 |
+| [中文快速上手](docs/zh/quickstart.md) | 本地安装、演示、MCP、声明与策略的中文教程 |
 
-## Roadmap
+## 路线图
 
-- Add typed API request/response models.
-- Add OpenAPI snapshot tests.
-- Add richer Git diff symbol matching.
-- Add richer agent output controls.
-- Add project experience review and stale-claim workflow.
-- Add database-backed repository implementation.
-- Add more language adapters and richer source-fact extraction.
+- 增加类型化 API 请求/响应模型
+- 增加 OpenAPI 快照测试
+- 增加更丰富的 Git diff 符号匹配
+- 增加数据库后端仓库实现
+- 增加更多语言适配器
 
-## License
+## 许可证
 
 MIT

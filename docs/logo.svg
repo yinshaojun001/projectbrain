@@ -1,0 +1,53 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="120" height="120" viewBox="0 0 120 120">
+  <defs>
+    <radialGradient id="bg" cx="50%" cy="50%" r="50%">
+      <stop offset="0%" stop-color="#1a2030"/>
+      <stop offset="100%" stop-color="#0d1117"/>
+    </radialGradient>
+    <filter id="glow">
+      <feGaussianBlur stdDeviation="2" result="blur"/>
+      <feMerge><feMergeNode in="blur"/><feMergeNode in="SourceGraphic"/></feMerge>
+    </filter>
+  </defs>
+
+  <!-- Background circle -->
+  <circle cx="60" cy="60" r="58" fill="url(#bg)" stroke="#06b6d4" stroke-width="1.5" opacity="0.9"/>
+
+  <!-- Neural network edges -->
+  <g stroke="#06b6d4" stroke-width="1" opacity="0.25" fill="none">
+    <line x1="60" y1="60" x2="36" y2="34"/>
+    <line x1="60" y1="60" x2="60" y2="24"/>
+    <line x1="60" y1="60" x2="84" y2="34"/>
+    <line x1="60" y1="60" x2="90" y2="60"/>
+    <line x1="60" y1="60" x2="84" y2="86"/>
+    <line x1="60" y1="60" x2="60" y2="94"/>
+    <line x1="60" y1="60" x2="36" y2="86"/>
+    <line x1="60" y1="60" x2="30" y2="60"/>
+    <line x1="36" y1="34" x2="60" y2="24"/>
+    <line x1="60" y1="24" x2="84" y2="34"/>
+    <line x1="84" y1="34" x2="90" y2="60"/>
+    <line x1="90" y1="60" x2="84" y2="86"/>
+    <line x1="84" y1="86" x2="60" y2="94"/>
+    <line x1="60" y1="94" x2="36" y2="86"/>
+    <line x1="36" y1="86" x2="30" y2="60"/>
+    <line x1="30" y1="60" x2="36" y2="34"/>
+  </g>
+
+  <!-- Outer nodes -->
+  <g filter="url(#glow)">
+    <circle cx="36" cy="34" r="3.5" fill="#06b6d4" opacity="0.7"/>
+    <circle cx="60" cy="24" r="3.5" fill="#06b6d4" opacity="0.7"/>
+    <circle cx="84" cy="34" r="3.5" fill="#06b6d4" opacity="0.7"/>
+    <circle cx="90" cy="60" r="3.5" fill="#06b6d4" opacity="0.7"/>
+    <circle cx="84" cy="86" r="3.5" fill="#06b6d4" opacity="0.7"/>
+    <circle cx="60" cy="94" r="3.5" fill="#06b6d4" opacity="0.7"/>
+    <circle cx="36" cy="86" r="3.5" fill="#06b6d4" opacity="0.7"/>
+    <circle cx="30" cy="60" r="3.5" fill="#06b6d4" opacity="0.7"/>
+  </g>
+
+  <!-- Center node -->
+  <circle cx="60" cy="60" r="7" fill="#06b6d4" filter="url(#glow)" opacity="0.95"/>
+
+  <!-- PB text -->
+  <text x="60" y="113" text-anchor="middle" font-family="monospace" font-size="9" font-weight="600" fill="#06b6d4" opacity="0.6" letter-spacing="2">BRAIN</text>
+</svg>
