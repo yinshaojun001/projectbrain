@@ -70,12 +70,10 @@
     </form>
   </details>
 
-  {% if candidates.candidates %}
-  <h2>待确认 <span style="color:var(--warn);font-style:normal">({{ candidates.candidates | length }})</span></h2>
+  <h2>待确认{% if candidates.candidates %} <span style="color:var(--warn);font-style:normal">({{ candidates.candidates | length }})</span>{% endif %}</h2>
   {% with candidates = candidates.candidates %}
     {% include "_partials/brain_candidate_list.html" %}
   {% endwith %}
-  {% endif %}
 
   <h2>知识库</h2>
   {% if knowledge.matches is defined %}
