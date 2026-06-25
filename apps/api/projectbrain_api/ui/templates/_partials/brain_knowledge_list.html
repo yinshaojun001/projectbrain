@@ -1,26 +1,47 @@
 {% if units %}
-<ul class="pb-list">
-  {% for unit in units %}
-  <li>
-    <div class="pb-list-head">
-      <strong>{{ unit.title or unit.type }}</strong>
-      <code>{{ unit.type }}</code>
+{% set type_labels = {
+  "constraint": "约束",
+  "decision": "架构决策",
+  "gotcha": "坑与陷阱",
+  "workflow": "工作流程",
+  "risk": "风险",
+  "test_guidance": "测试指引",
+  "concept_note": "概念笔记",
+  "open_question": "开放问题",
+  "incident": "事故/根因"
+} %}
+{% set grouped = {} %}
+{% for unit in units %}
+  {% set t = unit.type %}
+  {% if t not in grouped %}{% set _ = grouped.update({t: []}) %}{% endif %}
+  {% set _ = grouped[t].append(unit) %}
+{% endfor %}
+{% for type_key, type_units in grouped.items() %}
+<div class="pb-ku-group">
+  <div class="pb-ku-group-label">
+    <span class="pb-type-badge pb-type-{{ type_key }}">{{ type_labels.get(type_key, type_key) }}</span>
+    <span class="pb-muted">{{ type_units | length }} 条</span>
+  </div>
+  {% for unit in type_units %}
+  <div class="pb-ku">
+    <div class="pb-ku-head">
+      <span class="pb-ku-title">{{ unit.title or unit.statement[:80] }}</span>
+      <span class="pb-confidence" data-level="{{ (unit.confidence * 100) | int }}">{{ "%.0f"|format(unit.confidence * 100) }}%</span>
     </div>
-    <p>{{ unit.statement }}</p>
-    <p class="pb-muted">
-      状态：<code>{{ unit.review_state }}</code>
-      · 置信度：<code>{{ unit.confidence }}</code>
-      · 风险：<code>{{ unit.risk_level }}</code>
-    </p>
-    {% if unit.tags %}
-    <p class="pb-muted">标签：{{ unit.tags | join(", ") }}</p>
+    {% if unit.title %}<p class="pb-ku-body">{{ unit.statement }}</p>{% endif %}
+    {% if unit.tags or unit.applies_to or (links_by_unit and links_by_unit.get(unit.id)) %}
+    <div class="pb-ku-footer">
+      {% for tag in unit.tags %}<span class="pb-pill pb-pill-soft">{{ tag }}</span> {% endfor %}
+      {% if unit.applies_to %}<span class="pb-muted">适用：{{ unit.applies_to | join("、") }}</span>{% endif %}
+      {% if links_by_unit and links_by_unit.get(unit.id) %}
+      <span class="pb-muted">关联：{% for lk in links_by_unit[unit.id] %}<code>{{ lk.to_id[:8] }}</code>（{{ "%.0f"|format(lk.similarity * 100) }}%）{% endfor %}</span>
+      {% endif %}
+    </div>
     {% endif %}
-    {% if unit.applies_to %}
-    <p class="pb-muted">适用：{{ unit.applies_to | join(", ") }}</p>
-    {% endif %}
-  </li>
+  </div>
   {% endfor %}
-</ul>
+</div>
+{% endfor %}
 {% else %}
-<p class="pb-muted">暂无知识。</p>
+<p class="pb-muted pb-empty">暂无知识。</p>
 {% endif %}

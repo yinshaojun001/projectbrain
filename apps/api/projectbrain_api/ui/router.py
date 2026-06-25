@@ -14,6 +14,7 @@ Routes (all local-only, mounted under /ui):
 * GET  /ui/projects/{id}/impact/last-run         — HTMX partial: last run
 * GET  /ui/projects/{id}/policy                  — Policy details page
 * GET  /ui/projects/{id}/brain                   — Brain Explorer page
+* POST /ui/projects/{id}/brain/knowledge                      — manually add knowledge unit
 * POST /ui/projects/{id}/brain/candidates/{id}/confirm — confirm memory candidate
 * POST /ui/projects/{id}/brain/candidates/{id}/reject  — reject memory candidate
 
@@ -217,10 +218,10 @@ def ui_projects_import(
     )
     try:
         runtime.import_project(
-            project_id=project_id,
-            project_path=project_path,
-            name=name or None,
-            experience_seed=experience_seed or None,
+            project_id=project_id.strip(),
+            project_path=project_path.strip(),
+            name=name.strip() or None,
+            experience_seed=experience_seed.strip() or None,
             options=options,
         )
     except (FileNotFoundError, ValueError) as exc:
@@ -245,6 +246,9 @@ def brain_page_context(runtime: Any, project_id: str, q: str | None = None) -> d
     brain = runtime.brain_for_project(project_id)
     knowledge = brain.search(q) if q else brain.list_knowledge()
     candidates = brain.list_candidates(review_state="human_review_required")
+    links_by_unit: dict[str, list] = {}
+    for lk in brain.repository.list_links():
+        links_by_unit.setdefault(lk.get("from_id", ""), []).append(lk)
     return {
         "title": f"{project.name} · Brain",
         "heading": "Project Brain",
@@ -253,6 +257,7 @@ def brain_page_context(runtime: Any, project_id: str, q: str | None = None) -> d
         "knowledge": knowledge,
         "candidates": candidates,
         "query": q or "",
+        "links_by_unit": links_by_unit,
     }
 
 
@@ -278,6 +283,32 @@ def project_brain(
         "projects/brain.html",
         _base_context(**context),
     )
+
+
+@router.post(
+    "/projects/{project_id}/brain/knowledge",
+    include_in_schema=False,
+)
+def ui_create_brain_knowledge(
+    request: Request,
+    project_id: str,
+    type: str = Form(...),
+    statement: str = Form(...),
+    title: str = Form(""),
+    tags: str = Form(""),
+) -> Response:
+    runtime = _runtime()
+    try:
+        runtime.brain_for_project(project_id).remember(
+            type=type,
+            statement=statement,
+            title=title or None,
+            tags=_split_csv(tags),
+            review_state="human_confirmed",
+        )
+    except (FileNotFoundError, ValueError) as exc:
+        return _error_partial(request, f"添加知识失败：{exc}", status_code=400)
+    return RedirectResponse(url=f"/ui/projects/{project_id}/brain", status_code=303)
 
 
 @router.post(

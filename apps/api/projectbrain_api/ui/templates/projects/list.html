@@ -8,33 +8,28 @@
   </div>
 
   {% if projects %}
-  <table class="pb-table">
-    <thead>
-      <tr>
-        <th>project_id</th>
-        <th>名称</th>
-        <th>source_path</th>
-        <th>导入时间</th>
-        <th>操作</th>
-      </tr>
-    </thead>
-    <tbody>
-      {% for project in projects %}
-      <tr>
-        <td><code>{{ project.project_id }}</code></td>
-        <td>{{ project.name }}</td>
-        <td class="pb-mono pb-truncate" title="{{ project.source_path }}">{{ project.source_path }}</td>
-        <td class="pb-muted">{{ project.metadata.imported_at or project.created_at or "—" }}</td>
-        <td class="pb-actions">
-          <a href="/ui/projects/{{ project.project_id }}/context">Context</a>
-          <a href="/ui/projects/{{ project.project_id }}/brain">Brain</a>
-          <a href="/ui/projects/{{ project.project_id }}/impact">Impact</a>
-          <a href="/ui/projects/{{ project.project_id }}/policy">策略</a>
-        </td>
-      </tr>
-      {% endfor %}
-    </tbody>
-  </table>
+  <div class="pb-project-list">
+    {% for project in projects %}
+    <div class="pb-project-item">
+      <div class="pb-project-info">
+        <div class="pb-project-id-row">
+          <code>{{ project.project_id }}</code>
+          {% if project.name and project.name != project.project_id %}
+          <span class="pb-project-name">{{ project.name }}</span>
+          {% endif %}
+        </div>
+        <div class="pb-project-path pb-mono" title="{{ project.source_path }}">{{ project.source_path }}</div>
+      </div>
+      <div class="pb-project-meta pb-muted">{{ (project.metadata.imported_at or project.created_at or "")[:10] }}</div>
+      <div class="pb-actions">
+        <a href="/ui/projects/{{ project.project_id }}/context">Context</a>
+        <a href="/ui/projects/{{ project.project_id }}/brain">Brain</a>
+        <a href="/ui/projects/{{ project.project_id }}/impact">Impact</a>
+        <a href="/ui/projects/{{ project.project_id }}/policy">策略</a>
+      </div>
+    </div>
+    {% endfor %}
+  </div>
   {% else %}
   <p class="pb-muted">尚未导入任何项目。请使用下方表单导入。</p>
   {% endif %}
