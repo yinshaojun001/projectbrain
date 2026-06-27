@@ -29,6 +29,11 @@ PROJECT_INTAKE_QUESTIONS = [
         "slot_key": "key_flows",
         "question": "这个项目最关键的流程有哪些？请优先描述关键流程或调用流程。",
     },
+    {
+        "question_id": "third_party_integrations_01",
+        "slot_key": "third_party_integrations",
+        "question": "这个项目依赖哪些关键第三方系统、平台或外部接口？",
+    },
 ]
 
 
@@ -110,6 +115,7 @@ def _build_project_baseline_draft(*, project_id: str | None, captured_fields: di
     primary_user_list = [primary_users] if primary_users else []
     core_modules = _split_list_answer(captured_fields.get("core_modules"))
     key_flows = _split_list_answer(captured_fields.get("key_flows"))
+    third_party_integrations = _split_list_answer(captured_fields.get("third_party_integrations"))
     return {
         "bundle_type": "project_baseline",
         "project_id": project_id,
@@ -118,7 +124,7 @@ def _build_project_baseline_draft(*, project_id: str | None, captured_fields: di
         "primary_users": primary_user_list,
         "core_modules": core_modules,
         "key_flows": key_flows,
-        "third_party_integrations": [],
+        "third_party_integrations": third_party_integrations,
         "high_risk_areas": [],
         "constraints": [],
         "validation_strategy": [],
