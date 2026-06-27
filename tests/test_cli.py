@@ -563,7 +563,7 @@ class ProjectBrainCliTest(unittest.TestCase):
                 ["微信支付", "支付宝", "清结算网关"],
             )
 
-    def test_project_intake_sixth_answer_completes_baseline_high_risk_areas(self):
+    def test_project_intake_sixth_answer_advances_to_constraints_question(self):
         with tempfile.TemporaryDirectory() as tmp:
             fixture = create_payment_mini_codegraph_project(Path(tmp))
             store_root = str((Path(tmp) / "store").resolve())
@@ -669,8 +669,9 @@ class ProjectBrainCliTest(unittest.TestCase):
                 ]
             )
 
-            self.assertEqual(output["intake"]["status"], "answered")
-            self.assertIsNone(output["intake"]["next_question"])
+            self.assertEqual(output["intake"]["status"], "asking")
+            self.assertEqual(output["intake"]["next_question"]["slot_key"], "constraints")
+            self.assertIn("约束", output["intake"]["next_question"]["question"])
             self.assertEqual(
                 output["intake"]["captured_fields"]["high_risk_areas"],
                 "支付回调幂等处理、结算状态机、对账补偿。",
@@ -678,6 +679,136 @@ class ProjectBrainCliTest(unittest.TestCase):
             self.assertEqual(
                 output["intake"]["baseline_draft"]["high_risk_areas"],
                 ["支付回调幂等处理", "结算状态机", "对账补偿"],
+            )
+
+    def test_project_intake_seventh_answer_completes_baseline_constraints(self):
+        with tempfile.TemporaryDirectory() as tmp:
+            fixture = create_payment_mini_codegraph_project(Path(tmp))
+            store_root = str((Path(tmp) / "store").resolve())
+
+            _run_cli(
+                [
+                    "--store-root",
+                    store_root,
+                    "import",
+                    str(fixture["project_path"]),
+                    "--id",
+                    "payment_intake_seventh_answer_cli",
+                    "--experience-seed",
+                    str(fixture["experience_seed"]),
+                ]
+            )
+
+            started = _run_cli(
+                [
+                    "--store-root",
+                    store_root,
+                    "intake",
+                    "project",
+                    "payment_intake_seventh_answer_cli",
+                ]
+            )
+
+            first_answer = _run_cli(
+                [
+                    "--store-root",
+                    store_root,
+                    "intake",
+                    "answer",
+                    "payment_intake_seventh_answer_cli",
+                    started["intake"]["session_id"],
+                    "--answer",
+                    "这个项目主要负责支付回调和结算处理。",
+                ]
+            )
+
+            second_answer = _run_cli(
+                [
+                    "--store-root",
+                    store_root,
+                    "intake",
+                    "answer",
+                    "payment_intake_seventh_answer_cli",
+                    first_answer["intake"]["session_id"],
+                    "--answer",
+                    "主要服务财务结算和支付运营同学。",
+                ]
+            )
+
+            third_answer = _run_cli(
+                [
+                    "--store-root",
+                    store_root,
+                    "intake",
+                    "answer",
+                    "payment_intake_seventh_answer_cli",
+                    second_answer["intake"]["session_id"],
+                    "--answer",
+                    "结算编排模块、支付回调模块、对账模块。",
+                ]
+            )
+
+            fourth_answer = _run_cli(
+                [
+                    "--store-root",
+                    store_root,
+                    "intake",
+                    "answer",
+                    "payment_intake_seventh_answer_cli",
+                    third_answer["intake"]["session_id"],
+                    "--answer",
+                    "支付回调 -> 状态校验 -> 结算编排 -> 对账出账。",
+                ]
+            )
+
+            fifth_answer = _run_cli(
+                [
+                    "--store-root",
+                    store_root,
+                    "intake",
+                    "answer",
+                    "payment_intake_seventh_answer_cli",
+                    fourth_answer["intake"]["session_id"],
+                    "--answer",
+                    "微信支付、支付宝、清结算网关。",
+                ]
+            )
+
+            sixth_answer = _run_cli(
+                [
+                    "--store-root",
+                    store_root,
+                    "intake",
+                    "answer",
+                    "payment_intake_seventh_answer_cli",
+                    fifth_answer["intake"]["session_id"],
+                    "--answer",
+                    "支付回调幂等处理、结算状态机、对账补偿。",
+                ]
+            )
+
+            output = _run_cli(
+                [
+                    "--store-root",
+                    store_root,
+                    "intake",
+                    "answer",
+                    "payment_intake_seventh_answer_cli",
+                    sixth_answer["intake"]["session_id"],
+                    "--answer",
+                    "必须兼容历史账单、只能灰度发布、不能改第三方回调协议。",
+                ]
+            )
+
+            self.assertEqual(output["intake"]["status"], "answered")
+            self.assertIsNone(output["intake"]["next_question"])
+            self.assertEqual(
+                output["intake"]["captured_fields"]["constraints"],
+                "必须兼容历史账单、只能灰度发布、不能改第三方回调协议。",
+            )
+            self.assertEqual(
+                output["intake"]["baseline_draft"]["constraints"],
+                ["必须兼容历史账单", "只能灰度发布", "不能改第三方回调协议"],
             )
 
     def test_setup_indexes_imports_smoke_tests_and_prints_mcp_config(self):

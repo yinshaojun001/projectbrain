@@ -101,6 +101,7 @@ projectbrain intake answer my_project intake_xxx --answer "结算编排模块、
 projectbrain intake answer my_project intake_xxx --answer "支付回调 -> 状态校验 -> 结算编排 -> 对账出账。"
 projectbrain intake answer my_project intake_xxx --answer "微信支付、支付宝、清结算网关。"
 projectbrain intake answer my_project intake_xxx --answer "支付回调幂等处理、结算状态机、对账补偿。"
+projectbrain intake answer my_project intake_xxx --answer "必须兼容历史账单、只能灰度发布、不能改第三方回调协议。"
 ```
 
 当前会返回一个最小 intake session，并附带第一条 onboarding 问题。
@@ -109,7 +110,8 @@ projectbrain intake answer my_project intake_xxx --answer "支付回调幂等处
 提交第三问答案后，session 会继续追问“关键流程有哪些”，并把 `core_modules` 写入 baseline 草稿。
 提交第四问答案后，session 会继续追问“关键第三方依赖有哪些”，并把 `key_flows` 写入 baseline 草稿。
 提交第五问答案后，session 会继续追问“高风险区域有哪些”，并把 `third_party_integrations` 写入 baseline 草稿。
-提交第六问答案后，session 会结束，并把 `high_risk_areas` 写入 baseline 草稿。
+提交第六问答案后，session 会继续追问“必须遵守的约束有哪些”，并把 `high_risk_areas` 写入 baseline 草稿。
+提交第七问答案后，session 会结束，并把 `constraints` 写入 baseline 草稿。
 
 生成 Impact Analysis：
 
