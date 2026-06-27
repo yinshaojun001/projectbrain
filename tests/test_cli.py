@@ -132,6 +132,39 @@ class ProjectBrainCliTest(unittest.TestCase):
             self.assertEqual(output["bundle"]["task_type"], "explain")
             self.assertIn("summary", output["bundle"])
 
+    def test_project_intake_creates_session_stub(self):
+        with tempfile.TemporaryDirectory() as tmp:
+            fixture = create_payment_mini_codegraph_project(Path(tmp))
+            store_root = str((Path(tmp) / "store").resolve())
+
+            _run_cli(
+                [
+                    "--store-root",
+                    store_root,
+                    "import",
+                    str(fixture["project_path"]),
+                    "--id",
+                    "payment_intake_cli",
+                    "--experience-seed",
+                    str(fixture["experience_seed"]),
+                ]
+            )
+
+            output = _run_cli(
+                [
+                    "--store-root",
+                    store_root,
+                    "intake",
+                    "project",
+                    "payment_intake_cli",
+                ]
+            )
+
+            self.assertEqual(output["intake"]["intake_type"], "project")
+            self.assertEqual(output["intake"]["project_id"], "payment_intake_cli")
+            self.assertEqual(output["intake"]["status"], "bootstrap")
+            self.assertTrue(output["artifact_path"].endswith(".json"))
+
     def test_setup_indexes_imports_smoke_tests_and_prints_mcp_config(self):
         with tempfile.TemporaryDirectory() as tmp:
             fixture = create_payment_mini_codegraph_project(Path(tmp))

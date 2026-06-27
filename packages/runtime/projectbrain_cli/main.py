@@ -84,6 +84,11 @@ def build_parser() -> argparse.ArgumentParser:
 
     subcommands.add_parser("list", help="List imported projects")
 
+    intake = subcommands.add_parser("intake", help="Start ProjectBrain intake workflows")
+    intake_subcommands = intake.add_subparsers(dest="intake_command", required=True)
+    intake_project = intake_subcommands.add_parser("project", help="Start project onboarding intake")
+    intake_project.add_argument("project_id")
+
     claim = subcommands.add_parser("claim", help="Work with local experience claims")
     claim_subcommands = claim.add_subparsers(dest="claim_command", required=True)
     claim_add = claim_subcommands.add_parser("add", help="Add a local experience claim")
@@ -369,6 +374,12 @@ def main(
     if args.command == "list":
         print_json({"projects": [project.to_dict() for project in repository.list_projects()]})
         return 0
+
+    if args.command == "intake":
+        if args.intake_command == "project":
+            print_json(runtime.start_project_intake(project_id=args.project_id))
+            return 0
+        raise ValueError(f"Unsupported intake command: {args.intake_command}")
 
     if args.command == "policy":
         if args.policy_command == "inspect":

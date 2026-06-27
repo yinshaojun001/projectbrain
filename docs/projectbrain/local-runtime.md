@@ -39,6 +39,7 @@ context      Build a context pack from imported facts.
 understand   Build a Task Understanding Bundle from imported facts.
 impact       Build impact analysis from imported facts.
 impact-diff  Build impact analysis from local Git changed file names.
+intake       Start minimal intake workflows for project onboarding.
 facts        Work directly with CodeGraph facts or exported facts.
 mcp          Run the local-only stdio MCP server.
 ```

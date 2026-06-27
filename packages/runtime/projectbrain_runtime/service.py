@@ -15,6 +15,7 @@ from projectbrain_runtime.brain.repository import BrainRepository
 from projectbrain_runtime.brain.service import BrainService
 from projectbrain_runtime.claims import active_claims, archive_experience_claim, build_experience_claim, update_experience_claim
 from projectbrain_runtime.git_diff import GitDiffSelection, changed_files_for_selection
+from projectbrain_runtime.intake import build_project_intake_session
 from projectbrain_runtime.models import ImportOptions, ProjectRecord, now_iso
 from projectbrain_runtime.policy import ProjectBrainPolicy, apply_output_policy, inspect_policy_for_project, load_policy_for_project
 from projectbrain_runtime.repository import ProjectBrainRepository
@@ -130,6 +131,20 @@ class ProjectBrainRuntime:
             "bundle": bundle.to_dict(),
             "context_pack_artifact_path": context_data["artifact_path"],
         }
+
+    def start_project_intake(
+        self,
+        *,
+        project_id: str,
+    ) -> dict[str, Any]:
+        self.repository.get_project(project_id)
+        intake = build_project_intake_session(project_id=project_id)
+        artifact_path = self.repository.save_run_artifact(
+            project_id,
+            "project-intake-session-latest.json",
+            intake,
+        )
+        return {"artifact_path": artifact_path, "intake": intake}
 
     def analyze_impact(
         self,

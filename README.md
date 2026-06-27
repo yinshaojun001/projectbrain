@@ -91,6 +91,12 @@ projectbrain understand my_project "解释结算入口"
 projectbrain understand my_project "解释结算入口" --format agent
 ```
 
+启动项目 Intake：
+
+```bash
+projectbrain intake project my_project
+```
+
 生成 Impact Analysis：
 
 ```bash
