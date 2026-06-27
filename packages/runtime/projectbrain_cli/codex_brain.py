@@ -23,8 +23,11 @@ from projectbrain_cli.codex_session import (
     run_codex_command_captured,
     write_transcript,
 )
+from projectbrain_runtime.agent_output import format_output
 from projectbrain_runtime.brain.repository import BrainRepository
 from projectbrain_runtime.brain.service import BrainService
+from projectbrain_runtime.repository import JsonProjectBrainRepository
+from projectbrain_runtime.service import ProjectBrainRuntime
 
 _EMPTY_EXTRACTION_OUTPUT = '{"session_summary":"","candidates":[]}'
 _CODEX_PROMPTLESS_SUBCOMMANDS = {
@@ -101,6 +104,7 @@ def main(
     command = _codex_command_from_arg(args.codex_command)
     if not command:
         raise SystemExit("--codex-command must not be empty")
+    command = _inject_task_bundle_context(command, project_path)
     if args.no_extract:
         runner = command_runner or run_codex_command
         result = runner(command, cwd=project_path)
@@ -251,6 +255,57 @@ def _strip_codex_exec_options(args: list[str]) -> list[str]:
 
 def _session_id() -> str:
     return "session_" + uuid4().hex
+
+
+def _inject_task_bundle_context(command: list[str], project_path: Path) -> list[str]:
+    if len(command) != 3 or command[0] != "codex" or command[1] != "exec":
+        return command
+
+    task = command[2].strip()
+    if not task:
+        return command
+
+    try:
+        repository = JsonProjectBrainRepository(project_path / ".projectbrain")
+        runtime = ProjectBrainRuntime(repository)
+        bundle_data = runtime.build_task_understanding_bundle(
+            project_id=project_path.name or "local_project",
+            task=task,
+        )
+    except Exception:
+        return command
+
+    preloaded_prompt = _render_preloaded_prompt(task, bundle_data)
+    return ["codex", "exec", preloaded_prompt]
+
+
+def _render_preloaded_prompt(task: str, bundle_data: dict[str, Any]) -> str:
+    bundle = format_output(bundle_data, "agent")["agent_output"]
+    lines = [
+        "ProjectBrain Task Understanding Bundle",
+        f"Summary: {bundle.get('summary') or ''}",
+    ]
+
+    must_read_files = bundle.get("must_read_files", [])[:3]
+    if must_read_files:
+        lines.append("Must-read files:")
+        for item in must_read_files:
+            lines.append(f"- {item.get('file')}: {item.get('reason')}")
+
+    risk_warnings = bundle.get("risk_warnings", [])[:3]
+    if risk_warnings:
+        lines.append("Risk warnings:")
+        for item in risk_warnings:
+            lines.append(f"- {item.get('message')}")
+
+    lines.extend(
+        [
+            "",
+            "Original task:",
+            task,
+        ]
+    )
+    return "\n".join(lines).strip()
 
 
 def _open_url(

@@ -7,7 +7,10 @@ from pathlib import Path
 from types import SimpleNamespace
 
 ROOT = Path(__file__).resolve().parents[1]
+sys.path.insert(0, str(ROOT / "packages" / "adapters"))
 sys.path.insert(0, str(ROOT / "packages" / "runtime"))
+sys.path.insert(0, str(ROOT / "packages" / "schema"))
+sys.path.insert(0, str(ROOT / "tests"))
 
 from projectbrain_cli.codex_session import (  # noqa: E402
     ManagedSessionResult,
@@ -19,6 +22,10 @@ from projectbrain_cli.codex_session import (  # noqa: E402
 from projectbrain_runtime.brain.extraction import parse_extraction_output  # noqa: E402
 from projectbrain_runtime.brain.repository import BrainRepository  # noqa: E402
 from projectbrain_runtime.brain.service import BrainService  # noqa: E402
+from projectbrain_runtime.repository import JsonProjectBrainRepository  # noqa: E402
+from projectbrain_runtime.service import ProjectBrainRuntime  # noqa: E402
+
+from fixtures import create_payment_mini_codegraph_project  # noqa: E402
 
 
 class CodexBrainTest(unittest.TestCase):
@@ -194,6 +201,37 @@ class CodexBrainMainTest(unittest.TestCase):
                     {"role": "assistant", "content": "Assistant: This project is ProjectBrain."},
                 ],
             )
+
+    def test_codex_brain_preloads_task_bundle_summary_into_plain_prompt(self):
+        with tempfile.TemporaryDirectory() as tmp:
+            fixture = create_payment_mini_codegraph_project(Path(tmp))
+            project_path = Path(fixture["project_path"]).resolve()
+            repository = JsonProjectBrainRepository(project_path / ".projectbrain")
+            runtime = ProjectBrainRuntime(repository)
+            runtime.import_project(
+                project_id=project_path.name,
+                project_path=project_path,
+                name="Payment Demo",
+                experience_seed=fixture["experience_seed"],
+            )
+            calls = []
+
+            def fake_runner(command, *, cwd):
+                calls.append((command, cwd))
+                return (0, "Assistant: 先看 payment callback 相关逻辑。\n")
+
+            return_code = codex_brain_main(
+                ["--project", str(project_path), "--no-ui", "--codex-command", "解释 payment callback flow"],
+                command_runner=fake_runner,
+                extraction_runner=lambda prompt, *, cwd: '{"session_summary":"","candidates":[]}',
+                session_id_factory=lambda: "session_preloaded_prompt",
+            )
+
+            self.assertEqual(return_code, 0)
+            self.assertEqual(calls[0][0][0:2], ["codex", "exec"])
+            injected_prompt = calls[0][0][2]
+            self.assertIn("ProjectBrain Task Understanding Bundle", injected_prompt)
+            self.assertIn("解释 payment callback flow", injected_prompt)
 
     def test_codex_brain_starts_ui_server_before_opening_browser(self):
         with tempfile.TemporaryDirectory() as tmp:
