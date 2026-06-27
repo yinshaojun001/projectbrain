@@ -100,6 +100,7 @@ projectbrain intake answer my_project intake_xxx --answer "主要服务财务结
 projectbrain intake answer my_project intake_xxx --answer "结算编排模块、支付回调模块、对账模块。"
 projectbrain intake answer my_project intake_xxx --answer "支付回调 -> 状态校验 -> 结算编排 -> 对账出账。"
 projectbrain intake answer my_project intake_xxx --answer "微信支付、支付宝、清结算网关。"
+projectbrain intake answer my_project intake_xxx --answer "支付回调幂等处理、结算状态机、对账补偿。"
 ```
 
 当前会返回一个最小 intake session，并附带第一条 onboarding 问题。
@@ -107,7 +108,8 @@ projectbrain intake answer my_project intake_xxx --answer "微信支付、支付
 提交第二问答案后，session 会继续追问“核心模块有哪些”，并把 `primary_users` 写入 baseline 草稿。
 提交第三问答案后，session 会继续追问“关键流程有哪些”，并把 `core_modules` 写入 baseline 草稿。
 提交第四问答案后，session 会继续追问“关键第三方依赖有哪些”，并把 `key_flows` 写入 baseline 草稿。
-提交第五问答案后，session 会结束，并把 `third_party_integrations` 写入 baseline 草稿。
+提交第五问答案后，session 会继续追问“高风险区域有哪些”，并把 `third_party_integrations` 写入 baseline 草稿。
+提交第六问答案后，session 会结束，并把 `high_risk_areas` 写入 baseline 草稿。
 
 生成 Impact Analysis：
 

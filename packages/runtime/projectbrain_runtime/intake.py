@@ -34,6 +34,11 @@ PROJECT_INTAKE_QUESTIONS = [
         "slot_key": "third_party_integrations",
         "question": "这个项目依赖哪些关键第三方系统、平台或外部接口？",
     },
+    {
+        "question_id": "high_risk_areas_01",
+        "slot_key": "high_risk_areas",
+        "question": "这个项目当前最需要谨慎处理的高风险区域有哪些？",
+    },
 ]
 
 
@@ -116,6 +121,7 @@ def _build_project_baseline_draft(*, project_id: str | None, captured_fields: di
     core_modules = _split_list_answer(captured_fields.get("core_modules"))
     key_flows = _split_list_answer(captured_fields.get("key_flows"))
     third_party_integrations = _split_list_answer(captured_fields.get("third_party_integrations"))
+    high_risk_areas = _split_list_answer(captured_fields.get("high_risk_areas"))
     return {
         "bundle_type": "project_baseline",
         "project_id": project_id,
@@ -125,7 +131,7 @@ def _build_project_baseline_draft(*, project_id: str | None, captured_fields: di
         "core_modules": core_modules,
         "key_flows": key_flows,
         "third_party_integrations": third_party_integrations,
-        "high_risk_areas": [],
+        "high_risk_areas": high_risk_areas,
         "constraints": [],
         "validation_strategy": [],
         "priority_evidence": [],
