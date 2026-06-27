@@ -6,6 +6,7 @@ from abc import ABC, abstractmethod
 from pathlib import Path
 from typing import Any
 
+from projectbrain_runtime.knowledge_store import SQLiteKnowledgeStore
 from projectbrain_runtime.models import ProjectRecord
 from projectbrain_runtime.store import ProjectBrainStore
 
@@ -61,11 +62,19 @@ class ProjectBrainRepository(ABC):
 class JsonProjectBrainRepository(ProjectBrainRepository):
     """ProjectBrainRepository backed by JSON files."""
 
-    def __init__(self, root: str | Path = ".projectbrain") -> None:
+    def __init__(
+        self,
+        root: str | Path = ".projectbrain",
+        *,
+        knowledge_db_path: str | Path | None = None,
+    ) -> None:
         self.store = ProjectBrainStore(root)
+        default_db_path = Path(root) / "knowledge.db"
+        self.knowledge_store = SQLiteKnowledgeStore(knowledge_db_path or default_db_path)
 
     def ensure(self) -> None:
         self.store.ensure()
+        self.knowledge_store.ensure()
 
     def save_project(self, project: ProjectRecord) -> None:
         self.store.write_project(project)

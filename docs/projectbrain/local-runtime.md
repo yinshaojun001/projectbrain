@@ -18,7 +18,7 @@ import-project
   -> git-diff impact review
 ```
 
-It is still intentionally zero-dependency and uses JSON files instead of a database. This keeps the local prototype easy to run while FastAPI remains optional and database-backed storage is still planned.
+It is still intentionally zero-dependency. Runtime facts and artifacts remain JSON-backed, while V1 now also bootstraps a local SQLite `knowledge.db` for future knowledge-governance work. This keeps the local prototype easy to run while FastAPI remains optional and fuller database-backed storage is still planned.
 
 ## 2. CLI
 
@@ -57,6 +57,7 @@ Project layout:
 
 ```text
 .projectbrain/
+  knowledge.db
   projects/
     <project_id>/
       project.json
