@@ -118,6 +118,7 @@ class ProjectBrainRuntime:
             project_id=project_id,
             task=task,
             context_pack=context_data["context_pack"],
+            experience_claims=active_claims(self.repository.get_experience_claims(project_id)),
         )
         artifact_path = self.repository.save_run_artifact(
             project_id,

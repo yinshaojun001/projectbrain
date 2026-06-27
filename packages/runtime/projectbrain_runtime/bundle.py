@@ -69,6 +69,7 @@ def bundle_from_context_pack(
     project_id: str,
     task: str,
     context_pack: dict[str, Any],
+    experience_claims: list[dict[str, Any]] | None = None,
 ) -> TaskUnderstandingBundle:
     return TaskUnderstandingBundle(
         bundle_id=f"{project_id}:{task}",
@@ -116,4 +117,28 @@ def bundle_from_context_pack(
             }
             for omission in context_pack.get("omissions", [])
         ],
+        human_claims=_bundle_claims(experience_claims or []),
     )
+
+
+def _bundle_claims(experience_claims: list[dict[str, Any]]) -> dict[str, list[dict[str, Any]]]:
+    grouped = {"verified": [], "likely_relevant": [], "needs_review": []}
+    for claim in experience_claims:
+        payload = {
+            "id": claim.get("id"),
+            "statement": claim.get("statement"),
+            "review_state": claim.get("review_state"),
+            "risk_level": claim.get("risk_level"),
+            "claim_type": claim.get("claim_type"),
+            "applies_to": claim.get("applies_to", []),
+            "confidence": claim.get("confidence"),
+            "sources": claim.get("sources", []),
+        }
+        review_state = claim.get("review_state")
+        if review_state == "approved":
+            grouped["verified"].append(payload)
+        elif review_state == "needs_review":
+            grouped["needs_review"].append(payload)
+        else:
+            grouped["likely_relevant"].append(payload)
+    return grouped

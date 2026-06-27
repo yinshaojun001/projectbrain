@@ -70,6 +70,40 @@ class TaskUnderstandingBundleTest(unittest.TestCase):
             self.assertTrue(data["bundle"]["relevant_files"])
             self.assertTrue(Path(data["artifact_path"]).exists())
 
+    def test_runtime_build_task_understanding_bundle_includes_approved_claims(self):
+        with tempfile.TemporaryDirectory() as tmp:
+            fixture = create_payment_mini_codegraph_project(Path(tmp))
+            repository = JsonProjectBrainRepository(Path(tmp) / "store")
+            runtime = ProjectBrainRuntime(repository)
+            runtime.import_project(
+                project_id="payment_demo",
+                project_path=fixture["project_path"],
+                name="Payment Demo",
+                experience_seed=fixture["experience_seed"],
+            )
+            runtime.add_experience_claim(
+                project_id="payment_demo",
+                claim_id="exp_callback_idempotency",
+                statement="Payment callback changes require idempotency verification.",
+                applies_to=["payment", "callback"],
+                risk_level="high",
+                review_state="approved",
+                claim_type="HUMAN_CONFIRMED",
+                confidence=0.95,
+                source=["projectbrain://tests/approved-claim"],
+            )
+
+            data = runtime.build_task_understanding_bundle(
+                project_id="payment_demo",
+                task="Explain payment callback flow",
+            )
+
+            verified_claims = data["bundle"]["human_claims"]["verified"]
+            self.assertEqual(len(verified_claims), 1)
+            self.assertEqual(verified_claims[0]["id"], "exp_callback_idempotency")
+            self.assertEqual(verified_claims[0]["review_state"], "approved")
+            self.assertEqual(verified_claims[0]["risk_level"], "high")
+
 
 if __name__ == "__main__":
     unittest.main()
