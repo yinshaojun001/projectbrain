@@ -118,6 +118,7 @@ def bundle_from_context_pack(
             for omission in context_pack.get("omissions", [])
         ],
         human_claims=_bundle_claims(experience_claims or []),
+        linked_evidence=bundle_evidence_from_claims(experience_claims or []),
     )
 
 
@@ -141,4 +142,31 @@ def _bundle_claims(experience_claims: list[dict[str, Any]]) -> dict[str, list[di
             grouped["needs_review"].append(payload)
         else:
             grouped["likely_relevant"].append(payload)
+    return grouped
+
+
+def bundle_evidence_from_claims(experience_claims: list[dict[str, Any]]) -> dict[str, list[dict[str, Any]]]:
+    grouped = {"verified": [], "likely_relevant": [], "needs_review": []}
+    seen: dict[str, set[str]] = {key: set() for key in grouped}
+    for claim in experience_claims:
+        review_state = claim.get("review_state")
+        if review_state == "approved":
+            bucket = "verified"
+        elif review_state == "needs_review":
+            bucket = "needs_review"
+        else:
+            bucket = "likely_relevant"
+
+        for source in claim.get("sources", []):
+            if not source or source in seen[bucket]:
+                continue
+            seen[bucket].add(source)
+            grouped[bucket].append(
+                {
+                    "uri": source,
+                    "title": claim.get("id") or source,
+                    "review_state": review_state,
+                    "source_claim_id": claim.get("id"),
+                }
+            )
     return grouped

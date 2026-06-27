@@ -104,6 +104,45 @@ class TaskUnderstandingBundleTest(unittest.TestCase):
             self.assertEqual(verified_claims[0]["review_state"], "approved")
             self.assertEqual(verified_claims[0]["risk_level"], "high")
 
+    def test_runtime_build_task_understanding_bundle_includes_claim_sources_as_evidence(self):
+        with tempfile.TemporaryDirectory() as tmp:
+            fixture = create_payment_mini_codegraph_project(Path(tmp))
+            repository = JsonProjectBrainRepository(Path(tmp) / "store")
+            runtime = ProjectBrainRuntime(repository)
+            runtime.import_project(
+                project_id="payment_demo",
+                project_path=fixture["project_path"],
+                name="Payment Demo",
+                experience_seed=fixture["experience_seed"],
+            )
+            runtime.add_experience_claim(
+                project_id="payment_demo",
+                claim_id="exp_callback_doc",
+                statement="Payment callback handling must follow the upstream retry guide.",
+                applies_to=["payment", "callback"],
+                risk_level="high",
+                review_state="approved",
+                claim_type="HUMAN_CONFIRMED",
+                confidence=0.91,
+                source=[
+                    "https://example.test/docs/payment-callback-retries",
+                    "projectbrain://tests/payment-callback-doc",
+                ],
+            )
+
+            data = runtime.build_task_understanding_bundle(
+                project_id="payment_demo",
+                task="Explain payment callback flow",
+            )
+
+            verified_evidence = data["bundle"]["linked_evidence"]["verified"]
+            self.assertEqual(len(verified_evidence), 2)
+            self.assertEqual(
+                verified_evidence[0]["uri"],
+                "https://example.test/docs/payment-callback-retries",
+            )
+            self.assertEqual(verified_evidence[0]["review_state"], "approved")
+
 
 if __name__ == "__main__":
     unittest.main()
