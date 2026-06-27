@@ -162,7 +162,9 @@ class ProjectBrainCliTest(unittest.TestCase):
 
             self.assertEqual(output["intake"]["intake_type"], "project")
             self.assertEqual(output["intake"]["project_id"], "payment_intake_cli")
-            self.assertEqual(output["intake"]["status"], "bootstrap")
+            self.assertEqual(output["intake"]["status"], "asking")
+            self.assertEqual(output["intake"]["next_question"]["slot_key"], "project_goal")
+            self.assertIn("最核心是干什么的", output["intake"]["next_question"]["question"])
             self.assertTrue(output["artifact_path"].endswith(".json"))
 
     def test_setup_indexes_imports_smoke_tests_and_prints_mcp_config(self):

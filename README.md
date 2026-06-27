@@ -97,6 +97,8 @@ projectbrain understand my_project "解释结算入口" --format agent
 projectbrain intake project my_project
 ```
 
+当前会返回一个最小 intake session，并附带第一条 onboarding 问题。
+
 生成 Impact Analysis：
 
 ```bash
