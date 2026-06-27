@@ -10,6 +10,7 @@ from projectbrain_adapters.context_pack import ContextPackBuilder
 from projectbrain_adapters.experience import load_experience_seed
 from projectbrain_adapters.impact_analysis import ImpactAnalysisBuilder
 from projectbrain_schema.validation import validate_context_pack, validate_facts_export, validate_impact_analysis
+from projectbrain_runtime.bundle import bundle_from_context_pack
 from projectbrain_runtime.brain.repository import BrainRepository
 from projectbrain_runtime.brain.service import BrainService
 from projectbrain_runtime.claims import active_claims, archive_experience_claim, build_experience_claim, update_experience_claim
@@ -100,6 +101,34 @@ class ProjectBrainRuntime:
         validate_context_pack(pack)
         artifact_path = self.repository.save_run_artifact(project_id, "context-pack-latest.json", pack)
         return {"artifact_path": artifact_path, "context_pack": pack}
+
+    def build_task_understanding_bundle(
+        self,
+        *,
+        project_id: str,
+        task: str,
+        max_items_per_section: int = 12,
+    ) -> dict[str, Any]:
+        context_data = self.build_context_pack(
+            project_id=project_id,
+            task=task,
+            max_items_per_section=max_items_per_section,
+        )
+        bundle = bundle_from_context_pack(
+            project_id=project_id,
+            task=task,
+            context_pack=context_data["context_pack"],
+        )
+        artifact_path = self.repository.save_run_artifact(
+            project_id,
+            "task-understanding-bundle-latest.json",
+            bundle.to_dict(),
+        )
+        return {
+            "artifact_path": artifact_path,
+            "bundle": bundle.to_dict(),
+            "context_pack_artifact_path": context_data["artifact_path"],
+        }
 
     def analyze_impact(
         self,

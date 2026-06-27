@@ -37,3 +37,83 @@ class TaskUnderstandingBundle:
 
     def to_dict(self) -> dict[str, Any]:
         return asdict(self)
+
+
+def infer_task_type(task: str) -> str:
+    lowered = task.lower()
+    if "review" in lowered or "审查" in task:
+        return "review"
+    if "debug" in lowered or "排查" in task:
+        return "debug"
+    if "change" in lowered or "修改" in task:
+        return "modify"
+    if "explain" in lowered or "解释" in task:
+        return "explain"
+    return "general"
+
+
+def bundle_summary(context_pack: dict[str, Any]) -> str:
+    recommended_files = context_pack.get("recommended_files", [])
+    if recommended_files:
+        first_item = recommended_files[0]
+        file_name = first_item.get("file") or "unknown file"
+        reason = first_item.get("reason")
+        if reason:
+            return f"Start with {file_name}: {reason}"
+        return f"Start with {file_name}."
+    return context_pack.get("summary") or "No relevant files were identified yet."
+
+
+def bundle_from_context_pack(
+    *,
+    project_id: str,
+    task: str,
+    context_pack: dict[str, Any],
+) -> TaskUnderstandingBundle:
+    return TaskUnderstandingBundle(
+        bundle_id=f"{project_id}:{task}",
+        project_id=project_id,
+        task=task,
+        task_type=infer_task_type(task),
+        summary=bundle_summary(context_pack),
+        relevant_files=[
+            {
+                "path": item.get("file", ""),
+                "reason": item.get("reason", ""),
+                "confidence": item.get("confidence", 0.0),
+            }
+            for item in context_pack.get("recommended_files", [])
+        ],
+        relevant_symbols=[
+            {
+                "symbol": item.get("qualified_name", ""),
+                "kind": item.get("entity_type", ""),
+                "path": item.get("file", ""),
+                "reason": item.get("reason", ""),
+                "confidence": item.get("confidence", 0.0),
+            }
+            for item in context_pack.get("recommended_symbols", [])
+        ],
+        risk_warnings=[
+            {
+                "message": warning if isinstance(warning, str) else warning.get("message", ""),
+                "confidence": warning.get("confidence") if isinstance(warning, dict) else None,
+            }
+            for warning in context_pack.get("warnings", [])
+        ],
+        test_suggestions=[
+            {
+                "symbol": item.get("qualified_name", ""),
+                "path": item.get("file", ""),
+                "reason": item.get("reason", ""),
+            }
+            for item in context_pack.get("recommended_tests", [])
+        ],
+        quality_notes=[
+            {
+                "message": omission if isinstance(omission, str) else omission.get("message", ""),
+                "confidence": omission.get("confidence") if isinstance(omission, dict) else None,
+            }
+            for omission in context_pack.get("omissions", [])
+        ],
+    )

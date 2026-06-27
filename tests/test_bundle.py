@@ -1,12 +1,19 @@
 import sys
+import tempfile
 import unittest
 from pathlib import Path
 
 
 ROOT = Path(__file__).resolve().parents[1]
+sys.path.insert(0, str(ROOT / "packages" / "adapters"))
 sys.path.insert(0, str(ROOT / "packages" / "runtime"))
+sys.path.insert(0, str(ROOT / "packages" / "schema"))
+sys.path.insert(0, str(ROOT / "tests"))
 
+from fixtures import create_payment_mini_codegraph_project  # noqa: E402
 from projectbrain_runtime.bundle import TaskUnderstandingBundle  # noqa: E402
+from projectbrain_runtime.repository import JsonProjectBrainRepository  # noqa: E402
+from projectbrain_runtime.service import ProjectBrainRuntime  # noqa: E402
 
 
 class TaskUnderstandingBundleTest(unittest.TestCase):
@@ -38,6 +45,30 @@ class TaskUnderstandingBundleTest(unittest.TestCase):
         self.assertEqual(data["unknowns"], [])
         self.assertEqual(data["quality_notes"], [])
         self.assertIn("generated_at", data)
+
+    def test_runtime_build_task_understanding_bundle_uses_context_pack_summary(self):
+        with tempfile.TemporaryDirectory() as tmp:
+            fixture = create_payment_mini_codegraph_project(Path(tmp))
+            repository = JsonProjectBrainRepository(Path(tmp) / "store")
+            runtime = ProjectBrainRuntime(repository)
+            runtime.import_project(
+                project_id="payment_demo",
+                project_path=fixture["project_path"],
+                name="Payment Demo",
+                experience_seed=fixture["experience_seed"],
+            )
+
+            data = runtime.build_task_understanding_bundle(
+                project_id="payment_demo",
+                task="Explain payment flow",
+            )
+
+            self.assertEqual(data["bundle"]["project_id"], "payment_demo")
+            self.assertEqual(data["bundle"]["task"], "Explain payment flow")
+            self.assertEqual(data["bundle"]["task_type"], "explain")
+            self.assertIn("summary", data["bundle"])
+            self.assertTrue(data["bundle"]["relevant_files"])
+            self.assertTrue(Path(data["artifact_path"]).exists())
 
 
 if __name__ == "__main__":
