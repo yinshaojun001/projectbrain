@@ -95,6 +95,7 @@ projectbrain understand my_project "解释结算入口" --format agent
 
 ```bash
 projectbrain intake project my_project
+projectbrain intake answer my_project intake_xxx --answer "这个项目主要负责支付回调和结算处理。"
 ```
 
 当前会返回一个最小 intake session，并附带第一条 onboarding 问题。

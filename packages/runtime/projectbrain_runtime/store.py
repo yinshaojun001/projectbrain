@@ -70,6 +70,9 @@ class ProjectBrainStore:
         self._write_json(path, data)
         return path
 
+    def read_run_artifact(self, project_id: str, artifact_name: str) -> dict[str, Any]:
+        return self._read_json(self.runs_dir(project_id) / artifact_name)
+
     def _write_json(self, path: Path, data: Any) -> None:
         path.parent.mkdir(parents=True, exist_ok=True)
         path.write_text(json.dumps(data, ensure_ascii=False, indent=2) + "\n", encoding="utf-8")

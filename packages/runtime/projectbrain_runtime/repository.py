@@ -58,6 +58,10 @@ class ProjectBrainRepository(ABC):
     def save_run_artifact(self, project_id: str, artifact_name: str, data: dict[str, Any]) -> str:
         raise NotImplementedError
 
+    @abstractmethod
+    def get_run_artifact(self, project_id: str, artifact_name: str) -> dict[str, Any]:
+        raise NotImplementedError
+
 
 class JsonProjectBrainRepository(ProjectBrainRepository):
     """ProjectBrainRepository backed by JSON files."""
@@ -105,3 +109,6 @@ class JsonProjectBrainRepository(ProjectBrainRepository):
 
     def save_run_artifact(self, project_id: str, artifact_name: str, data: dict[str, Any]) -> str:
         return str(self.store.write_run_artifact(project_id, artifact_name, data))
+
+    def get_run_artifact(self, project_id: str, artifact_name: str) -> dict[str, Any]:
+        return self.store.read_run_artifact(project_id, artifact_name)

@@ -25,3 +25,32 @@ def build_project_intake_session(*, project_id: str) -> dict[str, Any]:
         "started_at": now,
         "updated_at": now,
     }
+
+
+def submit_project_intake_answer(
+    *,
+    session: dict[str, Any],
+    session_id: str,
+    answer: str,
+) -> dict[str, Any]:
+    if session.get("session_id") != session_id:
+        raise ValueError(f"Unknown intake session: {session_id}")
+
+    updated = dict(session)
+    updated["status"] = "answered"
+    updated["captured_fields"] = {
+        **updated.get("captured_fields", {}),
+        "project_goal": answer,
+    }
+    updated["answers"] = [
+        *updated.get("answers", []),
+        {
+            "question_id": updated.get("next_question", {}).get("question_id"),
+            "slot_key": "project_goal",
+            "answer": answer,
+        },
+    ]
+    updated["next_question"] = None
+    updated["updated_at"] = now_iso()
+    updated["summary"] = "Project intake captured the first onboarding answer."
+    return updated

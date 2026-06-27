@@ -88,6 +88,10 @@ def build_parser() -> argparse.ArgumentParser:
     intake_subcommands = intake.add_subparsers(dest="intake_command", required=True)
     intake_project = intake_subcommands.add_parser("project", help="Start project onboarding intake")
     intake_project.add_argument("project_id")
+    intake_answer = intake_subcommands.add_parser("answer", help="Submit an answer for the current project intake session")
+    intake_answer.add_argument("project_id")
+    intake_answer.add_argument("session_id")
+    intake_answer.add_argument("--answer", required=True)
 
     claim = subcommands.add_parser("claim", help="Work with local experience claims")
     claim_subcommands = claim.add_subparsers(dest="claim_command", required=True)
@@ -378,6 +382,15 @@ def main(
     if args.command == "intake":
         if args.intake_command == "project":
             print_json(runtime.start_project_intake(project_id=args.project_id))
+            return 0
+        if args.intake_command == "answer":
+            print_json(
+                runtime.answer_project_intake(
+                    project_id=args.project_id,
+                    session_id=args.session_id,
+                    answer=args.answer,
+                )
+            )
             return 0
         raise ValueError(f"Unsupported intake command: {args.intake_command}")
 

@@ -167,6 +167,54 @@ class ProjectBrainCliTest(unittest.TestCase):
             self.assertIn("最核心是干什么的", output["intake"]["next_question"]["question"])
             self.assertTrue(output["artifact_path"].endswith(".json"))
 
+    def test_project_intake_accepts_first_answer_and_updates_session(self):
+        with tempfile.TemporaryDirectory() as tmp:
+            fixture = create_payment_mini_codegraph_project(Path(tmp))
+            store_root = str((Path(tmp) / "store").resolve())
+
+            _run_cli(
+                [
+                    "--store-root",
+                    store_root,
+                    "import",
+                    str(fixture["project_path"]),
+                    "--id",
+                    "payment_intake_answer_cli",
+                    "--experience-seed",
+                    str(fixture["experience_seed"]),
+                ]
+            )
+
+            started = _run_cli(
+                [
+                    "--store-root",
+                    store_root,
+                    "intake",
+                    "project",
+                    "payment_intake_answer_cli",
+                ]
+            )
+
+            output = _run_cli(
+                [
+                    "--store-root",
+                    store_root,
+                    "intake",
+                    "answer",
+                    "payment_intake_answer_cli",
+                    started["intake"]["session_id"],
+                    "--answer",
+                    "这个项目主要负责支付回调和结算处理。",
+                ]
+            )
+
+            self.assertEqual(output["intake"]["status"], "answered")
+            self.assertEqual(
+                output["intake"]["captured_fields"]["project_goal"],
+                "这个项目主要负责支付回调和结算处理。",
+            )
+            self.assertIsNone(output["intake"]["next_question"])
+
     def test_setup_indexes_imports_smoke_tests_and_prints_mcp_config(self):
         with tempfile.TemporaryDirectory() as tmp:
             fixture = create_payment_mini_codegraph_project(Path(tmp))
