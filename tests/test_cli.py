@@ -287,7 +287,7 @@ class ProjectBrainCliTest(unittest.TestCase):
                 ["主要服务财务结算和支付运营同学。"],
             )
 
-    def test_project_intake_third_answer_completes_baseline_core_modules(self):
+    def test_project_intake_third_answer_advances_to_key_flows_question(self):
         with tempfile.TemporaryDirectory() as tmp:
             fixture = create_payment_mini_codegraph_project(Path(tmp))
             store_root = str((Path(tmp) / "store").resolve())
@@ -354,8 +354,9 @@ class ProjectBrainCliTest(unittest.TestCase):
                 ]
             )
 
-            self.assertEqual(output["intake"]["status"], "answered")
-            self.assertIsNone(output["intake"]["next_question"])
+            self.assertEqual(output["intake"]["status"], "asking")
+            self.assertEqual(output["intake"]["next_question"]["slot_key"], "key_flows")
+            self.assertIn("关键流程", output["intake"]["next_question"]["question"])
             self.assertEqual(
                 output["intake"]["captured_fields"]["core_modules"],
                 "结算编排模块、支付回调模块、对账模块。",
@@ -363,6 +364,97 @@ class ProjectBrainCliTest(unittest.TestCase):
             self.assertEqual(
                 output["intake"]["baseline_draft"]["core_modules"],
                 ["结算编排模块", "支付回调模块", "对账模块"],
+            )
+
+    def test_project_intake_fourth_answer_completes_baseline_key_flows(self):
+        with tempfile.TemporaryDirectory() as tmp:
+            fixture = create_payment_mini_codegraph_project(Path(tmp))
+            store_root = str((Path(tmp) / "store").resolve())
+
+            _run_cli(
+                [
+                    "--store-root",
+                    store_root,
+                    "import",
+                    str(fixture["project_path"]),
+                    "--id",
+                    "payment_intake_fourth_answer_cli",
+                    "--experience-seed",
+                    str(fixture["experience_seed"]),
+                ]
+            )
+
+            started = _run_cli(
+                [
+                    "--store-root",
+                    store_root,
+                    "intake",
+                    "project",
+                    "payment_intake_fourth_answer_cli",
+                ]
+            )
+
+            first_answer = _run_cli(
+                [
+                    "--store-root",
+                    store_root,
+                    "intake",
+                    "answer",
+                    "payment_intake_fourth_answer_cli",
+                    started["intake"]["session_id"],
+                    "--answer",
+                    "这个项目主要负责支付回调和结算处理。",
+                ]
+            )
+
+            second_answer = _run_cli(
+                [
+                    "--store-root",
+                    store_root,
+                    "intake",
+                    "answer",
+                    "payment_intake_fourth_answer_cli",
+                    first_answer["intake"]["session_id"],
+                    "--answer",
+                    "主要服务财务结算和支付运营同学。",
+                ]
+            )
+
+            third_answer = _run_cli(
+                [
+                    "--store-root",
+                    store_root,
+                    "intake",
+                    "answer",
+                    "payment_intake_fourth_answer_cli",
+                    second_answer["intake"]["session_id"],
+                    "--answer",
+                    "结算编排模块、支付回调模块、对账模块。",
+                ]
+            )
+
+            output = _run_cli(
+                [
+                    "--store-root",
+                    store_root,
+                    "intake",
+                    "answer",
+                    "payment_intake_fourth_answer_cli",
+                    third_answer["intake"]["session_id"],
+                    "--answer",
+                    "支付回调 -> 状态校验 -> 结算编排 -> 对账出账。",
+                ]
+            )
+
+            self.assertEqual(output["intake"]["status"], "answered")
+            self.assertIsNone(output["intake"]["next_question"])
+            self.assertEqual(
+                output["intake"]["captured_fields"]["key_flows"],
+                "支付回调 -> 状态校验 -> 结算编排 -> 对账出账。",
+            )
+            self.assertEqual(
+                output["intake"]["baseline_draft"]["key_flows"],
+                ["支付回调 -> 状态校验 -> 结算编排 -> 对账出账"],
             )
 
     def test_setup_indexes_imports_smoke_tests_and_prints_mcp_config(self):
