@@ -44,6 +44,8 @@ facts        Work directly with CodeGraph facts or exported facts.
 mcp          Run the local-only stdio MCP server.
 ```
 
+`intake project` currently starts a minimal two-step onboarding flow: first capture the project goal, then capture primary users, and keep a `project-intake-session-latest.json` artifact plus a lightweight `baseline_draft` in sync.
+
 Legacy script entry points under `apps/tools/` are still present for source-tree development, but the installable CLI is preferred.
 
 ## 3. Storage Layout

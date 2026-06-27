@@ -8,6 +8,20 @@ from uuid import uuid4
 from projectbrain_runtime.models import now_iso
 
 
+PROJECT_INTAKE_QUESTIONS = [
+    {
+        "question_id": "project_goal_01",
+        "slot_key": "project_goal",
+        "question": "这个项目最核心是干什么的？",
+    },
+    {
+        "question_id": "primary_users_01",
+        "slot_key": "primary_users",
+        "question": "这个项目主要服务谁？最常使用它的是哪些角色？",
+    },
+]
+
+
 def build_project_intake_session(*, project_id: str) -> dict[str, Any]:
     now = now_iso()
     return {
@@ -17,11 +31,7 @@ def build_project_intake_session(*, project_id: str) -> dict[str, Any]:
         "status": "asking",
         "initiated_by": "user",
         "summary": "Project intake session created. The first onboarding question is ready.",
-        "next_question": {
-            "question_id": "project_goal_01",
-            "slot_key": "project_goal",
-            "question": "这个项目最核心是干什么的？主要服务谁？",
-        },
+        "next_question": dict(PROJECT_INTAKE_QUESTIONS[0]),
         "started_at": now,
         "updated_at": now,
     }
@@ -36,29 +46,64 @@ def submit_project_intake_answer(
     if session.get("session_id") != session_id:
         raise ValueError(f"Unknown intake session: {session_id}")
 
+    current_question = session.get("next_question")
+    if not current_question:
+        raise ValueError(f"Intake session already completed: {session_id}")
+
+    slot_key = current_question.get("slot_key")
     updated = dict(session)
-    updated["status"] = "answered"
-    updated["captured_fields"] = {
+    captured_fields = {
         **updated.get("captured_fields", {}),
-        "project_goal": answer,
+        slot_key: answer,
+    }
+    next_question = _next_project_intake_question(current_question.get("question_id"))
+    updated["status"] = "answered" if next_question is None else "asking"
+    updated["captured_fields"] = {
+        **captured_fields,
     }
     updated["answers"] = [
         *updated.get("answers", []),
         {
-            "question_id": updated.get("next_question", {}).get("question_id"),
-            "slot_key": "project_goal",
+            "question_id": current_question.get("question_id"),
+            "slot_key": slot_key,
             "answer": answer,
         },
     ]
-    updated["next_question"] = None
+    updated["next_question"] = next_question
     updated["updated_at"] = now_iso()
-    updated["summary"] = "Project intake captured the first onboarding answer."
-    updated["baseline_draft"] = {
+    updated["summary"] = _project_intake_summary(next_question)
+    updated["baseline_draft"] = _build_project_baseline_draft(
+        project_id=updated.get("project_id"),
+        captured_fields=captured_fields,
+    )
+    return updated
+
+
+def _next_project_intake_question(current_question_id: str | None) -> dict[str, Any] | None:
+    for index, question in enumerate(PROJECT_INTAKE_QUESTIONS):
+        if question["question_id"] == current_question_id:
+            if index + 1 < len(PROJECT_INTAKE_QUESTIONS):
+                return dict(PROJECT_INTAKE_QUESTIONS[index + 1])
+            return None
+    return None
+
+
+def _project_intake_summary(next_question: dict[str, Any] | None) -> str:
+    if next_question is None:
+        return "Project intake captured the current onboarding answers."
+    return "Project intake captured the latest answer and queued the next onboarding question."
+
+
+def _build_project_baseline_draft(*, project_id: str | None, captured_fields: dict[str, Any]) -> dict[str, Any]:
+    project_goal = captured_fields.get("project_goal", "")
+    primary_users = captured_fields.get("primary_users")
+    primary_user_list = [primary_users] if primary_users else []
+    return {
         "bundle_type": "project_baseline",
-        "project_id": updated.get("project_id"),
-        "project_summary": answer,
-        "project_goal": answer,
-        "primary_users": [],
+        "project_id": project_id,
+        "project_summary": project_goal,
+        "project_goal": project_goal,
+        "primary_users": primary_user_list,
         "core_modules": [],
         "key_flows": [],
         "third_party_integrations": [],
@@ -69,4 +114,3 @@ def submit_project_intake_answer(
         "unknowns": [],
         "quality_notes": [],
     }
-    return updated

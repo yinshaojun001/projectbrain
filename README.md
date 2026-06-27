@@ -96,10 +96,12 @@ projectbrain understand my_project "解释结算入口" --format agent
 ```bash
 projectbrain intake project my_project
 projectbrain intake answer my_project intake_xxx --answer "这个项目主要负责支付回调和结算处理。"
+projectbrain intake answer my_project intake_xxx --answer "主要服务财务结算和支付运营同学。"
 ```
 
 当前会返回一个最小 intake session，并附带第一条 onboarding 问题。
-提交第一问答案后，session 中会生成一个最小 `Project Baseline Bundle` 草稿。
+提交第一问答案后，session 会继续追问“这个项目主要服务谁”，并同步生成一个最小 `Project Baseline Bundle` 草稿。
+提交第二问答案后，session 会结束，并把 `primary_users` 写入 baseline 草稿。
 
 生成 Impact Analysis：
 
