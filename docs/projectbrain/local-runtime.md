@@ -36,6 +36,7 @@ import       Import CodeGraph facts into local runtime storage.
 list         List imported projects.
 claim        Add local experience claims.
 context      Build a context pack from imported facts.
+understand   Build a Task Understanding Bundle from imported facts.
 impact       Build impact analysis from imported facts.
 impact-diff  Build impact analysis from local Git changed file names.
 facts        Work directly with CodeGraph facts or exported facts.

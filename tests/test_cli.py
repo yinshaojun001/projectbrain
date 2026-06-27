@@ -98,6 +98,40 @@ class ProjectBrainCliTest(unittest.TestCase):
                 "manual_review_required",
             )
 
+    def test_understand_returns_task_understanding_bundle(self):
+        with tempfile.TemporaryDirectory() as tmp:
+            fixture = create_payment_mini_codegraph_project(Path(tmp))
+            store_root = str((Path(tmp) / "store").resolve())
+
+            _run_cli(
+                [
+                    "--store-root",
+                    store_root,
+                    "import",
+                    str(fixture["project_path"]),
+                    "--id",
+                    "payment_understand_cli",
+                    "--experience-seed",
+                    str(fixture["experience_seed"]),
+                ]
+            )
+
+            output = _run_cli(
+                [
+                    "--store-root",
+                    store_root,
+                    "understand",
+                    "payment_understand_cli",
+                    "Explain settlement flow",
+                ]
+            )
+
+            self.assertEqual(output["bundle"]["bundle_type"], "task_understanding")
+            self.assertEqual(output["bundle"]["project_id"], "payment_understand_cli")
+            self.assertEqual(output["bundle"]["task"], "Explain settlement flow")
+            self.assertEqual(output["bundle"]["task_type"], "explain")
+            self.assertIn("summary", output["bundle"])
+
     def test_setup_indexes_imports_smoke_tests_and_prints_mcp_config(self):
         with tempfile.TemporaryDirectory() as tmp:
             fixture = create_payment_mini_codegraph_project(Path(tmp))

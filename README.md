@@ -83,6 +83,13 @@ projectbrain --store-root ~/.projectbrain-work setup /path/to/my/project \
 projectbrain context my_project "解释结算入口" --format agent
 ```
 
+生成 Task Understanding Bundle：
+
+```bash
+projectbrain understand my_project "解释结算入口"
+projectbrain understand my_project "解释结算入口" --format agent
+```
+
 生成 Impact Analysis：
 
 ```bash

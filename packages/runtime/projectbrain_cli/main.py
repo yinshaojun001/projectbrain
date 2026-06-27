@@ -180,6 +180,12 @@ def build_parser() -> argparse.ArgumentParser:
     context.add_argument("--max-items-per-section", type=int, default=12)
     context.add_argument("--format", choices=OUTPUT_FORMATS, default="json", help="Output format")
 
+    understand = subcommands.add_parser("understand", help="Build a task understanding bundle from imported facts")
+    understand.add_argument("project_id")
+    understand.add_argument("task")
+    understand.add_argument("--max-items-per-section", type=int, default=12)
+    understand.add_argument("--format", choices=OUTPUT_FORMATS, default="json", help="Output format")
+
     impact = subcommands.add_parser("impact", help="Build impact analysis from imported facts")
     impact.add_argument("project_id")
     impact.add_argument("task")
@@ -423,6 +429,18 @@ def main(
             max_items_per_section=args.max_items_per_section,
         )
         print_json(format_output(data, args.format))
+        return 0
+
+    if args.command == "understand":
+        data = runtime.build_task_understanding_bundle(
+            project_id=args.project_id,
+            task=args.task,
+            max_items_per_section=args.max_items_per_section,
+        )
+        if args.format == "agent":
+            print_json({"agent_output": data["bundle"]})
+        else:
+            print_json(data)
         return 0
 
     if args.command == "impact":
