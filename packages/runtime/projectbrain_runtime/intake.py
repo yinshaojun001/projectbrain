@@ -19,6 +19,11 @@ PROJECT_INTAKE_QUESTIONS = [
         "slot_key": "primary_users",
         "question": "这个项目主要服务谁？最常使用它的是哪些角色？",
     },
+    {
+        "question_id": "core_modules_01",
+        "slot_key": "core_modules",
+        "question": "这个项目当前最关键的核心模块有哪些？",
+    },
 ]
 
 
@@ -98,13 +103,14 @@ def _build_project_baseline_draft(*, project_id: str | None, captured_fields: di
     project_goal = captured_fields.get("project_goal", "")
     primary_users = captured_fields.get("primary_users")
     primary_user_list = [primary_users] if primary_users else []
+    core_modules = _split_list_answer(captured_fields.get("core_modules"))
     return {
         "bundle_type": "project_baseline",
         "project_id": project_id,
         "project_summary": project_goal,
         "project_goal": project_goal,
         "primary_users": primary_user_list,
-        "core_modules": [],
+        "core_modules": core_modules,
         "key_flows": [],
         "third_party_integrations": [],
         "high_risk_areas": [],
@@ -114,3 +120,11 @@ def _build_project_baseline_draft(*, project_id: str | None, captured_fields: di
         "unknowns": [],
         "quality_notes": [],
     }
+
+
+def _split_list_answer(answer: Any) -> list[str]:
+    if not isinstance(answer, str):
+        return []
+    normalized = answer.replace("，", ",").replace("、", ",").replace("；", ",").replace(";", ",")
+    items = [item.strip().strip("。") for item in normalized.split(",")]
+    return [item for item in items if item]
