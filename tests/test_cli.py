@@ -143,6 +143,9 @@ class ProjectBrainCliTest(unittest.TestCase):
                 calls.append((command, cwd))
                 return cli_main.CommandResult(returncode=0, stdout="", stderr="")
 
+            def fake_agent_detector(_command):
+                return None
+
             output = _run_cli(
                 [
                     "--store-root",
@@ -165,6 +168,7 @@ class ProjectBrainCliTest(unittest.TestCase):
                     "method",
                 ],
                 command_runner=fake_run,
+                agent_detector=fake_agent_detector,
             )
 
             self.assertEqual(
