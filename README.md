@@ -99,6 +99,7 @@ projectbrain intake answer my_project intake_xxx --answer "这个项目主要负
 ```
 
 当前会返回一个最小 intake session，并附带第一条 onboarding 问题。
+提交第一问答案后，session 中会生成一个最小 `Project Baseline Bundle` 草稿。
 
 生成 Impact Analysis：
 

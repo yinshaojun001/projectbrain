@@ -53,4 +53,20 @@ def submit_project_intake_answer(
     updated["next_question"] = None
     updated["updated_at"] = now_iso()
     updated["summary"] = "Project intake captured the first onboarding answer."
+    updated["baseline_draft"] = {
+        "bundle_type": "project_baseline",
+        "project_id": updated.get("project_id"),
+        "project_summary": answer,
+        "project_goal": answer,
+        "primary_users": [],
+        "core_modules": [],
+        "key_flows": [],
+        "third_party_integrations": [],
+        "high_risk_areas": [],
+        "constraints": [],
+        "validation_strategy": [],
+        "priority_evidence": [],
+        "unknowns": [],
+        "quality_notes": [],
+    }
     return updated

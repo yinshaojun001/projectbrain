@@ -214,6 +214,11 @@ class ProjectBrainCliTest(unittest.TestCase):
                 "这个项目主要负责支付回调和结算处理。",
             )
             self.assertIsNone(output["intake"]["next_question"])
+            self.assertEqual(output["intake"]["baseline_draft"]["bundle_type"], "project_baseline")
+            self.assertEqual(
+                output["intake"]["baseline_draft"]["project_summary"],
+                "这个项目主要负责支付回调和结算处理。",
+            )
 
     def test_setup_indexes_imports_smoke_tests_and_prints_mcp_config(self):
         with tempfile.TemporaryDirectory() as tmp:
