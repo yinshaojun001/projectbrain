@@ -44,6 +44,11 @@ PROJECT_INTAKE_QUESTIONS = [
         "slot_key": "constraints",
         "question": "这个项目当前有哪些必须遵守的约束、边界或兼容性要求？",
     },
+    {
+        "question_id": "validation_strategy_01",
+        "slot_key": "validation_strategy",
+        "question": "这个项目当前最重要的验证方式、测试策略或上线前检查项有哪些？",
+    },
 ]
 
 
@@ -128,6 +133,7 @@ def _build_project_baseline_draft(*, project_id: str | None, captured_fields: di
     third_party_integrations = _split_list_answer(captured_fields.get("third_party_integrations"))
     high_risk_areas = _split_list_answer(captured_fields.get("high_risk_areas"))
     constraints = _split_list_answer(captured_fields.get("constraints"))
+    validation_strategy = _split_list_answer(captured_fields.get("validation_strategy"))
     return {
         "bundle_type": "project_baseline",
         "project_id": project_id,
@@ -139,7 +145,7 @@ def _build_project_baseline_draft(*, project_id: str | None, captured_fields: di
         "third_party_integrations": third_party_integrations,
         "high_risk_areas": high_risk_areas,
         "constraints": constraints,
-        "validation_strategy": [],
+        "validation_strategy": validation_strategy,
         "priority_evidence": [],
         "unknowns": [],
         "quality_notes": [],
