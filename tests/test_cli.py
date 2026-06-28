@@ -220,6 +220,13 @@ class ProjectBrainCliTest(unittest.TestCase):
                 output["intake"]["baseline_draft"]["project_summary"],
                 "这个项目主要负责支付回调和结算处理。",
             )
+            self.assertTrue(output["baseline_artifact_path"].endswith("project-baseline-latest.json"))
+            baseline_artifact = json.loads(Path(output["baseline_artifact_path"]).read_text(encoding="utf-8"))
+            self.assertEqual(baseline_artifact["bundle_type"], "project_baseline")
+            self.assertEqual(
+                baseline_artifact["project_goal"],
+                "这个项目主要负责支付回调和结算处理。",
+            )
 
     def test_project_intake_second_answer_advances_to_core_modules_question(self):
         with tempfile.TemporaryDirectory() as tmp:

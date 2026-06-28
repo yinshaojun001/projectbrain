@@ -165,7 +165,16 @@ class ProjectBrainRuntime:
             "project-intake-session-latest.json",
             intake,
         )
-        return {"artifact_path": artifact_path, "intake": intake}
+        result = {"artifact_path": artifact_path, "intake": intake}
+        baseline_draft = intake.get("baseline_draft")
+        if isinstance(baseline_draft, dict):
+            baseline_artifact_path = self.repository.save_run_artifact(
+                project_id,
+                "project-baseline-latest.json",
+                baseline_draft,
+            )
+            result["baseline_artifact_path"] = baseline_artifact_path
+        return result
 
     def analyze_impact(
         self,

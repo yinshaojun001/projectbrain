@@ -114,6 +114,7 @@ projectbrain intake answer my_project intake_xxx --answer "补充单元测试、
 提交第六问答案后，session 会继续追问“必须遵守的约束有哪些”，并把 `high_risk_areas` 写入 baseline 草稿。
 提交第七问答案后，session 会继续追问“如何验证改动是安全的”，并把 `constraints` 写入 baseline 草稿。
 提交第八问答案后，session 会结束，并把 `validation_strategy` 写入 baseline 草稿。
+每次 `intake answer` 还会把最新 `baseline_draft` 同步落盘为 `runs/project-baseline-latest.json`，方便后续 Agent 或其他流程直接消费。
 
 生成 Impact Analysis：
 
