@@ -143,6 +143,34 @@ class TaskUnderstandingBundleTest(unittest.TestCase):
             )
             self.assertEqual(verified_evidence[0]["review_state"], "approved")
 
+    def test_runtime_build_project_baseline_rebuilds_latest_artifact_from_intake_session(self):
+        with tempfile.TemporaryDirectory() as tmp:
+            fixture = create_payment_mini_codegraph_project(Path(tmp))
+            repository = JsonProjectBrainRepository(Path(tmp) / "store")
+            runtime = ProjectBrainRuntime(repository)
+            runtime.import_project(
+                project_id="payment_demo",
+                project_path=fixture["project_path"],
+                name="Payment Demo",
+                experience_seed=fixture["experience_seed"],
+            )
+
+            started = runtime.start_project_intake(project_id="payment_demo")
+            answered = runtime.answer_project_intake(
+                project_id="payment_demo",
+                session_id=started["intake"]["session_id"],
+                answer="这个项目主要负责支付回调和结算处理。",
+            )
+            baseline_artifact_path = Path(answered["baseline_artifact_path"])
+            baseline_artifact_path.unlink()
+
+            data = runtime.build_project_baseline(project_id="payment_demo")
+
+            self.assertEqual(data["baseline"]["bundle_type"], "project_baseline")
+            self.assertEqual(data["baseline"]["project_id"], "payment_demo")
+            self.assertEqual(data["baseline"]["project_goal"], "这个项目主要负责支付回调和结算处理。")
+            self.assertTrue(Path(data["artifact_path"]).exists())
+
 
 if __name__ == "__main__":
     unittest.main()

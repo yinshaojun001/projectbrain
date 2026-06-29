@@ -176,6 +176,23 @@ class ProjectBrainRuntime:
             result["baseline_artifact_path"] = baseline_artifact_path
         return result
 
+    def build_project_baseline(
+        self,
+        *,
+        project_id: str,
+    ) -> dict[str, Any]:
+        self.repository.get_project(project_id)
+        session = self.repository.get_run_artifact(project_id, "project-intake-session-latest.json")
+        baseline_draft = session.get("baseline_draft")
+        if not isinstance(baseline_draft, dict):
+            raise ValueError(f"Project baseline is not available for project: {project_id}")
+        artifact_path = self.repository.save_run_artifact(
+            project_id,
+            "project-baseline-latest.json",
+            baseline_draft,
+        )
+        return {"artifact_path": artifact_path, "baseline": baseline_draft}
+
     def analyze_impact(
         self,
         *,

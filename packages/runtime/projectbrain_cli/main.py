@@ -86,6 +86,8 @@ def build_parser() -> argparse.ArgumentParser:
 
     baseline = subcommands.add_parser("baseline", help="Work with project baseline artifacts")
     baseline_subcommands = baseline.add_subparsers(dest="baseline_command", required=True)
+    baseline_build = baseline_subcommands.add_parser("build", help="Build the latest project baseline artifact")
+    baseline_build.add_argument("project_id")
     baseline_show = baseline_subcommands.add_parser("show", help="Show the latest project baseline artifact")
     baseline_show.add_argument("project_id")
 
@@ -385,6 +387,9 @@ def main(
         return 0
 
     if args.command == "baseline":
+        if args.baseline_command == "build":
+            print_json(runtime.build_project_baseline(project_id=args.project_id))
+            return 0
         if args.baseline_command == "show":
             print_json(
                 {
