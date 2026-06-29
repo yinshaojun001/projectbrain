@@ -84,6 +84,11 @@ def build_parser() -> argparse.ArgumentParser:
 
     subcommands.add_parser("list", help="List imported projects")
 
+    baseline = subcommands.add_parser("baseline", help="Work with project baseline artifacts")
+    baseline_subcommands = baseline.add_subparsers(dest="baseline_command", required=True)
+    baseline_show = baseline_subcommands.add_parser("show", help="Show the latest project baseline artifact")
+    baseline_show.add_argument("project_id")
+
     intake = subcommands.add_parser("intake", help="Start ProjectBrain intake workflows")
     intake_subcommands = intake.add_subparsers(dest="intake_command", required=True)
     intake_project = intake_subcommands.add_parser("project", help="Start project onboarding intake")
@@ -378,6 +383,23 @@ def main(
     if args.command == "list":
         print_json({"projects": [project.to_dict() for project in repository.list_projects()]})
         return 0
+
+    if args.command == "baseline":
+        if args.baseline_command == "show":
+            print_json(
+                {
+                    "artifact_path": str(
+                        Path(args.store_root)
+                        / "projects"
+                        / args.project_id
+                        / "runs"
+                        / "project-baseline-latest.json"
+                    ),
+                    "baseline": repository.get_run_artifact(args.project_id, "project-baseline-latest.json"),
+                }
+            )
+            return 0
+        raise ValueError(f"Unsupported baseline command: {args.baseline_command}")
 
     if args.command == "intake":
         if args.intake_command == "project":

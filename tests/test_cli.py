@@ -132,6 +132,62 @@ class ProjectBrainCliTest(unittest.TestCase):
             self.assertEqual(output["bundle"]["task_type"], "explain")
             self.assertIn("summary", output["bundle"])
 
+    def test_baseline_show_returns_latest_project_baseline_artifact(self):
+        with tempfile.TemporaryDirectory() as tmp:
+            fixture = create_payment_mini_codegraph_project(Path(tmp))
+            store_root = str((Path(tmp) / "store").resolve())
+
+            _run_cli(
+                [
+                    "--store-root",
+                    store_root,
+                    "import",
+                    str(fixture["project_path"]),
+                    "--id",
+                    "payment_baseline_show_cli",
+                    "--experience-seed",
+                    str(fixture["experience_seed"]),
+                ]
+            )
+
+            started = _run_cli(
+                [
+                    "--store-root",
+                    store_root,
+                    "intake",
+                    "project",
+                    "payment_baseline_show_cli",
+                ]
+            )
+
+            _run_cli(
+                [
+                    "--store-root",
+                    store_root,
+                    "intake",
+                    "answer",
+                    "payment_baseline_show_cli",
+                    started["intake"]["session_id"],
+                    "--answer",
+                    "这个项目主要负责支付回调和结算处理。",
+                ]
+            )
+
+            output = _run_cli(
+                [
+                    "--store-root",
+                    store_root,
+                    "baseline",
+                    "show",
+                    "payment_baseline_show_cli",
+                ]
+            )
+
+            self.assertTrue(output["artifact_path"].endswith("project-baseline-latest.json"))
+            self.assertEqual(output["baseline"]["bundle_type"], "project_baseline")
+            self.assertEqual(output["baseline"]["project_id"], "payment_baseline_show_cli")
+            self.assertEqual(output["baseline"]["project_goal"], "这个项目主要负责支付回调和结算处理。")
+
     def test_project_intake_creates_session_stub(self):
         with tempfile.TemporaryDirectory() as tmp:
             fixture = create_payment_mini_codegraph_project(Path(tmp))

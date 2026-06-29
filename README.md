@@ -89,6 +89,7 @@ projectbrain context my_project "解释结算入口" --format agent
 ```bash
 projectbrain understand my_project "解释结算入口"
 projectbrain understand my_project "解释结算入口" --format agent
+projectbrain baseline show my_project
 ```
 
 启动项目 Intake：
@@ -115,6 +116,7 @@ projectbrain intake answer my_project intake_xxx --answer "补充单元测试、
 提交第七问答案后，session 会继续追问“如何验证改动是安全的”，并把 `constraints` 写入 baseline 草稿。
 提交第八问答案后，session 会结束，并把 `validation_strategy` 写入 baseline 草稿。
 每次 `intake answer` 还会把最新 `baseline_draft` 同步落盘为 `runs/project-baseline-latest.json`，方便后续 Agent 或其他流程直接消费。
+可以用 `projectbrain baseline show my_project` 直接读取当前最新的正式项目基线产物。
 
 生成 Impact Analysis：
 
