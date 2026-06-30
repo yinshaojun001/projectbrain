@@ -45,7 +45,7 @@ facts        Work directly with CodeGraph facts or exported facts.
 mcp          Run the local-only stdio MCP server.
 ```
 
-`intake project` currently starts a minimal eight-step onboarding flow: capture the project goal, primary users, core modules, key flows, third-party integrations, high-risk areas, constraints, and validation strategy, while keeping `project-intake-session-latest.json` plus a lightweight `baseline_draft` in sync. Each `intake answer` also refreshes `runs/project-baseline-latest.json` for downstream consumption, `baseline build <project_id>` rebuilds that artifact from the latest intake session, and `baseline show <project_id>` returns the latest baseline artifact directly.
+`intake project` currently starts a minimal eight-step onboarding flow: capture the project goal, primary users, core modules, key flows, third-party integrations, high-risk areas, constraints, and validation strategy, while keeping `project-intake-session-latest.json` plus a lightweight `baseline_draft` in sync. Each `intake answer` also refreshes `runs/project-baseline-latest.json` for downstream consumption, `baseline build <project_id>` rebuilds that artifact from the latest intake session, and both `baseline build <project_id> --format agent` plus `baseline show <project_id> --format agent` return a compact baseline view for AI coding agents.
 
 Legacy script entry points under `apps/tools/` are still present for source-tree development, but the installable CLI is preferred.
 
@@ -241,6 +241,13 @@ projectbrain context my_project "Explain the checkout flow and risk points" --fo
 projectbrain impact my_project "Change checkout validation" \
   --changed-file src/checkout/CheckoutService.java \
   --format agent
+```
+
+Baseline artifacts support the same compact agent projection:
+
+```bash
+projectbrain baseline build my_project --format agent
+projectbrain baseline show my_project --format agent
 ```
 
 ## 10. Review Local Git Diff Impact

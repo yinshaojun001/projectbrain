@@ -90,7 +90,9 @@ projectbrain context my_project "解释结算入口" --format agent
 projectbrain understand my_project "解释结算入口"
 projectbrain understand my_project "解释结算入口" --format agent
 projectbrain baseline build my_project
+projectbrain baseline build my_project --format agent
 projectbrain baseline show my_project
+projectbrain baseline show my_project --format agent
 ```
 
 启动项目 Intake：
@@ -119,6 +121,7 @@ projectbrain intake answer my_project intake_xxx --answer "补充单元测试、
 每次 `intake answer` 还会把最新 `baseline_draft` 同步落盘为 `runs/project-baseline-latest.json`，方便后续 Agent 或其他流程直接消费。
 可以用 `projectbrain baseline build my_project` 从当前最新 intake session 重新生成正式项目基线产物。
 可以用 `projectbrain baseline show my_project` 直接读取当前最新的正式项目基线产物。
+`baseline build` 和 `baseline show` 现在也支持 `--format agent`，可直接返回面向 AI 编程智能体的紧凑项目基线结构。
 
 生成 Impact Analysis：
 
