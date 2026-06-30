@@ -52,6 +52,24 @@ class ProjectBaselineAgentOutputTest(unittest.TestCase):
         self.assertEqual(output["agent_output"]["core_modules"], ["结算编排模块", "支付回调模块"])
         self.assertEqual(output["agent_output"]["quality_notes"], ["需人工确认"])
 
+    def test_format_output_returns_empty_lists_for_sparse_project_baseline(self):
+        output = format_output(
+            {
+                "baseline": {
+                    "bundle_type": "project_baseline",
+                    "project_id": "legacy_demo",
+                    "project_goal": "兼容历史制品。",
+                }
+            },
+            "agent",
+        )
+
+        self.assertEqual(output["agent_output"]["artifact_type"], "project_baseline")
+        self.assertEqual(output["agent_output"]["project_id"], "legacy_demo")
+        self.assertEqual(output["agent_output"]["primary_users"], [])
+        self.assertEqual(output["agent_output"]["core_modules"], [])
+        self.assertEqual(output["agent_output"]["quality_notes"], [])
+
 class AgentOutputTest(unittest.TestCase):
     def test_cli_context_agent_format(self):
         with tempfile.TemporaryDirectory() as tmp:
