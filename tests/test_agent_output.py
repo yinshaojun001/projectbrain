@@ -20,7 +20,7 @@ from projectbrain_cli.mcp_server import ProjectBrainMcpServer  # noqa: E402
 from projectbrain_runtime.agent_output import format_agent_output, format_output  # noqa: E402
 
 
-class AgentOutputTest(unittest.TestCase):
+class ProjectBaselineAgentOutputTest(unittest.TestCase):
     def test_format_output_returns_project_baseline_agent_view(self):
         output = format_output(
             {
@@ -29,16 +29,16 @@ class AgentOutputTest(unittest.TestCase):
                     "project_id": "payment_demo",
                     "project_summary": "支付项目基线",
                     "project_goal": "负责支付回调和结算处理。",
-                    "primary_users": ["财务结算", "支付运营"],
-                    "core_modules": ["结算编排模块", "支付回调模块"],
-                    "key_flows": ["支付回调 -> 状态校验 -> 结算编排"],
-                    "third_party_integrations": ["微信支付", "支付宝"],
-                    "high_risk_areas": ["支付回调幂等处理", "结算状态机"],
-                    "constraints": ["必须兼容历史账单", "不能改第三方回调协议"],
-                    "validation_strategy": ["补充单元测试", "跑支付回调联调"],
-                    "priority_evidence": [],
-                    "unknowns": [],
-                    "quality_notes": [],
+                    "primary_users": [{"name": "财务结算"}, {"name": "支付运营"}],
+                    "core_modules": [{"name": "结算编排模块"}, {"name": "支付回调模块"}],
+                    "key_flows": [{"name": "支付回调 -> 状态校验 -> 结算编排"}],
+                    "third_party_integrations": [{"name": "微信支付"}, {"name": "支付宝"}],
+                    "high_risk_areas": [{"name": "支付回调幂等处理"}, {"name": "结算状态机"}],
+                    "constraints": [{"name": "必须兼容历史账单"}, {"name": "不能改第三方回调协议"}],
+                    "validation_strategy": [{"name": "补充单元测试"}, {"name": "跑支付回调联调"}],
+                    "priority_evidence": [{"name": "支付链路告警历史"}],
+                    "unknowns": [{"name": "退款边界"}],
+                    "quality_notes": [{"name": "需人工确认"}],
                 }
             },
             "agent",
@@ -47,10 +47,11 @@ class AgentOutputTest(unittest.TestCase):
         self.assertEqual(output["agent_output"]["artifact_type"], "project_baseline")
         self.assertEqual(output["agent_output"]["project_id"], "payment_demo")
         self.assertEqual(output["agent_output"]["project_goal"], "负责支付回调和结算处理。")
-        self.assertEqual(output["agent_output"]["primary_users"], ["财务结算", "支付运营"])
-        self.assertEqual(output["agent_output"]["core_modules"], ["结算编排模块", "支付回调模块"])
-        self.assertEqual(output["agent_output"]["quality_notes"], [])
+        self.assertEqual(output["agent_output"]["primary_users"], [{"name": "财务结算"}, {"name": "支付运营"}])
+        self.assertEqual(output["agent_output"]["core_modules"], [{"name": "结算编排模块"}, {"name": "支付回调模块"}])
+        self.assertEqual(output["agent_output"]["quality_notes"], [{"name": "需人工确认"}])
 
+class AgentOutputTest(unittest.TestCase):
     def test_cli_context_agent_format(self):
         with tempfile.TemporaryDirectory() as tmp:
             fixture = create_payment_mini_codegraph_project(Path(tmp))
