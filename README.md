@@ -47,7 +47,6 @@ ProjectBrain 不是代码搜索 UI，不是通用 RAG 聊天机器人，也不�
 
 ```bash
 brew tap yinshaojun001/projectbrain https://github.com/yinshaojun001/projectbrain
-brew trust yinshaojun001/projectbrain
 brew install projectbrain
 projectbrain doctor
 codex-brain --help

@@ -32,9 +32,11 @@ Commands:
 
 ```text
 doctor       Check local CLI health.
+setup        Set up a local project for agent use.
 import       Import CodeGraph facts into local runtime storage.
 list         List imported projects.
 baseline     Show persisted project baseline artifacts.
+policy       Inspect local ProjectBrain privacy policy.
 claim        Add local experience claims.
 context      Build a context pack from imported facts.
 understand   Build a Task Understanding Bundle from imported facts.
@@ -71,6 +73,7 @@ Project layout:
       runs/
         context-pack-latest.json
         impact-analysis-latest.json
+        project-intake-session-latest.json
         project-baseline-latest.json
 ```
 
@@ -82,7 +85,7 @@ Files:
 | `inventory.json` | CodeGraph inventory summary from `.codegraph/codegraph.db`. |
 | `facts.json` | ProjectBrain-shaped `entities`, `relations`, and `sources`. |
 | `experience_claims.json` | Claims loaded from `experience-seed.md` and claims added locally with `claim add`. |
-| `runs/*.json` | Latest generated context/impact artifacts. |
+| `runs/*.json` | Latest generated context, impact, intake session, and baseline artifacts. |
 
 ## 4. Local Privacy Policy
 
