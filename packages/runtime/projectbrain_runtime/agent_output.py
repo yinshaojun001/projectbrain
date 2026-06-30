@@ -77,6 +77,8 @@ def _impact_analysis_output(analysis: dict[str, Any]) -> dict[str, Any]:
 
 
 def _project_baseline_output(baseline: dict[str, Any]) -> dict[str, Any]:
+    """Mirror the persisted baseline contract so agent consumers see the real list[str] fields."""
+
     return {
         "artifact_type": "project_baseline",
         "project_id": baseline.get("project_id"),
@@ -180,12 +182,6 @@ def _messages(items: list[Any]) -> list[dict[str, Any]]:
                 }
             )
     return messages
-
-
-def _string_list(items: Any) -> list[str]:
-    if not isinstance(items, list):
-        return []
-    return [item for item in items if isinstance(item, str)]
 
 
 def _manual_review_from_context(pack: dict[str, Any], sections: dict[str, list[dict[str, Any]]]) -> dict[str, Any]:

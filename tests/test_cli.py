@@ -206,27 +206,14 @@ class ProjectBrainCliTest(unittest.TestCase):
                 ]
             )
 
-            started = _run_cli(
+            _answer_project_intake(
+                store_root,
+                "payment_baseline_show_agent_cli",
                 [
-                    "--store-root",
-                    store_root,
-                    "intake",
-                    "project",
-                    "payment_baseline_show_agent_cli",
-                ]
-            )
-
-            _run_cli(
-                [
-                    "--store-root",
-                    store_root,
-                    "intake",
-                    "answer",
-                    "payment_baseline_show_agent_cli",
-                    started["intake"]["session_id"],
-                    "--answer",
                     "这个项目主要负责支付回调和结算处理。",
-                ]
+                    "主要服务财务结算和支付运营同学。",
+                    "结算编排模块、支付回调模块。",
+                ],
             )
 
             output = _run_cli(
@@ -241,9 +228,14 @@ class ProjectBrainCliTest(unittest.TestCase):
                 ]
             )
 
+            self.assertNotIn("artifact_path", output)
+            self.assertNotIn("baseline", output)
             self.assertEqual(output["agent_output"]["artifact_type"], "project_baseline")
             self.assertEqual(output["agent_output"]["project_id"], "payment_baseline_show_agent_cli")
             self.assertEqual(output["agent_output"]["project_goal"], "这个项目主要负责支付回调和结算处理。")
+            self.assertEqual(output["agent_output"]["primary_users"], ["主要服务财务结算和支付运营同学。"])
+            self.assertEqual(output["agent_output"]["core_modules"], ["结算编排模块", "支付回调模块"])
+            self.assertEqual(output["agent_output"]["quality_notes"], [])
 
     def test_baseline_build_recreates_latest_project_baseline_artifact(self):
         with tempfile.TemporaryDirectory() as tmp:
@@ -320,27 +312,14 @@ class ProjectBrainCliTest(unittest.TestCase):
                 ]
             )
 
-            started = _run_cli(
+            answered = _answer_project_intake(
+                store_root,
+                "payment_baseline_build_agent_cli",
                 [
-                    "--store-root",
-                    store_root,
-                    "intake",
-                    "project",
-                    "payment_baseline_build_agent_cli",
-                ]
-            )
-
-            answered = _run_cli(
-                [
-                    "--store-root",
-                    store_root,
-                    "intake",
-                    "answer",
-                    "payment_baseline_build_agent_cli",
-                    started["intake"]["session_id"],
-                    "--answer",
                     "这个项目主要负责支付回调和结算处理。",
-                ]
+                    "主要服务财务结算和支付运营同学。",
+                    "结算编排模块、支付回调模块。",
+                ],
             )
             Path(answered["baseline_artifact_path"]).unlink()
 
@@ -356,9 +335,14 @@ class ProjectBrainCliTest(unittest.TestCase):
                 ]
             )
 
+            self.assertNotIn("artifact_path", output)
+            self.assertNotIn("baseline", output)
             self.assertEqual(output["agent_output"]["artifact_type"], "project_baseline")
             self.assertEqual(output["agent_output"]["project_id"], "payment_baseline_build_agent_cli")
             self.assertEqual(output["agent_output"]["project_goal"], "这个项目主要负责支付回调和结算处理。")
+            self.assertEqual(output["agent_output"]["primary_users"], ["主要服务财务结算和支付运营同学。"])
+            self.assertEqual(output["agent_output"]["core_modules"], ["结算编排模块", "支付回调模块"])
+            self.assertEqual(output["agent_output"]["quality_notes"], [])
 
     def test_project_intake_creates_session_stub(self):
         with tempfile.TemporaryDirectory() as tmp:
@@ -1433,6 +1417,34 @@ def _run_cli(argv: list[str], **kwargs) -> dict:
     if result != 0:
         raise AssertionError(f"CLI returned {result}")
     return json.loads(output.getvalue())
+
+
+def _answer_project_intake(store_root: str, project_id: str, answers: list[str]) -> dict:
+    started = _run_cli(
+        [
+            "--store-root",
+            store_root,
+            "intake",
+            "project",
+            project_id,
+        ]
+    )
+    session_id = started["intake"]["session_id"]
+    latest = started
+    for answer in answers:
+        latest = _run_cli(
+            [
+                "--store-root",
+                store_root,
+                "intake",
+                "answer",
+                project_id,
+                session_id,
+                "--answer",
+                answer,
+            ]
+        )
+    return latest
 
 
 if __name__ == "__main__":
