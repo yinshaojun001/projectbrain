@@ -18,6 +18,8 @@ def format_agent_output(data: dict[str, Any]) -> dict[str, Any]:
         if "git_diff" in data:
             output["git_diff"] = data["git_diff"]
         return output
+    if "baseline" in data:
+        return _project_baseline_output(data["baseline"])
     return data
 
 
@@ -71,6 +73,25 @@ def _impact_analysis_output(analysis: dict[str, Any]) -> dict[str, Any]:
         },
         "review_recommendation": recommendation,
         "omissions": _messages(analysis.get("omissions", [])),
+    }
+
+
+def _project_baseline_output(baseline: dict[str, Any]) -> dict[str, Any]:
+    return {
+        "artifact_type": "project_baseline",
+        "project_id": baseline.get("project_id"),
+        "project_summary": baseline.get("project_summary"),
+        "project_goal": baseline.get("project_goal"),
+        "primary_users": _string_list(baseline.get("primary_users")),
+        "core_modules": _string_list(baseline.get("core_modules")),
+        "key_flows": _string_list(baseline.get("key_flows")),
+        "third_party_integrations": _string_list(baseline.get("third_party_integrations")),
+        "high_risk_areas": _string_list(baseline.get("high_risk_areas")),
+        "constraints": _string_list(baseline.get("constraints")),
+        "validation_strategy": _string_list(baseline.get("validation_strategy")),
+        "priority_evidence": _string_list(baseline.get("priority_evidence")),
+        "unknowns": _string_list(baseline.get("unknowns")),
+        "quality_notes": _string_list(baseline.get("quality_notes")),
     }
 
 
@@ -159,6 +180,12 @@ def _messages(items: list[Any]) -> list[dict[str, Any]]:
                 }
             )
     return messages
+
+
+def _string_list(items: Any) -> list[str]:
+    if not isinstance(items, list):
+        return []
+    return [item for item in items if isinstance(item, str)]
 
 
 def _manual_review_from_context(pack: dict[str, Any], sections: dict[str, list[dict[str, Any]]]) -> dict[str, Any]:

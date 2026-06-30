@@ -88,8 +88,10 @@ def build_parser() -> argparse.ArgumentParser:
     baseline_subcommands = baseline.add_subparsers(dest="baseline_command", required=True)
     baseline_build = baseline_subcommands.add_parser("build", help="Build the latest project baseline artifact")
     baseline_build.add_argument("project_id")
+    baseline_build.add_argument("--format", choices=OUTPUT_FORMATS, default="json", help="Output format")
     baseline_show = baseline_subcommands.add_parser("show", help="Show the latest project baseline artifact")
     baseline_show.add_argument("project_id")
+    baseline_show.add_argument("--format", choices=OUTPUT_FORMATS, default="json", help="Output format")
 
     intake = subcommands.add_parser("intake", help="Start ProjectBrain intake workflows")
     intake_subcommands = intake.add_subparsers(dest="intake_command", required=True)
@@ -388,21 +390,21 @@ def main(
 
     if args.command == "baseline":
         if args.baseline_command == "build":
-            print_json(runtime.build_project_baseline(project_id=args.project_id))
+            data = runtime.build_project_baseline(project_id=args.project_id)
+            print_json(format_output(data, args.format))
             return 0
         if args.baseline_command == "show":
-            print_json(
-                {
-                    "artifact_path": str(
-                        Path(args.store_root)
-                        / "projects"
-                        / args.project_id
-                        / "runs"
-                        / "project-baseline-latest.json"
-                    ),
-                    "baseline": repository.get_run_artifact(args.project_id, "project-baseline-latest.json"),
-                }
-            )
+            data = {
+                "artifact_path": str(
+                    Path(args.store_root)
+                    / "projects"
+                    / args.project_id
+                    / "runs"
+                    / "project-baseline-latest.json"
+                ),
+                "baseline": repository.get_run_artifact(args.project_id, "project-baseline-latest.json"),
+            }
+            print_json(format_output(data, args.format))
             return 0
         raise ValueError(f"Unsupported baseline command: {args.baseline_command}")
 
